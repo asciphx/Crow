@@ -634,7 +634,7 @@ TEST(json_copy_r_to_w_to_r) {
   ASSERT_EQUAL("a string",x["str"]);
   ASSERT_TRUE(true==x["trueval"].b());
   ASSERT_TRUE(false==x["falseval"].b());
-  ASSERT_TRUE(json::type::Null==x["nullval"].t());
+  ASSERT_TRUE(json::value_t::null==x["nullval"].t());
   ASSERT_EQUAL(4u,x["listval"].size());
   ASSERT_EQUAL(1,x["listval"][0]);
   ASSERT_EQUAL(2,x["listval"][1]);
