@@ -48,7 +48,7 @@ namespace crow {
 		int dotPosition=name.find(".");
 		if (dotPosition==(int)name.npos) {
 		  for (auto it=stack.rbegin(); it!=stack.rend(); ++it) {
-			if ((*it)->t()==json::type::Object) {
+			if ((*it)->t()==json::value_t::object) {
 			  if ((*it)->count(name))
 				return {true, (**it)[name]};
 			}
@@ -70,7 +70,7 @@ namespace crow {
 			Ctx* view=*it;
 			bool found=true;
 			for (auto jt=names.begin(); jt!=names.end(); ++jt) {
-			  if (view->t()==json::type::Object&&
+			  if (view->t()==json::value_t::object&&
 				  view->count(*jt)) {
 				view=&(*view)[*jt];
 			  } else {
@@ -127,10 +127,10 @@ namespace crow {
 			  auto optional_ctx=find_context(tag_name(action),stack);
 			  auto& ctx=optional_ctx.second;
 			  switch (ctx.t()) {
-				case json::type::Number:
+				case json::value_t::number_integer:
 				out+=ctx.dump();
 				break;
-				case json::type::String:
+				case json::value_t::string:
 				if (action.t==ActionType::Tag)
 				  escape(ctx.s,out);
 				else
@@ -152,14 +152,14 @@ namespace crow {
 
 			  auto& ctx=optional_ctx.second;
 			  switch (ctx.t()) {
-				case json::type::List:
+				case json::value_t::array:
 				if (ctx.l&&!ctx.l->empty())
 				  current=action.pos;
 				else
 				  stack.emplace_back(&nullContext);
 				break;
-				case json::type::False:
-				case json::type::Null:
+				case json::value_t::boolean:
+				case json::value_t::null:
 				stack.emplace_back(&nullContext);
 				break;
 				default:
@@ -177,7 +177,7 @@ namespace crow {
 			  }
 			  auto& ctx=optional_ctx.second;
 			  switch (ctx.t()) {
-				case json::type::List:
+				case json::value_t::array:
 				if (ctx.l)
 				  for (auto it=ctx.l->begin(); it!=ctx.l->end(); ++it) {
 					stack.push_back(&*it);
@@ -186,14 +186,16 @@ namespace crow {
 				  }
 				current=action.pos;
 				break;
-				case json::type::Number:
-				case json::type::String:
-				case json::type::Object:
-				case json::type::True:
+				case json::value_t::number_integer:
+				case json::value_t::number_float:
+				case json::value_t::number_unsigned:
+				case json::value_t::string:
+				case json::value_t::object:
 				stack.push_back(&ctx);
 				break;
-				case json::type::False:
-				case json::type::Null:
+				case json::value_t::True:
+				case json::value_t::boolean:
+				case json::value_t::null:
 				current=action.pos;
 				break;
 				default:
