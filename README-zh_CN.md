@@ -39,7 +39,7 @@ int main(){
 #### 服务端渲染
 ```c++
   CROW_ROUTE(app,"/")([] {
-	char name[256];gethostname(name,256);
+	char name[64];gethostname(name,64);
 	mustache::Ctx x;x["servername"]=name;
 	auto page=mustache::load("index.html");
 	return page.render(x);

@@ -6,7 +6,7 @@ using namespace crow;
 int main() {
   App<Cors> app;//Global Middleware,and default config
   app.set_directory("./static")
-	.set_types({"html","ico","css","js","json","svg","png","gif","txt"}).set_types({"jpg"});
+	.set_types({"html","ico","css","js","json","svg","png","gif","jpg","txt"});
   //Server rendering
   CROW_ROUTE(app,"/")([] {
 	char name[64];gethostname(name,64);
@@ -34,8 +34,7 @@ int main() {
 	return x;
   });
   app.route_dynamic("/hello/<int>")([](int count) {
-	if (count>100)
-	  return Res(400);
+	if (count>100) return Res(400);
 	std::ostringstream os;
 	os<<count<<" bottles of beer!";
 	return Res(os.str());
@@ -71,7 +70,7 @@ int main() {
 	for (const auto& countVal:count) os<<" - "<<countVal<<'\n';
 	return Res{os.str()};
   });
-  logger::setLogLevel(LogLevel::DEBUG);
+  logger::setLogLevel(LogLevel::WARNING);
   //logger::setHandler(std::make_shared<ExampleLogHandler>());
   app.port(8080).multithreaded().run();
 }

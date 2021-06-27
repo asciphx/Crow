@@ -20,6 +20,12 @@ int main() {
 	return page.render(x);
   });
 
+  app.route_dynamic("/list")([]() {
+	json::value v=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"asciphx"},
+	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
+	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
+	return v;
+  });
   // a request to /path should be forwarded to /path/
   CROW_ROUTE(app,"/path/")
 	([]() {

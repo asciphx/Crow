@@ -158,7 +158,7 @@ namespace crow {
 				else
 				  stack.emplace_back(&nullContext);
 				break;
-				case json::value_t::boolean:
+				case json::value_t::False:
 				case json::value_t::null:
 				stack.emplace_back(&nullContext);
 				break;
@@ -194,7 +194,7 @@ namespace crow {
 				stack.push_back(&ctx);
 				break;
 				case json::value_t::True:
-				case json::value_t::boolean:
+				case json::value_t::False:
 				case json::value_t::null:
 				current=action.pos;
 				break;
@@ -404,9 +404,7 @@ namespace crow {
 		  if (all_space_after&&!is_last_action)
 			continue;
 		  if (!all_space_after&&
-			  !(
-				body_[k]=='\n'
-				||
+			  !(body_[k]=='\n'||
 				(body_[k]=='\r'&&
 				 k+1<(int)body_.size()&&
 				 body_[k+1]=='\n')))
@@ -455,7 +453,7 @@ namespace crow {
 	  get_loader_ref()=std::move(loader);
 	}
 
-	inline std::string load_text(const std::string& filename) {
+	inline std::string loadOnly(const std::string& filename) {
 	  return get_loader_ref()(filename);
 	}
 

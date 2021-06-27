@@ -1,4 +1,5 @@
 #include "crow.h"
+#include "mustache.h"
 #include <unordered_set>
 #include <mutex>
 int main() {
@@ -28,11 +29,10 @@ int main() {
 
   CROW_ROUTE(app,"/")
 	([] {
-	char name[256];
-	gethostname(name,256);
+	char name[64];
+	gethostname(name,64);
 	crow::mustache::Ctx x;
 	x["servername"]=name;
-
 	auto page=crow::mustache::load("ws.html");
 	return page.render(x);
   });
