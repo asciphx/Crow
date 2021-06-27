@@ -54,7 +54,7 @@ int main(){
 #### JSON Response
 ```c++
 CROW_ROUTE(app, "/json")([]{
-    crow::json::wvalue x;
+    crow::json::value x;
     x["message"] = "Hello, World!";
     return x;
 });

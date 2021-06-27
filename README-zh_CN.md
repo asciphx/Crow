@@ -49,7 +49,7 @@ int main(){
 #### JSON响应
 ```c++
 CROW_ROUTE(app, "/json")([]{
-    crow::json::wvalue x;
+    crow::json::value x;
     x["message"] = "Hello, World!";
     return x;
 });
