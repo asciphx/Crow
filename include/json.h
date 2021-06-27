@@ -882,7 +882,7 @@ namespace crow {
 	  } num;
 	  std::string s;
 	  std::unique_ptr<std::vector<value>> l;
-	  std::unordered_map<std::string,value> o;
+	  std::unique_ptr<std::unordered_map<std::string,value>> o;
 	  public:
 	  value() {}
 	  value(const rvalue& r) {
@@ -906,9 +906,11 @@ namespace crow {
 			l->emplace_back(*it);
 		  return;
 		  case value_t::object:
-		  o.clear();
+		  o=std::unique_ptr<
+			std::unordered_map<std::string,value>
+		  >(new std::unordered_map<std::string,value>{});
 		  for (auto it=r.begin(); it!=r.end(); ++it)
-			o.emplace(it->key(),*it);
+			o->emplace(it->key(),*it);
 		  return;
 		}
 	  }
@@ -933,7 +935,7 @@ namespace crow {
 	  void reset() {
 		t_=value_t::null;
 		l.reset();
-		o.clear();
+		o.reset();
 	  }
 
 	  value& operator = (std::nullptr_t) {
@@ -1030,8 +1032,7 @@ namespace crow {
 		if (t_!=value_t::array)
 		  reset();
 		t_=value_t::array;
-		if (!l)
-		  l=std::unique_ptr<std::vector<value>>(new std::vector<value>{});
+		if (!l)l=std::unique_ptr<std::vector<value>>(new std::vector<value>{});
 		l->clear();
 		l->resize(v.size());
 		size_t idx=0;
@@ -1046,8 +1047,7 @@ namespace crow {
 		if (t_!=value_t::array)
 		  reset();
 		t_=value_t::array;
-		if (!l)
-		  l=std::unique_ptr<std::vector<value>>(new std::vector<value>{});
+		if (!l)l=std::unique_ptr<std::vector<value>>(new std::vector<value>{});
 		l->clear();
 		l->resize(v.size());
 		size_t idx=0;
@@ -1061,8 +1061,7 @@ namespace crow {
 		if (t_!=value_t::array)
 		  reset();
 		t_=value_t::array;
-		if (!l)
-		  l=std::unique_ptr<std::vector<value>>(new std::vector<value>{});
+		if (!l)l=std::unique_ptr<std::vector<value>>(new std::vector<value>{});
 		if (l->size()<index+1)
 		  l->resize(index+1);
 		return (*l)[index];
@@ -1071,22 +1070,23 @@ namespace crow {
 	  int count(const std::string& str) {
 		if (t_!=value_t::object)
 		  return 0;
-		if (o.empty())
+		if (!o)
 		  return 0;
-		return o.count(str);
+		return o->count(str);
 	  }
 
 	  value& operator[](const std::string& str) {
 		if (t_!=value_t::object)
 		  reset();
 		t_=value_t::object;
-		return o[str];
+		if (!o)o=std::unique_ptr<std::unordered_map<std::string,value>>(new std::unordered_map<std::string,value>{});
+		return (*o)[str];
 	  }
 	  std::vector<std::string> keys() const {
 		if (t_!=value_t::object)
 		  return {};
 		std::vector<std::string> result;
-		for (auto& kv:o) {
+		for (auto& kv:*o) {
 		  result.push_back(kv.first);
 		}
 		return result;
@@ -1097,7 +1097,9 @@ namespace crow {
 		  case value_t::null: return 4;
 		  case value_t::False: return 5;
 		  case value_t::True: return 4;
-		  case value_t::number_integer: return 30;
+		  case value_t::number_float: return 30;
+		  case value_t::number_unsigned: return 20;
+		  case value_t::number_integer: return 20;
 		  case value_t::string: return 2+s.size()+s.size()/2;
 		  case value_t::array:
 		  {
@@ -1113,8 +1115,8 @@ namespace crow {
 		  case value_t::object:
 		  {
 			size_t sum{};
-			if (!o.empty()) {
-			  for (auto& kv:o) {
+			if (o) {
+			  for (auto& kv:*o) {
 				sum+=2;
 				sum+=2+kv.first.size()+kv.first.size()/2;
 				sum+=kv.second.estimate_length();
@@ -1174,7 +1176,7 @@ namespace crow {
 		case value_t::object:{
 		  out.push_back('{');
 		  bool first=true;
-		  for (auto& kv:v.o) {
+		  for (auto& kv:*v.o) {
 			if (!first) out.push_back(',');
 			first=false;
 			dump_string(kv.first,out);
