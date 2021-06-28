@@ -17,6 +17,9 @@
 #include "crow/middleware_context.h"
 #include "crow/socket_adaptors.h"
 #include "crow/compression.h"
+static char Res_server_tag[9]="Server: ",Res_keep_alive_tag[23]="Connection: Keep-Alive",Res_content_length_tag[17]="Content-Length: ";
+static char Res_date_tag[7]="Date: ",Res_content_length[15]="content-length",RES_Ser[7]="server",RES_Dat[5]="date";
+static char Res_seperator[3]=": ",Res_crlf[3]="\r\n";
 namespace crow {
   using namespace boost;
   using tcp=asio::ip::tcp;
@@ -217,17 +220,17 @@ namespace crow {
 
 	  if (parser_.check_version(1,0)) {
 		// HTTP/1.0
-		if (req.headers.count("connection")) {
-		  if (boost::iequals(req.get_header_value("connection"),"Keep-Alive"))
+		if (req.headers.count("Connection")) {
+		  if (boost::iequals(req.get_header_value("Connection"),"Keep-Alive"))
 			add_keep_alive_=true;
 		} else
 		  close_connection_=true;
 	  } else if (parser_.check_version(1,1)) {
 		// HTTP/1.1
-		if (req.headers.count("connection")) {
-		  if (req.get_header_value("connection")=="close")
+		if (req.headers.count("Connection")) {
+		  if (req.get_header_value("Connection")=="close")
 			close_connection_=true;
-		  else if (boost::iequals(req.get_header_value("connection"),"Keep-Alive"))
+		  else if (boost::iequals(req.get_header_value("Connection"),"Keep-Alive"))
 			add_keep_alive_=true;
 		}
 		if (!req.headers.count("host")) {
@@ -264,7 +267,7 @@ namespace crow {
 		  res.complete_request_handler_=[this] { this->complete_request(); };
 		  need_to_call_after_handlers_=true;
 		  handler_->handle(req,res);
-		  if (add_keep_alive_)res.set_header("connection","Keep-Alive");
+		  if (add_keep_alive_)res.set_header("Connection","Keep-Alive");
 		} else {
 		  complete_request();
 		}
@@ -322,9 +325,6 @@ namespace crow {
 	}
 
 	private:
-	inline static char server_tag[9]="Server: ",keep_alive_tag[23]="Connection: Keep-Alive",content_length_tag[17]="Content-Length: ";
-	inline static char date_tag[7]="Date: ",content_length[15]="content-length",RES_Ser[7]="server",RES_Dat[5]="date";
-	inline static char seperator[3]=": ",crlf[3]="\r\n";
 	void prepare_buffers() {
 	  //auto self = this->shared_from_this();
 	  res.complete_request_handler_=nullptr;
@@ -378,35 +378,35 @@ namespace crow {
 
 	  for (auto& kv:res.headers) {
 		buffers_.emplace_back(kv.first.data(),kv.first.size());
-		buffers_.emplace_back(seperator,2);
+		buffers_.emplace_back(Res_seperator,2);
 		buffers_.emplace_back(kv.second.data(),kv.second.size());
-		buffers_.emplace_back(crlf,2);
+		buffers_.emplace_back(Res_crlf,2);
 
 	  }
 
-	  if (!res.manual_length_header&&!res.headers.count(content_length)) {
+	  if (!res.manual_length_header&&!res.headers.count(Res_content_length)) {
 		content_length_=std::to_string(res.body.size());
-		buffers_.emplace_back(content_length_tag,16);
+		buffers_.emplace_back(Res_content_length_tag,16);
 		buffers_.emplace_back(content_length_.data(),content_length_.size());
-		buffers_.emplace_back(crlf,2);
+		buffers_.emplace_back(Res_crlf,2);
 	  }
 	  if (!res.headers.count(RES_Ser)) {
-		buffers_.emplace_back(server_tag,8);
+		buffers_.emplace_back(Res_server_tag,8);
 		buffers_.emplace_back(server_name_.data(),server_name_.size());
-		buffers_.emplace_back(crlf,2);
+		buffers_.emplace_back(Res_crlf,2);
 	  }
 	  if (!res.headers.count(RES_Dat)) {
 		date_str_=get_cached_date_str();
-		buffers_.emplace_back(date_tag,6);
+		buffers_.emplace_back(Res_date_tag,6);
 		buffers_.emplace_back(date_str_.data(),date_str_.size());
-		buffers_.emplace_back(crlf,2);
+		buffers_.emplace_back(Res_crlf,2);
 	  }
 	  if (add_keep_alive_) {
-		buffers_.emplace_back(keep_alive_tag,22);
-		buffers_.emplace_back(crlf,2);
+		buffers_.emplace_back(Res_keep_alive_tag,22);
+		buffers_.emplace_back(Res_crlf,2);
 	  }
 
-	  buffers_.emplace_back(crlf,2);
+	  buffers_.emplace_back(Res_crlf,2);
 
 	}
 

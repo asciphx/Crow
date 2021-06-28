@@ -1,6 +1,7 @@
 #include "crow.h"
 #include "mustache.h"
 #include "middleware.h"
+#include "module.h"
 #include <sstream>
 using namespace crow;
 class ExampleLogHandler : public ILogHandler {
@@ -14,17 +15,24 @@ int main() {
 	.get_middleware<ExampleMiddleware>().setMessage("hello");
   //Server rendering
   CROW_ROUTE(app,"/")([] {
-	char name[256];gethostname(name,256);
-	mustache::Ctx x;x["servername"]=name;
+	char name[64];gethostname(name,64);
+	json x;x["servername"]=name;
 	auto page=mustache::load("index.html");
 	return page.render(x);
   });
 
-  app.route_dynamic("/list")([]() {
-	json::value v=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"asciphx"},
+  app.route("/list")([]() {
+	json v=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
 	return v;
+  });
+  app.route("/lists")([]() {
+	List list=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
+	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
+	  {"is":true,"weight":51.0,"name":"best","age":26}]})").get<List>();
+	json json_output=json(list);
+	return json_output;
   });
   // a request to /path should be forwarded to /path/
   CROW_ROUTE(app,"/path/")
@@ -37,7 +45,7 @@ int main() {
   // To see it in action enter {ip}:18080/json
   CROW_ROUTE(app,"/json")
 	([] {
-	crow::json::value x;
+	crow::json x;
 	x["message"]="Hello, World!";
 	return x;
   });
@@ -85,7 +93,7 @@ int main() {
 	auto x=crow::json::parse(req.body);
 	if (!x)
 	  return crow::Res(400);
-	int sum=x["a"].i()+x["b"].i();
+	int sum=x["a"].get<int>()+x["b"].get<int>();
 	std::ostringstream os;
 	os<<sum;
 	return crow::Res{os.str()};

@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cstdint>
 #include <utility>
 #include <tuple>
@@ -13,16 +12,13 @@
 #include "crow/utility.h"
 #include "crow/logging.h"
 #include "crow/websocket.h"
-
 namespace crow {
   /// A base class for all rules.
-
   /// Used to provide a common interface for code dealing with different types of rules.
   /// A Rule provides a URL, allowed HTTP methods, and handlers.
   class BaseRule {
     public:
-    BaseRule(std::string rule)
-      : rule_(std::move(rule)) {}
+    BaseRule(std::string rule) : rule_(std::move(rule)) {}
 
     virtual ~BaseRule() {}
 
@@ -45,10 +41,7 @@ namespace crow {
     }
 #endif
 
-    uint32_t get_methods() {
-      return methods_;
-    }
-
+    uint32_t get_methods() { return methods_; }
     template <typename F>
     void foreach_method(F f) {
       for (uint32_t method=0,method_bit=1; method<static_cast<uint32_t>(HTTPMethod::InternalMethodCount); method++,method_bit<<=1) {
@@ -61,17 +54,13 @@ namespace crow {
 
     protected:
     uint32_t methods_{1<<static_cast<int>(HTTPMethod::GET)};
-
     std::string rule_;
     std::string name_;
-
     std::unique_ptr<BaseRule> rule_to_upgrade_;
-
     friend class Router;
     template <typename T>
     friend struct RuleParameterTraits;
   };
-
 
   namespace detail {
     namespace routing_handler_call_helper {
@@ -226,7 +215,6 @@ namespace crow {
     }
   }
 
-
   class CatchallRule {
     public:
     CatchallRule() {}
@@ -302,11 +290,8 @@ namespace crow {
     std::function<void(const crow::Req&,crow::Res&)> handler_;
   };
 
-
   /// A rule dealing with websockets.
-
   /// Provides the interface for the user to put in the necessary handlers for a websocket to work.
-  ///
   class WebSocketRule : public BaseRule {
     using self_t=WebSocketRule;
     public:
@@ -366,9 +351,7 @@ namespace crow {
     std::function<void(crow::websocket::connection&)> error_handler_;
     std::function<bool(const crow::Req&)> accept_handler_;
   };
-
   /// Allows the user to assign parameters using functions.
-  ///
   /// `rule.name("name").methods(HTTPMethod::POST)`
   template <typename T>
   struct RuleParameterTraits {
@@ -401,10 +384,7 @@ namespace crow {
   /// A rule that can change its parameters during runtime.
   class DynamicRule : public BaseRule,public RuleParameterTraits<DynamicRule> {
     public:
-
-    DynamicRule(std::string rule)
-      : BaseRule(std::move(rule)) {}
-
+    DynamicRule(std::string rule) : BaseRule(std::move(rule)) {}
     void validate() override {
       if (!erased_handler_) {
         throw std::runtime_error(name_+(!name_.empty()?": ":"")+"no handler for url "+rule_);
@@ -868,7 +848,6 @@ namespace crow {
     DynamicRule& new_rule_dynamic(const std::string& rule) {
       auto ruleObject=new DynamicRule(rule);
       all_rules_.emplace_back(ruleObject);
-
       return *ruleObject;
     }
 
@@ -898,7 +877,6 @@ namespace crow {
       ruleObject->foreach_method([&](int method) {
         per_methods_[method].rules.emplace_back(ruleObject);
         per_methods_[method].trie.add(rule,per_methods_[method].rules.size()-1);
-
         // directory case:
         //   Req to '/about' url matches '/about/' rule
         if (has_trailing_slash) {
@@ -993,7 +971,6 @@ namespace crow {
         res.is_head_response=true;
       } else if (req.method==HTTPMethod::OPTIONS) {
         std::string allow="OPTIONS, HEAD, ";
-
         if (req.url=="/*") {
           for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); i++) {
             if (per_methods_[i].trie.is_empty()) {
@@ -1027,15 +1004,11 @@ namespace crow {
           }
         }
       }
-
       auto& per_method=per_methods_[static_cast<int>(method_actual)];
       auto& trie=per_method.trie;
       auto& rules=per_method.rules;
-
       auto found=trie.find(req.url);
-
       unsigned rule_index=found.first;
-
       if (!rule_index) {
         for (auto& per_method:per_methods_) {
           if (per_method.trie.find(req.url).first) {
@@ -1063,7 +1036,6 @@ namespace crow {
       if (rule_index==RULE_SPECIAL_REDIRECT_SLASH) {
         CROW_LOG_INFO<<"Redirecting to a url with trailing slash: "<<req.url;
         res=Res(301);
-
         // TODO absolute url building
         if (req.get_header_value("Host").empty()) {
           res.add_header("Location",req.url+"/");
@@ -1073,7 +1045,6 @@ namespace crow {
         res.end();
         return;
       }
-
       CROW_LOG_DEBUG<<"Matched rule '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
 
       // any uncaught exceptions become 500s

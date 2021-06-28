@@ -13,11 +13,19 @@
 #include "crow/http_connection.h"
 #include "crow/logging.h"
 #include "crow/detail.h"
-
+namespace boost {
+  namespace posix_time {
+    class BOOST_SYMBOL_VISIBLE millseconds : public time_duration {
+      public:template <typename T>
+        BOOST_CXX14_CONSTEXPR explicit millseconds(T const& s,
+             typename boost::enable_if<boost::is_integral<T>,void>::type* =BOOST_DATE_TIME_NULLPTR):
+        time_duration(0,0,0,numeric_cast<fractional_seconds_type>(s)) {}
+    };
+  }
+}
 namespace crow {
   using namespace boost;
   using tcp=asio::ip::tcp;
-
   template <typename Handler,typename Adaptor=SocketAdaptor,typename ... Middlewares>
   class Server {
     public:
@@ -62,22 +70,20 @@ namespace crow {
         auto last=std::chrono::steady_clock::now();
         std::string date_str;
         auto last_time_t=time(0);
-//        tm my_tm;
-//#if defined(_MSC_VER) || defined(__MINGW32__)
-//          gmtime_s(&my_tm,&last_time_t);
-//          localtime_s(&my_tm,&last_time_t);
-//#else
-//        gmtime_r(&last_time_t,&my_tm);
-//        localtime_r(&last_time_t,&my_tm);
-//#endif
+        tm my_tm;
+#if defined(_MSC_VER) || defined(__MINGW32__)
+          localtime_s(&my_tm,&last_time_t);
+#else
+        localtime_r(&last_time_t,&my_tm);
+#endif
         date_str.resize(0x20);
-        date_str.resize(strftime(&date_str[0],0x1f,"%a, %d %b %Y %H:%M:%S GMT",localtime(&last_time_t)));
+        date_str.resize(strftime(&date_str[0],0x1f,"%a, %d %b %Y %H:%M:%S GMT",&my_tm));
         get_cached_date_str_pool_[i]=[&]()->std::string {
           if (std::chrono::steady_clock::now()-last>=std::chrono::seconds(1)) {
             last=std::chrono::steady_clock::now();
             //update_date_str();
             date_str.resize(0x20);
-            date_str.resize(strftime(&date_str[0],0x1f,"%a, %d %b %Y %H:%M:%S GMT",localtime(&last_time_t)));
+            date_str.resize(strftime(&date_str[0],0x1f,"%a, %d %b %Y %H:%M:%S GMT",&my_tm));
           }
           return date_str;
         };
@@ -87,18 +93,14 @@ namespace crow {
 
         timer_queue.set_io_service(*io_service_pool_[i]);
         boost::asio::deadline_timer timer(*io_service_pool_[i]);
-        timer.expires_from_now(boost::posix_time::seconds(1));
-
         std::function<void(const boost::system::error_code& ec)> handler;
-        handler=[&](const boost::system::error_code& ec) {
-          if (ec)
-            return;
+        timer.expires_from_now(boost::posix_time::millseconds(1));
+        timer.async_wait(handler=[&timer_queue,&timer,&handler](const boost::system::error_code&) {
+          //if (ec)return;//asciphx
           timer_queue.process();
-          timer.expires_from_now(boost::posix_time::seconds(1));
+          timer.expires_from_now(boost::posix_time::millseconds(1));
           timer.async_wait(handler);
-        };
-        timer.async_wait(handler);
-
+        });
         init_count++;
         while (1) {
           try {

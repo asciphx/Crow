@@ -1,6 +1,7 @@
 #include "crow.h"
 #include "mustache.h"
 #include "middleware.h"
+#include "module.h"
 #include <sstream>
 using namespace crow;
 int main() {
@@ -10,20 +11,33 @@ int main() {
   //Server rendering
   CROW_ROUTE(app,"/")([] {
 	char name[64];gethostname(name,64);
-	mustache::Ctx x;x["servername"]=name;
+	json x;x["servername"]=name;
 	auto page=mustache::load("index.html");
 	return page.render(x);
   });
   //Single path access to files
-  app.route_dynamic("/cat")([](const Req&,Res& res) {
+  app.route("/cat")([](const Req&,Res& res) {
 	res.set_static_file_info("1.jpg");res.end();
   });
   // a request to /path should be forwarded to /path/
-  app.route_dynamic("/path/")([]() {
+  app.route("/path/")([]() {
 	return "Trailing slash test case..";
   });
-  app.route_dynamic("/json")([] {
-	json::value x;
+  app.route("/list")([]() {
+	json v=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
+	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
+	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
+	return v;
+  });
+  app.route("/lists")([]() {
+	List list=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
+	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
+	  {"is":true,"weight":51.0,"name":"best","age":26}]})").get<List>();
+	json json_output=json(list);
+	return json_output;
+  });
+  app.route("/json")([] {
+	json x;
 	x["message"]="Hello, World!";
 	x["double"]=3.1415926;
 	x["int"]=2352352;
@@ -33,13 +47,13 @@ int main() {
 	x["bignumber"]=2353464586543265455;
 	return x;
   });
-  app.route_dynamic("/hello/<int>")([](int count) {
+  app.route("/hello/<int>")([](int count) {
 	if (count>100) return Res(400);
 	std::ostringstream os;
 	os<<count<<" bottles of beer!";
 	return Res(os.str());
   });
-  app.route_dynamic("/add/<int>/<int>")([](const Req& req,Res& res,int a,int b) {
+  app.route("/add/<int>/<int>")([](const Req& req,Res& res,int a,int b) {
 	std::ostringstream os;
 	os<<a+b;
 	res.write(os.str());
@@ -50,14 +64,14 @@ int main() {
 	  //return response(500);
   //});
   // more json example
-  app.route_dynamic("/add_json").methods(HTTPMethod::POST)([](const Req& req) {
+  app.route("/add_json").methods(HTTPMethod::POST)([](const Req& req) {
 	auto x=json::parse(req.body);
 	if (!x) return Res(400);
-	auto sum=x["a"].i()+x["b"].i();
+	int sum=x["a"].get<int>()+x["b"].get<int>();
 	std::ostringstream os; os<<sum;
 	return Res{os.str()};
   });
-  app.route_dynamic("/params")([](const Req& req) {
+  app.route("/params")([](const Req& req) {
 	std::ostringstream os;
 	os<<"Params: "<<req.url_params<<"\n\n";
 	os<<"The key 'foo' was "<<(req.url_params.get("foo")==nullptr?"not ":"")<<"found.\n";

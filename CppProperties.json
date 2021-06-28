@@ -1,0 +1,26 @@
+{
+  "configurations": [
+    {
+      "inheritEnvironments": [
+        "msvc_x86"
+      ],
+      "name": "Win",
+      "includePath": [
+        "${env.INCLUDE}",
+        "${env.vcpkg}/include",
+        "${env.cppCl}/include",
+        "E:/Code/boost_1_75_0",
+        "${workspaceRoot}/include"
+      ],
+      "defines": [
+        "WIN32",
+        "_WINDOWS",
+        "NDEBUG",
+        "UNICODE",
+        "_UNICODE",
+        "_CONSOLE"
+      ],
+      "intelliSenseMode": "windows-msvc-x86"
+    }
+  ]
+}

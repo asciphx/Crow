@@ -4,23 +4,21 @@
 #include <functional>
 #include <fstream>
 #include <iterator>
-#include "crow/json.h"
+#include "crow/json.hpp"
 #include "crow/detail.h"
 namespace crow {
   namespace mustache {
-	using Ctx=json::value;
-	template_t load(const std::string& filename);
 	class invalid_template_exception : public std::exception {
-	  public:
-	  invalid_template_exception(const std::string& msg)
-		: msg("crow::mustache error: "+msg) {}
-	  virtual const char* what() const throw() { return msg.c_str(); }
-	  std::string msg;
+		public:
+		invalid_template_exception(const std::string& msg)
+		  : msg("crow::mustache error: "+msg) {}
+		virtual const char* what() const throw() { return msg.c_str(); }
+		std::string msg;
 	};
 
 	enum class ActionType {
 	  Ignore,Tag,UnescapeTag,OpenBlock,
-	  CloseBlock,ElseBlock,Partial,
+	  CloseBlock,ElseBlock,Partial
 	};
 
 	struct Action {
@@ -29,6 +27,18 @@ namespace crow {
 	  Action(ActionType t,int start,int end,int pos=0)
 		: start(start),end(end),pos(pos),t(t) {}
 	};
+
+	inline std::string default_loader(const std::string& filename) {
+	  std::string path=detail::directory_+filename;
+	  std::ifstream inf(path);
+	  if (!inf) return {};
+	  return {std::istreambuf_iterator<char>(inf), std::istreambuf_iterator<char>()};
+	}
+
+	inline std::function<std::string(std::string)>& get_loader_ref() {
+	  static std::function<std::string(std::string)> loader=default_loader;
+	  return loader;
+	}
 
 	class template_t {
 	  public:
@@ -41,14 +51,14 @@ namespace crow {
 	  std::string tag_name(const Action& action) {
 		return body_.substr(action.start,action.end-action.start);
 	  }
-	  auto find_context(const std::string& name,const std::vector<Ctx*>& stack)->std::pair<bool,Ctx&> {
+	  auto find_context(const std::string& name,const std::vector<json*>& stack)->std::pair<bool,json&> {
 		if (name==".") {
 		  return {true, *stack.back()};
 		}
 		int dotPosition=name.find(".");
 		if (dotPosition==(int)name.npos) {
 		  for (auto it=stack.rbegin(); it!=stack.rend(); ++it) {
-			if ((*it)->t()==json::value_t::object) {
+			if ((*it)->type()==json::value_t::object) {
 			  if ((*it)->count(name))
 				return {true, (**it)[name]};
 			}
@@ -67,10 +77,10 @@ namespace crow {
 			names.emplace_back(name.substr(dotPositions[i-1]+1,dotPositions[i]-dotPositions[i-1]-1));
 
 		  for (auto it=stack.rbegin(); it!=stack.rend(); ++it) {
-			Ctx* view=*it;
+			json* view=*it;
 			bool found=true;
 			for (auto jt=names.begin(); jt!=names.end(); ++jt) {
-			  if (view->t()==json::value_t::object&&
+			  if (view->type()==json::value_t::object&&
 				  view->count(*jt)) {
 				view=&(*view)[*jt];
 			  } else {
@@ -82,7 +92,7 @@ namespace crow {
 			  return {true, *view};
 		  }
 		}
-		static json::value empty_str;
+		static json empty_str;
 		empty_str="";
 		return {false, empty_str};
 	  }
@@ -95,14 +105,14 @@ namespace crow {
 			case '<': out+="&lt;"; break;
 			case '>': out+="&gt;"; break;
 			case '"': out+="&quot;"; break;
-			case '\'': out+="&#39;"; break;
 			case '/': out+="&#x2F;"; break;
+			case '\'': out+="&#39;"; break;
 			default: out+=*it; break;
 		  }
 		}
 	  }
 
-	  void render_internal(int actionBegin,int actionEnd,std::vector<Ctx*>& stack,std::string& out,int indent) {
+	  void render_internal(int actionBegin,int actionEnd,std::vector<json*>& stack,std::string& out,int indent) {
 		int current=actionBegin;
 		if (indent) out.insert(out.size(),indent,' ');
 		while (current<actionEnd) {
@@ -116,7 +126,7 @@ namespace crow {
 			case ActionType::Partial:
 			{
 			  std::string partial_name=tag_name(action);
-			  auto partial_templ=load(partial_name);
+			  auto partial_templ=template_t(get_loader_ref()(partial_name));
 			  int partial_indent=action.pos;
 			  partial_templ.render_internal(0,partial_templ.fragments_.size()-1,stack,out,partial_indent?indent+partial_indent:0);
 			}
@@ -126,24 +136,25 @@ namespace crow {
 			{
 			  auto optional_ctx=find_context(tag_name(action),stack);
 			  auto& ctx=optional_ctx.second;
-			  switch (ctx.t()) {
+			  switch (ctx.type()) {
 				case json::value_t::number_integer:
 				out+=ctx.dump();
 				break;
-				case json::value_t::string:
-				if (action.t==ActionType::Tag)
-				  escape(ctx.s,out);
-				else
-				  out+=ctx.s;
-				break;
+				case json::value_t::string: {
+				  std::string ss=ctx.dump();
+				  if (action.t==ActionType::Tag)
+					escape(ss.substr(1,ss.size()-2),out);
+				  else
+					out+=ss;
+				} break;
 				default:
-				throw std::runtime_error("not implemented tag type"+boost::lexical_cast<std::string>((int)ctx.t()));
+				throw std::runtime_error("not implemented tag type"+boost::lexical_cast<std::string>((int)ctx.type()));
 			  }
 			}
 			break;
 			case ActionType::ElseBlock:
 			{
-			  static Ctx nullContext;
+			  static json nullContext;
 			  auto optional_ctx=find_context(tag_name(action),stack);
 			  if (!optional_ctx.first) {
 				stack.emplace_back(&nullContext);
@@ -151,14 +162,14 @@ namespace crow {
 			  }
 
 			  auto& ctx=optional_ctx.second;
-			  switch (ctx.t()) {
+			  switch (ctx.type()) {
 				case json::value_t::array:
-				if (ctx.l&&!ctx.l->empty())
+				if (ctx.is_array()&&!ctx.array().empty())
 				  current=action.pos;
 				else
 				  stack.emplace_back(&nullContext);
 				break;
-				case json::value_t::False:
+				case json::value_t::boolean:
 				case json::value_t::null:
 				stack.emplace_back(&nullContext);
 				break;
@@ -176,16 +187,16 @@ namespace crow {
 				break;
 			  }
 			  auto& ctx=optional_ctx.second;
-			  switch (ctx.t()) {
-				case json::value_t::array:
-				if (ctx.l)
-				  for (auto it=ctx.l->begin(); it!=ctx.l->end(); ++it) {
+			  switch (ctx.type()) {
+				case json::value_t::array: {
+				  if (ctx.is_array())
+				  for (auto it=ctx.array().begin(); it!=ctx.array().end(); ++it) {
 					stack.push_back(&*it);
 					render_internal(current+1,action.pos,stack,out,indent);
 					stack.pop_back();
 				  }
-				current=action.pos;
-				break;
+				  current=action.pos;
+				} break;
 				case json::value_t::number_integer:
 				case json::value_t::number_float:
 				case json::value_t::number_unsigned:
@@ -193,13 +204,12 @@ namespace crow {
 				case json::value_t::object:
 				stack.push_back(&ctx);
 				break;
-				case json::value_t::True:
-				case json::value_t::False:
+				case json::value_t::boolean:
 				case json::value_t::null:
 				current=action.pos;
 				break;
 				default:
-				throw std::runtime_error("{{#: not implemented context type: "+boost::lexical_cast<std::string>((int)ctx.t()));
+				throw std::runtime_error("{{#: not implemented context type: "+boost::lexical_cast<std::string>((int)ctx.type()));
 				break;
 			  }
 			  break;
@@ -227,16 +237,16 @@ namespace crow {
 	  }
 	  public:
 	  std::string render() {
-		Ctx empty_ctx;
-		std::vector<Ctx*> stack;
+		json empty_ctx;
+		std::vector<json*> stack;
 		stack.emplace_back(&empty_ctx);
 
 		std::string ret;
 		render_internal(0,fragments_.size()-1,stack,ret,0);
 		return ret;
 	  }
-	  std::string render(Ctx& ctx) {
-		std::vector<Ctx*> stack;
+	  std::string render(json& ctx) {
+		std::vector<json*> stack;
 		stack.emplace_back(&ctx);
 
 		std::string ret;
@@ -428,37 +438,21 @@ namespace crow {
 	  std::string body_;
 	};
 
-	inline template_t compile(const std::string& body) {
-	  return template_t(body);
-	}
-
 	inline void set_directory(const std::string& path) {
 	  auto& base=detail::directory_;base=path;
 	  if (base.back()!='\\'&&base.back()!='/') base+='/';
-	}
-
-	inline std::string default_loader(const std::string& filename) {
-	  std::string path=detail::directory_+filename;
-	  std::ifstream inf(path);
-	  if (!inf) return {};
-	  return {std::istreambuf_iterator<char>(inf), std::istreambuf_iterator<char>()};
-	}
-
-	inline std::function<std::string(std::string)>& get_loader_ref() {
-	  static std::function<std::string(std::string)> loader=default_loader;
-	  return loader;
 	}
 
 	inline void set_loader(std::function<std::string(std::string)> loader) {
 	  get_loader_ref()=std::move(loader);
 	}
 
-	inline std::string loadOnly(const std::string& filename) {
-	  return get_loader_ref()(filename);
+	inline template_t load(const std::string& filename) {
+	  return template_t(get_loader_ref()(filename));
 	}
 
-	inline template_t load(const std::string& filename) {
-	  return compile(get_loader_ref()(filename));
+	inline std::string loadOnly(const std::string& filename) {
+	  return get_loader_ref()(filename);
 	}
   }
 }
