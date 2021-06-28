@@ -6,7 +6,7 @@
 #include "crow/any_types.h"
 #include "crow/ci_map.h"
 //response
-static char RES_CT[13]="Content-Type",RES_AJ[17]="application/json",RES_CL[15]="Content-Length",RES_Loc[9]="Location";
+static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location"/*,RES_AJ[17]="application/json"*/;
 namespace crow {
   using json=nlohmann::json;
   template <typename Adaptor,typename Handler,typename ... Middlewares>
@@ -56,7 +56,7 @@ namespace crow {
 	}
 	bool is_completed() const noexcept { return completed_; }
 	void clear() {
-	  body.clear();is_file=0;headers.clear();
+	  body.clear();headers.clear();
 	  completed_=false;
 	}
 
