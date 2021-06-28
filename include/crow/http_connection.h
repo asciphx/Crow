@@ -328,7 +328,7 @@ namespace crow {
 	void prepare_buffers() {
 	  //auto self = this->shared_from_this();
 	  res.complete_request_handler_=nullptr;
-	  if (!adaptor_.is_open()) {
+	  if (res.is_file||!adaptor_.is_open()) {
 		//CROW_LOG_DEBUG << this << " delete (socket is closed) " << is_reading << ' ' << is_writing;
 		//delete this;
 		return;
@@ -345,21 +345,20 @@ namespace crow {
 		buffers_.emplace_back(kv.second.data(),kv.second.size());
 		buffers_.emplace_back(Res_crlf,2);
 	  }
-	  if (!res.is_file) {
-		content_length_=std::to_string(res.body.size());
-		buffers_.emplace_back(Res_content_length_tag,16);
-		buffers_.emplace_back(content_length_.data(),content_length_.size());
-		buffers_.emplace_back(Res_crlf,2);
+	  content_length_=std::to_string(res.body.size());
+	  buffers_.emplace_back(Res_content_length_tag,16);
+	  buffers_.emplace_back(content_length_.data(),content_length_.size());
+	  buffers_.emplace_back(Res_crlf,2);
 
-		buffers_.emplace_back(Res_server_tag,8);
-		buffers_.emplace_back(server_name_.data(),server_name_.size());
-		buffers_.emplace_back(Res_crlf,2);
+	  buffers_.emplace_back(Res_server_tag,8);
+	  buffers_.emplace_back(server_name_.data(),server_name_.size());
+	  buffers_.emplace_back(Res_crlf,2);
 
-		date_str_=get_cached_date_str();
-		buffers_.emplace_back(Res_date_tag,6);
-		buffers_.emplace_back(date_str_.data(),date_str_.size());
-		buffers_.emplace_back(Res_crlf,2);
-	  }
+	  date_str_=get_cached_date_str();
+	  buffers_.emplace_back(Res_date_tag,6);
+	  buffers_.emplace_back(date_str_.data(),date_str_.size());
+	  buffers_.emplace_back(Res_crlf,2);
+
 	  buffers_.emplace_back(Res_crlf,2);
 	}
 
