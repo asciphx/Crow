@@ -9,7 +9,10 @@ int main() {
 	.set_types({"html","ico","css","js","json","svg","png","gif"}).set_types({"jpg","txt"});
   //Server rendering
   CROW_ROUTE(app,"/")([] {
-	return mustache::load("index.html");
+	char name[64];gethostname(name,64);
+	json x;x["servername"]=name;
+	auto page=mustache::load("index.html");
+	return page.render(x);
   });
   //Single path access to files
   app.route("/cat")([](const Req&,Res& res) {

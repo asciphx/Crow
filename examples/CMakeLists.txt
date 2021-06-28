@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 2.8)
 project (crow_examples)
 
+if (MSVC)
+	add_executable(example_vs example_vs.cpp)
+	target_link_libraries(example_vs ${Boost_LIBRARIES})
+	target_link_libraries(example_vs ${CMAKE_THREAD_LIBS_INIT})
+else ()
+
 add_executable(example_websocket websocket/example_ws.cpp)
 target_link_libraries(example_websocket ${Boost_LIBRARIES})
 target_link_libraries(example_websocket ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES})
@@ -10,11 +16,7 @@ add_custom_command(OUTPUT ws.html
     DEPENDS ${PROJECT_SOURCE_DIR}/websocket/static/ws.html
 )
 add_custom_target(example_ws_copy ALL DEPENDS ws.html)
-if (MSVC)
-	add_executable(example_vs example_vs.cpp)
-	target_link_libraries(example_vs ${Boost_LIBRARIES})
-	target_link_libraries(example_vs ${CMAKE_THREAD_LIBS_INIT})
-else ()
+
 	add_executable(helloworld helloworld.cpp)
 	target_link_libraries(helloworld ${Boost_LIBRARIES})
 	target_link_libraries(helloworld ${CMAKE_THREAD_LIBS_INIT})

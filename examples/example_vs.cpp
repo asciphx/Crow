@@ -23,12 +23,14 @@ int main() {
   app.route("/path/")([]() {
 	return "Trailing slash test case..";
   });
+  //json::parse
   app.route("/list")([]() {
 	json v=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
 	return v;
   });
+  //static reflect
   app.route("/lists")([]() {
 	List list=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
@@ -36,6 +38,7 @@ int main() {
 	json json_output=json(list);
 	return json_output;
   });
+  //dump(2)
   app.route("/json")([] {
 	json x;
 	x["message"]="Hello, World!";
@@ -45,14 +48,16 @@ int main() {
 	x["false"]=false;
 	x["null"]=nullptr;
 	x["bignumber"]=2353464586543265455;
-	return x;
+	return x.dump(2);
   });
+  //status code + return
   app.route("/hello/<int>")([](int count) {
 	if (count>100) return Res(400);
 	std::ostringstream os;
 	os<<count<<" bottles of beer!";
-	return Res(os.str());
+	return Res(203,os.str());
   });
+  //rank routing
   app.route("/add/<int>/<int>")([](const Req& req,Res& res,int a,int b) {
 	std::ostringstream os;
 	os<<a+b;
@@ -84,7 +89,6 @@ int main() {
 	for (const auto& countVal:count) os<<" - "<<countVal<<'\n';
 	return Res{os.str()};
   });
-  logger::setLogLevel(LogLevel::WARNING);
   //logger::setHandler(std::make_shared<ExampleLogHandler>());
-  app.port(8080).multithreaded().run();
+  app.loglevel(LogLevel::WARNING).port(8080).multithreaded().run();
 }

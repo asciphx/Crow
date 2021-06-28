@@ -56,6 +56,7 @@ namespace crow {
     }
 
     void run() {
+      static char GMT[26]="%a, %d %b %Y %H:%M:%S GMT";
       for (int i=0; i<concurrency_; i++)
         io_service_pool_.emplace_back(new boost::asio::io_service());
       get_cached_date_str_pool_.resize(concurrency_);
@@ -63,27 +64,22 @@ namespace crow {
 
       std::vector<std::future<void>> v;
       std::atomic<int> init_count(0);
-      for (uint16_t i=0; i<concurrency_; i++)
+      for (uint16_t i=0; i<concurrency_; ++i)
         v.push_back(
           std::async(std::launch::async,[this,i,&init_count] {
         // thread local date string get function
         auto last=std::chrono::steady_clock::now();
-        std::string date_str;
-        auto last_time_t=time(0);
-        tm my_tm;
-#if defined(_MSC_VER) || defined(__MINGW32__)
-          localtime_s(&my_tm,&last_time_t);
-#else
-        localtime_r(&last_time_t,&my_tm);
-#endif
-        date_str.resize(0x20);
-        date_str.resize(strftime(&date_str[0],0x1f,"%a, %d %b %Y %H:%M:%S GMT",&my_tm));
-        get_cached_date_str_pool_[i]=[&]()->std::string {
-          if (std::chrono::steady_clock::now()-last>=std::chrono::seconds(1)) {
+        std::string date_str;date_str.resize(0x20);
+        get_cached_date_str_pool_[i]=[&date_str,&last]()->std::string {
+          if (std::chrono::steady_clock::now()-last>std::chrono::seconds(2)) {
+            time_t last_time_t=time(0);tm my_tm;
             last=std::chrono::steady_clock::now();
-            //update_date_str();
-            date_str.resize(0x20);
-            date_str.resize(strftime(&date_str[0],0x1f,"%a, %d %b %Y %H:%M:%S GMT",&my_tm));
+#if defined(_MSC_VER) || defined(__MINGW32__)
+            localtime_s(&my_tm,&last_time_t);
+#else
+            localtime_r(&last_time_t,&my_tm);
+#endif
+            date_str.resize(strftime(&date_str[0],0x1f,GMT,&my_tm));
           }
           return date_str;
         };
@@ -101,17 +97,15 @@ namespace crow {
           timer.expires_from_now(boost::posix_time::millseconds(1));
           timer.async_wait(handler);
         });
-        init_count++;
-        while (1) {
-          try {
-            if (io_service_pool_[i]->run()==0) {
-              // when io_service.run returns 0, there are no more works to do.
-              break;
-            }
-          } catch (std::exception& e) {
-            CROW_LOG_ERROR<<"Worker Crash: An uncaught exception occurred: "<<e.what();
-          }
-        }
+        ++init_count;
+        io_service_pool_[i]->run();
+        //try {
+        //  if (io_service_pool_[i]->run()==0) {
+        //    // when io_service.run returns 0, there are no more works to do.
+        //  }
+        //} catch (std::exception& e) {
+        //  CROW_LOG_ERROR<<"Worker Crash: An uncaught exception occurred: "<<e.what();
+        //}
       }));
 
       if (tick_function_&&tick_interval_.count()>0) {
