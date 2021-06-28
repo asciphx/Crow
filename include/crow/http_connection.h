@@ -327,14 +327,12 @@ namespace crow {
 	private:
 	void prepare_buffers() {
 	  //auto self = this->shared_from_this();
-	  //res.complete_request_handler_=nullptr;
-
-	 // if (!adaptor_.is_open()) {
-		////CROW_LOG_DEBUG << this << " delete (socket is closed) " << is_reading << ' ' << is_writing;
-		////delete this;
-		//return;
-	 // }
-
+	  res.complete_request_handler_=nullptr;
+	  if (!adaptor_.is_open()) {
+		//CROW_LOG_DEBUG << this << " delete (socket is closed) " << is_reading << ' ' << is_writing;
+		//delete this;
+		return;
+	  }
 	  //if (res.body.empty()) {}//res.body
 	  buffers_.clear();buffers_.reserve(4*(res.headers.size()+5)+3);
 	 // if (!Res_statusCodes.count(res.code)) res.code=500;
