@@ -220,17 +220,17 @@ namespace crow {
 
 	  if (parser_.check_version(1,0)) {
 		// HTTP/1.0
-		if (req.headers.count("connection")) {
-		  if (boost::iequals(req.get_header_value("connection"),"Keep-Alive"))
+		if (req.headers.count("Connection")) {
+		  if (boost::iequals(req.get_header_value("Connection"),"Keep-Alive"))
 			add_keep_alive_=true;
 		} else
 		  close_connection_=true;
 	  } else if (parser_.check_version(1,1)) {
 		// HTTP/1.1
-		if (req.headers.count("connection")) {
-		  if (req.get_header_value("connection")=="close")
+		if (req.headers.count("Connection")) {
+		  if (req.get_header_value("Connection")=="close")
 			close_connection_=true;
-		  else if (boost::iequals(req.get_header_value("connection"),"Keep-Alive"))
+		  else if (boost::iequals(req.get_header_value("Connection"),"Keep-Alive"))
 			add_keep_alive_=true;
 		}
 		if (!req.headers.count("host")) {
@@ -267,7 +267,7 @@ namespace crow {
 		  res.complete_request_handler_=[this] { this->complete_request(); };
 		  need_to_call_after_handlers_=true;
 		  handler_->handle(req,res);
-		  if (add_keep_alive_)res.set_header("connection","Keep-Alive");
+		  if (add_keep_alive_)res.set_header("Connection","Keep-Alive");
 		} else {
 		  complete_request();
 		}
