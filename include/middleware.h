@@ -45,17 +45,14 @@ namespace crow {
 		pos=pos_equal+1;
 		while (pos<cookies.size()&&cookies[pos]==' ') pos++;
 		if (pos==cookies.size()) break;
-
 		size_t pos_semicolon=cookies.find(';',pos);
 		std::string value=cookies.substr(pos,pos_semicolon-pos);
-
 		boost::trim(value);
 		if (value[0]=='"'&&value[value.size()-1]=='"') value=value.substr(1,value.size()-2);
-
 		ctx.jar.emplace(std::move(name),std::move(value));
 		pos=pos_semicolon;
 		if (pos==cookies.npos) break;
-		pos++;
+		++pos;
 		while (pos<cookies.size()&&cookies[pos]==' ') pos++;
 	  }
 	}

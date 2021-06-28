@@ -22,8 +22,6 @@ namespace crow {
 #ifdef CROW_ENABLE_COMPRESSION
 	bool compressed=true; //< If compression is enabled and this is false, the individual response will not be compressed.
 #endif
-	bool is_head_response=false; //< Whether this is a response to a HEAD request.
-	bool manual_length_header=false; //< Whether Crow should automatically add a "Content-Length" header.
 
 	void set_header(std::string key,std::string value) {
 	  headers.erase(key); headers.emplace(std::move(key),std::move(value));
@@ -77,11 +75,6 @@ namespace crow {
 	void end() {
 	  if (!completed_) {
 		completed_=true;
-		if (is_head_response) {
-		  headers.erase(RES_CL);headers.emplace(RES_CL,std::move(std::to_string(body.size())));
-		  body="";
-		  manual_length_header=true;
-		}
 		if (complete_request_handler_) {
 		  complete_request_handler_();
 		}
