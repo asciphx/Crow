@@ -66,7 +66,7 @@ CROW_ROUTE(app, "/json")([]{
 	x["false"]=false;
 	x["null"]=nullptr;
 	x["bignumber"]=2353464586543265455;
-    return x;
+    return x.dump(2);
 });
 ```
 
@@ -94,7 +94,7 @@ CROW_ROUTE(app, "/add_json").methods("POST"_method)
     auto x = crow::json::load(req.body);
     if (!x)
         return crow::Res(400);
-    int sum = x["a"].i()+x["b"].i();
+	int sum=x["a"].get<int>()+x["b"].get<int>();
     std::ostringstream os;
     os << sum;
     return crow::Res{os.str()};
