@@ -45,7 +45,7 @@ int main(){
 ```c++
   CROW_ROUTE(app,"/")([] {
 	char name[64];gethostname(name,64);
-	mustache::Ctx x;x["servername"]=name;
+	crow::json x;x["servername"]=name;
 	auto page=mustache::load("index.html");
 	return page.render(x);
   });
