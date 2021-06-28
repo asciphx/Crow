@@ -146,11 +146,7 @@ namespace crow {
                   !std::is_same<typename std::tuple_element<0,std::tuple<Args...,void>>::type,const Req&>::value
                   ,int>::type=0) {
           handler_=(
-#ifdef CROW_CAN_USE_CPP14
-            [f=std::move(f)]
-#else
-            [f]
-#endif
+          [f=std::move(f)]
           (const Req&,Res&res,Args... args){
             res=Res(f(args...));
             res.end();
@@ -242,11 +238,7 @@ namespace crow {
                     "Handler function cannot have void return type; valid return types: string, int, crow::Res, crow::returnable");
 
       handler_=(
-#ifdef CROW_CAN_USE_CPP14
-        [f=std::move(f)]
-#else
-        [f]
-#endif
+      [f=std::move(f)]
       (const Req&,Res&res){
         res=Res(f());
         res.end();
@@ -264,11 +256,7 @@ namespace crow {
                     "Handler function cannot have void return type; valid return types: string, int, crow::Res, crow::returnable");
 
       handler_=(
-#ifdef CROW_CAN_USE_CPP14
-        [f=std::move(f)]
-#else
-        [f]
-#endif
+      [f=std::move(f)]
       (const crow::Req&req,crow::Res&res){
         res=Res(f(req));
         res.end();
@@ -285,11 +273,7 @@ namespace crow {
       static_assert(std::is_same<void,decltype(f(std::declval<crow::Res&>()))>::value,
                     "Handler function with Res argument should have void return type");
       handler_=(
-#ifdef CROW_CAN_USE_CPP14
-        [f=std::move(f)]
-#else
-        [f]
-#endif
+      [f=std::move(f)]
       (const crow::Req&,crow::Res&res){
         f(res);
       });
@@ -504,11 +488,7 @@ namespace crow {
                     "Handler function cannot have void return type; valid return types: string, int, crow::Res, crow::returnable");
 
       handler_=(
-#ifdef CROW_CAN_USE_CPP14
-        [f=std::move(f)]
-#else
-        [f]
-#endif
+      [f=std::move(f)]
       (const Req&,Res&res,Args ... args){
         res=Res(f(args...));
         res.end();
@@ -528,11 +508,7 @@ namespace crow {
                     "Handler function cannot have void return type; valid return types: string, int, crow::Res, crow::returnable");
 
       handler_=(
-#ifdef CROW_CAN_USE_CPP14
-        [f=std::move(f)]
-#else
-        [f]
-#endif
+      [f=std::move(f)]
       (const crow::Req&req,crow::Res&res,Args ... args){
         res=Res(f(req,args...));
         res.end();
@@ -553,11 +529,7 @@ namespace crow {
       static_assert(std::is_same<void,decltype(f(std::declval<crow::Res&>(),std::declval<Args>()...))>::value,
                     "Handler function with Res argument should have void return type");
       handler_=(
-#ifdef CROW_CAN_USE_CPP14
-        [f=std::move(f)]
-#else
-        [f]
-#endif
+      [f=std::move(f)]
       (const crow::Req&,crow::Res&res,Args ... args){
         f(res,args...);
       });

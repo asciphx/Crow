@@ -6,8 +6,7 @@
 #include "crow/any_types.h"
 #include "crow/ci_map.h"
 //response
-static char RES_CT[13]="Content-Type",RES_AJ[17]="application/json",RES_CL[15]="Content-Length",RES_TP[11]="text/plain",
-  RES_Loc[9]="Location";
+static char RES_CT[13]="Content-Type",RES_AJ[17]="application/json",RES_CL[15]="Content-Length",RES_Loc[9]="Location";
 namespace crow {
   using json=nlohmann::json;
   template <typename Adaptor,typename Handler,typename ... Middlewares>
@@ -39,18 +38,10 @@ namespace crow {
 	explicit Res(int code): code(code) {}
 	Res(std::string body): body(std::move(body)) {}
 	Res(int code,std::string body): code(code),body(std::move(body)) {}
-	Res(json&& json_value): body(json_value.dump()) {
+	Res(const json&& json_value): body(json_value.dump()) {
 	  headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
 	}
-	Res(const char* && char_value): body(char_value) {
-	  headers.erase(RES_CT);headers.emplace(RES_CT,RES_TP);
-	}
-	Res(const json& json_value): body(json_value.dump()) {
-	  headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
-	}
-	Res(int code,const json& json_value): code(code),body(json_value.dump()) {
-	  headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
-	}
+	Res(const char* && char_value): body(char_value) {}
 	Res(Res&& r) { *this=std::move(r); }
 	Res& operator = (const Res& r)=delete;
 	Res& operator = (Res&& r) noexcept {
@@ -63,7 +54,7 @@ namespace crow {
 	}
 	bool is_completed() const noexcept { return completed_; }
 	void clear() {
-	  //body.clear();json_value.clear();code=200;headers.clear();
+	  //body.clear();headers.clear();//json_value.clear();
 	  completed_=false;
 	}
 
@@ -161,6 +152,8 @@ namespace crow {
 	  //Collect whatever is left (less than 16KB) and send it down the socket
 	  //buf.reserve(is.length());
 	  //buf.clear();
+	  buf=is;
+	  is.clear();
 	  push_and_write(buffers,is,adaptor);
 	}
 
