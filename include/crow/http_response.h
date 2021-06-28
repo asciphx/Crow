@@ -6,8 +6,7 @@
 #include "crow/any_types.h"
 #include "crow/ci_map.h"
 //response
-static char RES_CT[13]="Content-Type",RES_AJ[17]="application/json",RES_CL[15]="Content-Length",RES_TP[11]="text/plain",
-  RES_Loc[9]="Location";
+static char RES_CT[13]="Content-Type",RES_AJ[17]="application/json",RES_CL[15]="Content-Length",RES_Loc[9]="Location";
 namespace crow {
   template <typename Adaptor,typename Handler,typename ... Middlewares>
   class Connection;
@@ -38,15 +37,10 @@ namespace crow {
 	explicit Res(int code): code(code) {}
 	Res(std::string body): body(std::move(body)) {}
 	Res(int code,std::string body): code(code),body(std::move(body)) {}
-	Res(json::value&& json_value): body(json_value.dump()) {
+	Res(const json::value&& json_value): body(json_value.dump()) {
 	  headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
 	}
-	Res(const json::value& json_value): body(json_value.dump()) {
-	  headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
-	}
-	Res(int code,const json::value& json_value): code(code),body(json_value.dump()) {
-	  headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
-	}
+	Res(const char* && char_value): body(char_value) {}
 	Res(Res&& r) { *this=std::move(r); }
 	Res& operator = (const Res& r)=delete;
 	Res& operator = (Res&& r) noexcept {
