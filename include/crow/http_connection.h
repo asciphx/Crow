@@ -18,35 +18,33 @@
 #include "crow/socket_adaptors.h"
 #include "crow/compression.h"
 static char Res_server_tag[9]="Server: ",Res_content_length_tag[17]="Content-Length: ";
-static char Res_date_tag[7]="Date: ",Res_content_length[15]="content-length";
-static char Res_seperator[3]=": ",Res_crlf[3]="\r\n";
-static const std::unordered_map<int,std::string> RES_statusCodes={
-  {200, "HTTP/1.1 200 OK\r\n"},
-  {201, "HTTP/1.1 201 Created\r\n"},
-  {202, "HTTP/1.1 202 Accepted\r\n"},
-  {204, "HTTP/1.1 204 No Content\r\n"},
+static char Res_date_tag[7]="Date: ",Res_content_length[15]="content-length",Res_seperator[3]=": ",Res_crlf[3]="\r\n";
+static const std::unordered_map<int,std::string> Res_statusCodes={
+	{200, "HTTP/1.1 200 OK\r\n"},
+	{201, "HTTP/1.1 201 Created\r\n"},
+	{202, "HTTP/1.1 202 Accepted\r\n"},
+	{204, "HTTP/1.1 204 No Content\r\n"},
 
-  {300, "HTTP/1.1 300 Multiple Choices\r\n"},
-  {301, "HTTP/1.1 301 Moved Permanently\r\n"},
-  {302, "HTTP/1.1 302 Found\r\n"},
-  {303, "HTTP/1.1 303 See Other\r\n"},
-  {304, "HTTP/1.1 304 Not Modified\r\n"},
+	{300, "HTTP/1.1 300 Multiple Choices\r\n"},
+	{301, "HTTP/1.1 301 Moved Permanently\r\n"},
+	{302, "HTTP/1.1 302 Found\r\n"},
+	{303, "HTTP/1.1 303 See Other\r\n"},
+	{304, "HTTP/1.1 304 Not Modified\r\n"},
 
-  {400, "HTTP/1.1 400 Bad Request\r\n"},
-  {401, "HTTP/1.1 401 Unauthorized\r\n"},
-  {403, "HTTP/1.1 403 Forbidden\r\n"},
-  {404, "HTTP/1.1 404 Not Found\r\n"},
-  {405, "HTTP/1.1 405 Method Not Allowed\r\n"},
-  {413, "HTTP/1.1 413 Payload Too Large\r\n"},
-  {422, "HTTP/1.1 422 Unprocessable Entity\r\n"},
-  {429, "HTTP/1.1 429 Too Many Requests\r\n"},
+	{400, "HTTP/1.1 400 Bad Request\r\n"},
+	{401, "HTTP/1.1 401 Unauthorized\r\n"},
+	{403, "HTTP/1.1 403 Forbidden\r\n"},
+	{404, "HTTP/1.1 404 Not Found\r\n"},
+	{405, "HTTP/1.1 405 Method Not Allowed\r\n"},
+	{413, "HTTP/1.1 413 Payload Too Large\r\n"},
+	{422, "HTTP/1.1 422 Unprocessable Entity\r\n"},
+	{429, "HTTP/1.1 429 Too Many Requests\r\n"},
 
-  {500, "HTTP/1.1 500 Internal Server Error\r\n"},
-  {501, "HTTP/1.1 501 Not Implemented\r\n"},
-  {502, "HTTP/1.1 502 Bad Gateway\r\n"},
-  {503, "HTTP/1.1 503 Service Unavailable\r\n"},
+	{500, "HTTP/1.1 500 Internal Server Error\r\n"},
+	{501, "HTTP/1.1 501 Not Implemented\r\n"},
+	{502, "HTTP/1.1 502 Bad Gateway\r\n"},
+	{503, "HTTP/1.1 503 Service Unavailable\r\n"},
 };
-
 namespace crow {
   using namespace boost;
   using tcp=asio::ip::tcp;
@@ -82,7 +80,7 @@ namespace crow {
 		void (T::*)(Req&,Res&,typename MW::Ctx&)=&T::after_handle
 	  >
 		struct get {};
-};
+	};
 
 	template <typename T>
 	struct is_before_handle_arity_3_impl {
@@ -142,17 +140,14 @@ namespace crow {
 	bool middleware_call_helper(Container& middlewares,Req& req,Res& res,Context& ctx) {
 	  using parent_context_t=typename Context::template partial<N-1>;
 	  before_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
-
 	  if (res.is_completed()) {
 		after_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
 		return true;
 	  }
-
 	  if (middleware_call_helper<N+1,Context,Container,Middlewares...>(middlewares,req,res,ctx)) {
 		after_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
 		return true;
 	  }
-
 	  return false;
 	}
 
@@ -201,8 +196,7 @@ namespace crow {
 	  server_name_(server_name),
 	  middlewares_(middlewares),
 	  get_cached_date_str(get_cached_date_str_f),
-	  timer_queue(timer_queue) {
-	}
+	  timer_queue(timer_queue) {}
 
 	~Connection() {
 	  res.complete_request_handler_=nullptr;
@@ -238,35 +232,18 @@ namespace crow {
 	void handle() {
 	  cancel_deadline_timer();
 	  bool is_invalid_request=false;
-	  // add_keep_alive_=false;
-
-	  req_=std::move(parser_.to_request());
-
+	  req_=parser_.to_request();
 	  req_.remoteIpAddress=adaptor_.remote_endpoint().address().to_string();
-
-	  if (parser_.check_version(1,0)) {
-		// HTTP/1.0
-		// if (req_.headers.count("Connection")) {
-		//   if (boost::iequals(req_.get_header_value("Connection"),"Keep-Alive"))
-		// 	add_keep_alive_=true;
-		// } else
-		  close_connection_=true;
-	  } else if (parser_.check_version(1,1)) {
-		// HTTP/1.1
-		if (req_.headers.count("Connection")) {
-		  if (req_.get_header_value("Connection")=="close")
-			close_connection_=true;
-		  // else if (boost::iequals(req_.get_header_value("Connection"),"Keep-Alive"))
-			// add_keep_alive_=true;
-		}
+	  if (parser_.check_version(1,0)) {// HTTP/1.0
+		close_connection_=true;
+	  } else if (parser_.check_version(1,1)) {// HTTP/1.1
+		if (req_.headers.count("Connection")&&req_.get_header_value("Connection")=="close") close_connection_=true;
 		if (!req_.headers.count("host")) {
-		  is_invalid_request=true;
-		  res=Res(400);
+		  is_invalid_request=true;res=Res(400);
 		}
 		if (parser_.is_upgrade()) {
 		  if (req_.get_header_value("upgrade")=="h2c") {
-			// TODO HTTP/2
-			// currently, ignore upgrade header
+			// TODO HTTP/2 currently, ignore upgrade header
 		  } else {
 			close_connection_=true;
 			handler_->handle_upgrade(req_,res,std::move(adaptor_));
@@ -274,11 +251,8 @@ namespace crow {
 		  }
 		}
 	  }
-
 	  CROW_LOG_INFO<<"Request: "<<boost::lexical_cast<std::string>(adaptor_.remote_endpoint())<<" "<<this<<" HTTP/"<<parser_.http_major<<"."<<parser_.http_minor<<' '
 		<<method_name(req_.method)<<" "<<req_.url;
-
-
 	  need_to_call_after_handlers_=false;
 	  if (!is_invalid_request) {
 		res.complete_request_handler_=[] {};
@@ -293,7 +267,6 @@ namespace crow {
 		  res.complete_request_handler_=[this] { this->complete_request(); };
 		  need_to_call_after_handlers_=true;
 		  handler_->handle(req_,res);
-		  // if (add_keep_alive_)res.set_header("Connection","Keep-Alive");
 		} else {
 		  complete_request();
 		}
@@ -354,44 +327,39 @@ namespace crow {
 	void prepare_buffers() {
 	  //auto self = this->shared_from_this();
 	  // res.complete_request_handler_=nullptr;
-    // std::cout<<":"<<res.is_file<<"   ";
 	  if (!adaptor_.is_open()) {
 		//CROW_LOG_DEBUG << this << " delete (socket is closed) " << is_reading << ' ' << is_writing;
-		//delete this;
+		delete this;
 		return;
 	  }
 	  //if (res.body.empty()) {}//res.body
-	  buffers_.clear();
-	  buffers_.reserve(4*(res.headers.size()+5)+3);
-	  std::string status=RES_statusCodes.find(res.code)->second;
+	  buffers_.clear();buffers_.reserve(4*(res.headers.size()+5)+3);
+	  // if (!Res_statusCodes.count(res.code)) res.code=500;
+	  auto&status=Res_statusCodes.find(res.code)->second;
 	  buffers_.emplace_back(status.data(),status.size());
-	  if (res.code>399)res.body=std::move(status.substr(9));
+	  if (res.code>399) res.body=status.substr(9);
 	  for (auto& kv:res.headers) {
 		buffers_.emplace_back(kv.first.data(),kv.first.size());
 		buffers_.emplace_back(Res_seperator,2);
 		buffers_.emplace_back(kv.second.data(),kv.second.size());
 		buffers_.emplace_back(Res_crlf,2);
 	  }
-
 	  if (!res.headers.count(Res_content_length)) {
 		content_length_=std::to_string(res.body.size());
 		buffers_.emplace_back(Res_content_length_tag,16);
 		buffers_.emplace_back(content_length_.data(),content_length_.size());
 		buffers_.emplace_back(Res_crlf,2);
 
-		//buffers_.emplace_back(Res_server_tag,8);
-		//buffers_.emplace_back(server_name_.data(),server_name_.size());
-		//buffers_.emplace_back(Res_crlf,2);
-    
+		// buffers_.emplace_back(Res_server_tag,8);
+		// buffers_.emplace_back(server_name_.data(),server_name_.size());
+		// buffers_.emplace_back(Res_crlf,2);
+
 		date_str_=get_cached_date_str();
 		buffers_.emplace_back(Res_date_tag,6);
 		buffers_.emplace_back(date_str_.data(),date_str_.size());
 		buffers_.emplace_back(Res_crlf,2);
 	  }
-	  // if (add_keep_alive_) {
-		// buffers_.emplace_back(Res_keep_alive_tag,22);
-		// buffers_.emplace_back(Res_crlf,2);
-	  // }
+
 	  buffers_.emplace_back(Res_crlf,2);
 	}
 
@@ -521,13 +489,11 @@ namespace crow {
 	bool is_writing{};
 	bool need_to_call_after_handlers_{};
 	bool need_to_start_read_after_complete_{};
-	// bool add_keep_alive_{};
-
 	std::tuple<Middlewares...>* middlewares_;
 	detail::Ctx<Middlewares...> ctx_;
 
 	std::function<std::string()>& get_cached_date_str;
 	detail::dumb_timer_queue& timer_queue;
-	};
+  };
 
-  }
+}
