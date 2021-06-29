@@ -337,7 +337,7 @@ namespace crow {
 	  // if (!Res_statusCodes.count(res.code)) res.code=500;
 	  auto&status=Res_statusCodes.find(res.code)->second;
 	  buffers_.emplace_back(status.data(),status.size());
-	  if (res.code>399) res.body=status.substr(9);
+	  if (res.code>399) res.body=std::move(status.substr(9));
 	  for (auto& kv:res.headers) {
 		buffers_.emplace_back(kv.first.data(),kv.first.size());
 		buffers_.emplace_back(Res_seperator,2);
