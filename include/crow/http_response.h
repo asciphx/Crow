@@ -6,7 +6,7 @@
 #include "crow/any_types.h"
 #include "crow/ci_map.h"
 //response
-static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location"/*,RES_AJ[17]="application/json"*/;
+static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location",Res_Ca[14]="cache-control",Res_Xc[23]="X-Content-Type-Options",Res_No[8]="nosniff";/*,RES_AJ[17]="application/json"*/;
 namespace crow {
   using json=nlohmann::json;
   template <typename Adaptor,typename Handler,typename ... Middlewares>
@@ -35,7 +35,7 @@ namespace crow {
 	Res() {}
 	explicit Res(int code): code(code) {}
 	Res(std::string body): body(std::move(body)) {}
-	Res(int code,std::string body): code(code),body(std::move(body)) {}
+	Res(int code,std::string body): code(code),body(body) {}
 	Res(const json&& json_value): body(std::move(json_value).dump()) {
 	  //headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
 	}
@@ -58,7 +58,8 @@ namespace crow {
 	}
 	bool is_completed() const noexcept { return completed_; }
 	void clear() {
-	  body.clear();headers.clear();completed_=false;
+	  body.clear();headers.clear();
+	  completed_=false;
 	}
 
 	/// Return a "Temporary Redirect" Res.
@@ -95,9 +96,12 @@ namespace crow {
 		std::string extension=path.substr(last_dot+1);
 		this->add_header_t(RES_CL,std::to_string(statbuf_.st_size));
 		std::string types="";types=content_types[extension];
-		if (types!="")
+		if (types!="") {
 		  this->add_header_t(RES_CT,types),is_file=1;
-		else {
+		  if (extension!="ico") //Static resource cache seconds(= 15 minute)
+			this->add_header_t(Res_Ca,"max-age=900,immutable"),
+			this->add_header_s(Res_Xc,Res_No);
+		} else {
 		  code=404;this->headers.clear();this->end();
 		}
 		//else this->add_header_s(RES_CT,RES_TP);

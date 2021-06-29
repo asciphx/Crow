@@ -74,7 +74,7 @@ namespace crow {
     self_t& set_home_page(std::string path) { home_page_=path; return *this; }
     //Set content types 
     self_t& set_types(const std::vector<std::string> &line) {
-      for (auto iter=line.cbegin(); iter!=line.cend(); iter++) {
+      for (auto iter=line.cbegin(); iter!=line.cend(); ++iter) {
         std::string types="";types=content_any_types[*iter];
         if (types!="") content_types.emplace(*iter,types);
       } is_not_set_types=false; return *this;
@@ -248,7 +248,7 @@ namespace crow {
     private:
     uint16_t port_=80;
     uint16_t concurrency_=1;
-    std::string server_name_="Crow/0.5-beta";
+    std::string server_name_="Crow/0.6-beta";
     std::string bindaddr_="0.0.0.0";
     std::string home_page_="index.html";
     Router router_;

@@ -44,7 +44,7 @@ namespace crow {
     uint32_t get_methods() { return methods_; }
     template <typename F>
     void foreach_method(F f) {
-      for (uint32_t method=0,method_bit=1; method<static_cast<uint32_t>(HTTPMethod::InternalMethodCount); method++,method_bit<<=1) {
+      for (uint32_t method=0,method_bit=1; method<static_cast<uint32_t>(HTTPMethod::InternalMethodCount); ++method,method_bit<<=1) {
         if (methods_&method_bit)
           f(method);
       }
@@ -699,7 +699,7 @@ namespace crow {
 
       if (node->param_childrens[static_cast<int>(ParamType::STRING)]) {
         size_t epos=pos;
-        for (; epos<req_url.size(); epos++) {
+        for (; epos<req_url.size(); ++epos) {
           if (req_url[epos]=='/')
             break;
         }
@@ -739,7 +739,7 @@ namespace crow {
     void add(const std::string& url,unsigned rule_index) {
       unsigned idx{0};
 
-      for (unsigned i=0; i<url.size(); i++) {
+      for (unsigned i=0; i<url.size(); ++i) {
         char c=url[i];
         if (c=='<') {
           static struct ParamTraits {
@@ -784,7 +784,7 @@ namespace crow {
     }
     private:
     void debug_node_print(Node* n,int level) {
-      for (int i=0; i<static_cast<int>(ParamType::MAX); i++) {
+      for (int i=0; i<static_cast<int>(ParamType::MAX); ++i) {
         if (n->param_childrens[i]) {
           CROW_LOG_DEBUG<<std::string(2*level,' ') /*<< "("<<n->param_childrens[i]<<") "*/;
           switch (static_cast<ParamType>(i)) {
@@ -959,7 +959,7 @@ namespace crow {
       if (method_actual==HTTPMethod::OPTIONS) {
         std::string allow="OPTIONS, HEAD, ";
         if (req.url=="/*") {
-          for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); i++) {
+          for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
             if (per_methods_[i].trie.is_empty()) {
               allow+=method_name(static_cast<HTTPMethod>(i))+", ";
             }
@@ -970,7 +970,7 @@ namespace crow {
           res.end();
           return;
         } else {
-          for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); i++) {
+          for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
             if (per_methods_[i].trie.find(req.url).first) {
               allow+=method_name(static_cast<HTTPMethod>(i))+", ";
             }
@@ -1022,9 +1022,9 @@ namespace crow {
         res=Res(301);
         // TODO absolute url building
         if (req.get_header_value("Host").empty()) {
-          res.add_header("Location",req.url+"/");
+          res.add_header_t(RES_Loc,req.url+"/");
         } else {
-          res.add_header("Location","http://"+req.get_header_value("Host")+req.url+"/");
+          res.add_header_t(RES_Loc,"http://"+req.get_header_value("Host")+req.url+"/");
         }
         res.end();
         return;
@@ -1048,7 +1048,7 @@ namespace crow {
     }
 
     void debug_print() {
-      for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); i++) {
+      for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
         CROW_LOG_DEBUG<<method_name(static_cast<HTTPMethod>(i));
         per_methods_[i].trie.debug_print();
       }

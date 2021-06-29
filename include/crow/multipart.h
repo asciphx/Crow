@@ -43,7 +43,7 @@ namespace crow {
 		stringstream str;
 		string delimiter=dd+boundary;
 
-		for (unsigned i=0; i<parts.size(); i++) {
+		for (unsigned i=0; i<parts.size(); ++i) {
 		  str<<delimiter<<crlf;
 		  str<<dump(i);
 		}

@@ -30,7 +30,7 @@ namespace crow {
   template <typename Handler,typename Adaptor=SocketAdaptor,typename ... Middlewares>
   class Server {
     public:
-    Server(Handler* handler,std::string bindaddr,uint16_t port,std::string server_name="Crow/0.4",std::tuple<Middlewares...>* middlewares=nullptr,uint16_t concurrency=1,typename Adaptor::Ctx* adaptor_ctx=nullptr)
+    Server(Handler* handler,std::string bindaddr,uint16_t port,std::string server_name="Crow",std::tuple<Middlewares...>* middlewares=nullptr,uint16_t concurrency=1,typename Adaptor::Ctx* adaptor_ctx=nullptr)
       : acceptor_(io_service_,tcp::endpoint(boost::asio::ip::address::from_string(bindaddr),port)),
       signals_(io_service_,SIGINT,SIGTERM),
       tick_timer_(io_service_),
@@ -154,7 +154,7 @@ namespace crow {
     private:
     asio::io_service& pick_io_service() {
       // TODO load balancing
-      roundrobin_index_++;
+      ++roundrobin_index_;
       if (roundrobin_index_>=io_service_pool_.size())
         roundrobin_index_=0;
       return *io_service_pool_[roundrobin_index_];

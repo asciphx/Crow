@@ -11,11 +11,7 @@ namespace crow {
 	  if (req.method==HTTPMethod::OPTIONS) { res.code=204;res.end(); }
 	}
 	void after_handle(Req&,Res& res,Ctx&) {
-	  res.set_header("Access-Control-Allow-Origin","*");//Cross domain request
-	  if (res.is_file) {
-		res.set_header("cache-control","max-age=300,immutable");//Static resource cache seconds(= 5 minute)
-		res.set_header("X-Content-Type-Options","nosniff");
-	  }
+	  res.set_header("Access-Control-Allow-Origin","*");
 	}
   };
   struct CookieParser {
