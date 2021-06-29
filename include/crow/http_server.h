@@ -24,7 +24,7 @@ namespace boost {
   }
 }
 namespace crow {
-  static char RES_GMT[26]="%a, %d %b %Y %H:%M:%S GMT";
+  static const char RES_GMT[26]="%a, %d %b %Y %H:%M:%S GMT";
   using namespace boost;
   using tcp=asio::ip::tcp;
   template <typename Handler,typename Adaptor=SocketAdaptor,typename ... Middlewares>
@@ -57,7 +57,7 @@ namespace crow {
     }
 
     void run() {
-      for (int i=0; i<concurrency_; i++)
+      for (int i=0; i<concurrency_; ++i)
         io_service_pool_.emplace_back(new boost::asio::io_service());
       get_cached_date_str_pool_.resize(concurrency_);
       timer_queue_pool_.resize(concurrency_);
@@ -167,7 +167,7 @@ namespace crow {
         get_cached_date_str_pool_[roundrobin_index_],*timer_queue_pool_[roundrobin_index_],
         adaptor_ctx_);
       acceptor_.async_accept(p->socket(),
-                             [this,p,&is](boost::system::error_code ec) {
+        [this,p,&is](boost::system::error_code ec) {
         if (!ec) {
           is.post([p] {
             p->start();

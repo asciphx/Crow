@@ -42,8 +42,8 @@ namespace crow {
 	Res(int code,const json&& json_value): code(code),body(std::move(json_value).dump()) {
 	  //headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
 	}
-	Res(const char* && char_value): body(char_value) {}
-	Res(int code,const char* && char_value): code(code),body(char_value) {}
+	Res(const char* && char_value): body(std::move(char_value)) {}
+	Res(int code,const char* && char_value): code(code),body(std::move(char_value)) {}
 	Res(Res&& r) { *this=std::move(r); }
 	Res& operator = (const Res& r)=delete;
 	Res& operator = (Res&& r) noexcept {
@@ -51,13 +51,14 @@ namespace crow {
 	  json_value=std::move(r.json_value);
 	  code=r.code;
 	  headers=std::move(r.headers);
+	  path_=std::move(r.path_);
+	  statbuf_=std::move(r.statbuf_);
 	  completed_=r.completed_;
 	  return *this;
 	}
 	bool is_completed() const noexcept { return completed_; }
 	void clear() {
-	  body.clear();headers.clear();
-	  completed_=false;
+	  body.clear();headers.clear();completed_=false;
 	}
 
 	/// Return a "Temporary Redirect" Res.

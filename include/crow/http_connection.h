@@ -217,7 +217,7 @@ namespace crow {
 	void start() {
 	  adaptor_.start([this](const boost::system::error_code& ec) {
 		if (!ec) {
-		  start_deadline();
+		  cancel_deadline_timer();
 		  do_read();
 		} else {
 		  delete this;
@@ -363,9 +363,9 @@ namespace crow {
 	  //if (res.body.empty()) {}//res.body
 	  buffers_.clear();
 	  buffers_.reserve(4*(res.headers.size()+5)+3);
-		auto& status=RES_statusCodes.find(res.code)->second;
-		buffers_.emplace_back(status.data(),status.size());
-	  if (res.code>399)res.body=status.substr(9);
+	  std::string status=RES_statusCodes.find(res.code)->second;
+	  buffers_.emplace_back(status.data(),status.size());
+	  if (res.code>399)res.body=std::move(status.substr(9));
 	  for (auto& kv:res.headers) {
 		buffers_.emplace_back(kv.first.data(),kv.first.size());
 		buffers_.emplace_back(Res_seperator,2);
@@ -410,7 +410,7 @@ namespace crow {
 		do_write();
 		if (need_to_start_read_after_complete_) {
 		  need_to_start_read_after_complete_=false;
-		  start_deadline();
+		  cancel_deadline_timer();
 		  do_read();
 		}
 	  } else {
@@ -449,7 +449,7 @@ namespace crow {
 		  check_destroy();
 		  // adaptor will close after write
 		} else if (!need_to_call_after_handlers_) {
-		  start_deadline();
+		  cancel_deadline_timer();
 		  do_read();
 		} else {
 		  // res will be completed later by user
@@ -491,19 +491,6 @@ namespace crow {
 	void cancel_deadline_timer() {
 	  CROW_LOG_DEBUG<<this<<" timer cancelled: "<<timer_cancel_key_.first<<' '<<timer_cancel_key_.second;
 	  timer_queue.cancel(timer_cancel_key_);
-	}
-
-	void start_deadline(/*int timeout = 5*/) {
-	  cancel_deadline_timer();
-
-	  timer_cancel_key_=timer_queue.add([this] {
-		if (!adaptor_.is_open()) {
-		  return;
-		}
-		adaptor_.shutdown_readwrite();
-		adaptor_.close();
-	  });
-	  CROW_LOG_DEBUG<<this<<" timer added: "<<timer_cancel_key_.first<<' '<<timer_cancel_key_.second;
 	}
 
 	private:
