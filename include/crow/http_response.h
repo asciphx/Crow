@@ -35,7 +35,7 @@ namespace crow {
 	Res() {}
 	explicit Res(int code): code(code) {}
 	Res(std::string body): body(std::move(body)) {}
-	Res(int code,std::string body): code(code),body(body) {}
+	Res(int code,std::string body): code(code),body(std::move(body)) {}
 	Res(const json&& json_value): body(std::move(json_value).dump()) {
 	  //headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
 	}
