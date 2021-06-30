@@ -954,7 +954,7 @@ static const int8_t unhex[256] =
     break;
   }
 
-  for (p=data; p != data + len; p++) {
+  for (p=data; p != data + len; ++p) {
     ch = *p;
 
     if (CROW_PARSING_HEADER(parser->state)) {

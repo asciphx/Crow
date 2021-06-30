@@ -25,9 +25,9 @@ namespace crow {
 	  time_t t=time(0);
 	  tm my_tm;
 #if defined(_MSC_VER) || defined(__MINGW32__)
-	  gmtime_s(&my_tm,&t);
+	  localtime_s(&my_tm,&t);
 #else
-	  gmtime_r(&t,&my_tm);
+	  localtime_s(&t,&my_tm);
 #endif
 	  size_t sz=strftime(date,sizeof(date),"%Y-%m-%d %H:%M:%S",&my_tm);
 	  return std::string(date,date+sz);

@@ -73,7 +73,7 @@ namespace crow {
 		  dotPositions.push_back(name.size());
 		  std::vector<std::string> names;
 		  names.reserve(dotPositions.size()-1);
-		  for (int i=1; i<(int)dotPositions.size(); i++)
+		  for (int i=1; i<(int)dotPositions.size(); ++i)
 			names.emplace_back(name.substr(dotPositions[i-1]+1,dotPositions[i]-dotPositions[i-1]-1));
 
 		  for (auto it=stack.rbegin(); it!=stack.rend(); ++it) {
@@ -220,14 +220,14 @@ namespace crow {
 			default:
 			throw std::runtime_error("not implemented "+boost::lexical_cast<std::string>((int)action.t));
 		  }
-		  current++;
+		  ++current;
 		}
 		auto& fragment=fragments_[actionEnd];
 		render_fragment(fragment,indent,out);
 	  }
 	  void render_fragment(const std::pair<int,int> fragment,int indent,std::string& out) {
 		if (indent) {
-		  for (int i=fragment.first; i<fragment.second; i++) {
+		  for (int i=fragment.first; i<fragment.second; ++i) {
 			out+=body_[i];
 			if (body_[i]=='\n'&&i+1!=(int)body_.size())
 			  out.insert(out.size(),indent,' ');
@@ -285,15 +285,15 @@ namespace crow {
 		  switch (body_[idx]) {
 			case '#':
 			idx++;
-			while (body_[idx]==' ') idx++;
-			while (body_[endIdx-1]==' ') endIdx--;
+			while (body_[idx]==' ') ++idx;
+			while (body_[endIdx-1]==' ') --endIdx;
 			blockPositions.emplace_back(actions_.size());
 			actions_.emplace_back(ActionType::OpenBlock,idx,endIdx);
 			break;
 			case '/':
 			idx++;
-			while (body_[idx]==' ') idx++;
-			while (body_[endIdx-1]==' ') endIdx--;
+			while (body_[idx]==' ') ++idx;
+			while (body_[endIdx-1]==' ') --endIdx;
 			{
 			  auto& matched=actions_[blockPositions.back()];
 			  if (body_.compare(idx,endIdx-idx,
@@ -309,8 +309,8 @@ namespace crow {
 			break;
 			case '^':
 			idx++;
-			while (body_[idx]==' ') idx++;
-			while (body_[endIdx-1]==' ') endIdx--;
+			while (body_[idx]==' ') ++idx;
+			while (body_[endIdx-1]==' ') --endIdx;
 			blockPositions.emplace_back(actions_.size());
 			actions_.emplace_back(ActionType::ElseBlock,idx,endIdx);
 			break;
@@ -320,8 +320,8 @@ namespace crow {
 			break;
 			case '>': // partial
 			idx++;
-			while (body_[idx]==' ') idx++;
-			while (body_[endIdx-1]==' ') endIdx--;
+			while (body_[idx]==' ') ++idx;
+			while (body_[endIdx-1]==' ') --endIdx;
 			actions_.emplace_back(ActionType::Partial,idx,endIdx);
 			break;
 			case '{':
@@ -332,15 +332,15 @@ namespace crow {
 			if (body_[endIdx+2]!='}') {
 			  throw invalid_template_exception("{{{: }}} not matched");
 			}
-			while (body_[idx]==' ') idx++;
-			while (body_[endIdx-1]==' ') endIdx--;
+			while (body_[idx]==' ') ++idx;
+			while (body_[endIdx-1]==' ') --endIdx;
 			actions_.emplace_back(ActionType::UnescapeTag,idx,endIdx);
 			current++;
 			break;
 			case '&':
 			idx++;
-			while (body_[idx]==' ') idx++;
-			while (body_[endIdx-1]==' ') endIdx--;
+			while (body_[idx]==' ') ++idx;
+			while (body_[endIdx-1]==' ') --endIdx;
 			actions_.emplace_back(ActionType::UnescapeTag,idx,endIdx);
 			break;
 			case '=':
@@ -351,15 +351,15 @@ namespace crow {
 			if (body_[endIdx]!='=')
 			  throw invalid_template_exception("{{=: not matching = tag: "+body_.substr(idx,endIdx-idx));
 			endIdx--;
-			while (body_[idx]==' ') idx++;
-			while (body_[endIdx]==' ') endIdx--;
+			while (body_[idx]==' ') ++idx;
+			while (body_[endIdx]==' ') --endIdx;
 			endIdx++;
 			{
 			  bool succeeded=false;
-			  for (size_t i=idx; i<endIdx; i++) {
+			  for (size_t i=idx; i<endIdx; ++i) {
 				if (body_[i]==' ') {
 				  tag_open=body_.substr(idx,i-idx);
-				  while (body_[i]==' ') i++;
+				  while (body_[i]==' ') ++i;
 				  tag_close=body_.substr(i,endIdx-i);
 				  if (tag_open.empty())
 					throw invalid_template_exception("{{=: empty open tag");
@@ -378,15 +378,15 @@ namespace crow {
 			break;
 			default:
 			// normal tag case;
-			while (body_[idx]==' ') idx++;
-			while (body_[endIdx-1]==' ') endIdx--;
+			while (body_[idx]==' ') ++idx;
+			while (body_[endIdx-1]==' ') --endIdx;
 			actions_.emplace_back(ActionType::Tag,idx,endIdx);
 			break;
 		  }
 		}
 
 		// removing standalones
-		for (int i=actions_.size()-2; i>=0; i--) {
+		for (int i=actions_.size()-2; i>=0; --i) {
 		  if (actions_[i].t==ActionType::Tag||actions_[i].t==ActionType::UnescapeTag)
 			continue;
 		  auto& fragment_before=fragments_[i];
@@ -405,7 +405,7 @@ namespace crow {
 		  if (!all_space_before&&body_[j]!='\n')
 			continue;
 		  bool all_space_after=true;
-		  for (k=fragment_after.first; k<(int)body_.size()&&k<fragment_after.second; k++) {
+		  for (k=fragment_after.first; k<(int)body_.size()&&k<fragment_after.second; ++k) {
 			if (body_[k]!=' ') {
 			  all_space_after=false;
 			  break;
@@ -425,7 +425,7 @@ namespace crow {
 		  fragment_before.second=j+1;
 		  if (!all_space_after) {
 			if (body_[k]=='\n')
-			  k++;
+			  ++k;
 			else
 			  k+=2;
 			fragment_after.first=k;

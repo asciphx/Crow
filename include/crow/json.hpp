@@ -8377,7 +8377,7 @@ namespace nlohmann {
 					  const NumberType len,
 					  string_t& result) {
 		bool success=true;
-		for (NumberType i=0; i<len; i++) {
+		for (NumberType i=0; i<len; ++i) {
 		  get();
 		  if (JSON_HEDLEY_UNLIKELY(!unexpect_eof(format,"string"))) {
 			success=false;
@@ -8403,7 +8403,7 @@ namespace nlohmann {
 					  const NumberType len,
 					  binary_t& result) {
 		bool success=true;
-		for (NumberType i=0; i<len; i++) {
+		for (NumberType i=0; i<len; ++i) {
 		  get();
 		  if (JSON_HEDLEY_UNLIKELY(!unexpect_eof(format,"binary"))) {
 			success=false;
@@ -9995,7 +9995,7 @@ namespace nlohmann {
 				// first char should be between '1' and '9'
 				return false;
 			  }
-			  for (std::size_t i=1; i<reference_token.size(); i++) {
+			  for (std::size_t i=1; i<reference_token.size(); ++i) {
 				if (JSON_HEDLEY_UNLIKELY(!('0'<=reference_token[i]&&reference_token[i]<='9'))) {
 				  // other char should be between '0' and '9'
 				  return false;
@@ -12098,7 +12098,7 @@ namespace nlohmann {
 		  //      M+ = buffer * 10^(-m-1) + 10^(-m-1) * r * 2^e
 		  //
 		  p2=r;
-		  m++;
+		  ++m;
 		  //
 		  //      M+ = buffer * 10^-m + 10^-m * p2 * 2^e
 		  // Invariant restored.
