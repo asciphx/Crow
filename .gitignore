@@ -32,7 +32,7 @@ unittest
 build
 
 .directory
-crow_all.h
+# crow_all.h
 # windows
 .vs/
 CppProperties.json

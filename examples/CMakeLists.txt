@@ -43,12 +43,12 @@ add_dependencies(example_with_all amalgamation)
 target_link_libraries(example_with_all ${Boost_LIBRARIES})
 target_link_libraries(example_with_all ${CMAKE_THREAD_LIBS_INIT})
 
-add_custom_command(OUTPUT example_test.py
+add_custom_command(OUTPUT python/example_test.py
 	COMMAND ${CMAKE_COMMAND} -E
-	copy ${PROJECT_SOURCE_DIR}/example_test.py ${CMAKE_CURRENT_BINARY_DIR}/example_test.py
-	DEPENDS ${PROJECT_SOURCE_DIR}/example_test.py 
+	copy ${PROJECT_SOURCE_DIR}/python/example_test.py ${CMAKE_CURRENT_BINARY_DIR}/python/example_test.py
+	DEPENDS ${PROJECT_SOURCE_DIR}/python/example_test.py 
 )
-add_custom_target(example_copy ALL DEPENDS example_test.py)
+add_custom_target(example_copy ALL DEPENDS python/example_test.py)
 
 add_executable(example_chat example_chat.cpp)
 target_link_libraries(example_chat ${Boost_LIBRARIES})

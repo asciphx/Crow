@@ -3,7 +3,7 @@
 #include <string>
 #include <iterator>
 #include "mustache.h"
-#include "crow/json.h"
+#include "crow/json.hpp"
 using namespace std;
 using namespace crow;
 using namespace crow::mustache;
@@ -14,16 +14,16 @@ string read_all(const string& filename) {
 }
 
 int main() {
-  auto data=json::parse(read_all("data"));
-  auto templ=compile(read_all("template"));
-  auto partials=json::parse(read_all("partials"));
+  auto data=nlohmann::json::parse(read_all("data"));
+  auto templ=template_t(read_all("template"));
+  auto partials=nlohmann::json::parse(read_all("partials"));
   set_loader([&](std::string name)->std::string {
 	if (partials.count(name)) {
-	  return partials[name].s();
+	  return partials[name].get<string>();
 	}
 	return "";
   });
-  Ctx ctx(data);
+  nlohmann::json ctx(data);
   cout<<templ.render(ctx);
   return 0;
 }
