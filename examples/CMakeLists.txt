@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 project (crow_examples)
 
+add_executable(benchmark benchmark.cpp)
+target_link_libraries(benchmark ${Boost_LIBRARIES})
+target_link_libraries(benchmark ${CMAKE_THREAD_LIBS_INIT})
 if (MSVC)
 	add_executable(example_vs example_vs.cpp)
 	target_link_libraries(example_vs ${Boost_LIBRARIES})
