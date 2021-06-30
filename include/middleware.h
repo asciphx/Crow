@@ -6,13 +6,14 @@ namespace crow {
   struct Cors {
 	struct Ctx {};
 	void before_handle(Req& req,Res& res,Ctx&) {
-	  res.set_header("Access-Control-Allow-Credentials","true");
-	  res.set_header("Access-Control-Allow-Headers","content-type,cache-control,x-requested-with,authorization");
+	  res.add_header_t(RES_AcO,"*");
+	  res.add_header_s(RES_AcC,RES_f);
+	  res.add_header_t(RES_AcH,"content-type,cache-control,x-requested-with,authorization");
+	  /*if (!res.is_file) {
+	  }*/
 	  if (req.method==HTTPMethod::OPTIONS) { res.code=204;res.end(); }
 	}
-	void after_handle(Req&,Res& res,Ctx&) {
-	  res.set_header("Access-Control-Allow-Origin","*");
-	}
+	void after_handle(Req&,Res& res,Ctx&) {}
   };
   struct CookieParser {
 	struct Ctx {

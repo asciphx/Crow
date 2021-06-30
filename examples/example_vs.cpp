@@ -15,6 +15,10 @@ int main() {
 	auto page=mustache::load("index.html");
 	return page.render(x);
   });
+  //support default route
+  app.catchall_route()([] {
+	return (string)mustache::load("404NotFound.html");
+  });
   //Single path access to files
   app.route("/cat")([](const Req&,Res& res) {
 	res.set_static_file_info("1.jpg");res.end();

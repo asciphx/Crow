@@ -268,16 +268,22 @@ namespace crow {
     }
 
     template <typename Func>
+    //typename std::enable_if<spell::CallHelper<Func,spell::S<>>::value,void>::type
     typename std::enable_if<
       !spell::CallHelper<Func,spell::S<>>::value&&
       !spell::CallHelper<Func,spell::S<crow::Req>>::value&&
       !spell::CallHelper<Func,spell::S<crow::Res&>>::value,
       void>::type
       operator()(Func&& f) {
-      static_assert(std::is_same<void,decltype(f(std::declval<crow::Req>(),std::declval<crow::Res&>()))>::value,
-                    "Handler function with Res argument should have void return type");
+      static_assert(!std::is_same<void,decltype(f(std::declval<crow::Req>(),std::declval<crow::Res&>()))>::value,
+                    "Handler function with Res argument should have other return type");
 
-      handler_=std::move(f);
+      handler_=(
+        [f=std::move(f)]
+        (const Req&req,Res&res){
+          res=Res(f(req,res));
+          res.end();
+        });
     }
 
     bool has_handler() {
@@ -856,9 +862,9 @@ namespace crow {
       all_rules_.emplace_back(ruleObject);
       return *ruleObject;
     }
-    //CatchallRule& catchall_rule() {
-    //  return catchall_rule_;
-    //}
+    CatchallRule& catchall_rule() {
+      return catchall_rule_;
+    }
     void internal_add_rule_object(const std::string& rule,BaseRule* ruleObject) {
       bool has_trailing_slash=false;
       std::string rule_without_trailing_slash;
@@ -910,7 +916,7 @@ namespace crow {
           }
         }
 
-        CROW_LOG_INFO<<"Cannot match rules "<<req.url;
+        CROW_LOG_INFO<<"913:Cannot match rules "<<req.url;
         res=Res(404);
         res.end();
         return;
@@ -933,7 +939,7 @@ namespace crow {
         return;
       }
 
-      CROW_LOG_DEBUG<<"Matched rule (upgrade) '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
+      CROW_LOG_DEBUG<<"936:Matched rule (upgrade) '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
 
       // any uncaught exceptions become 500s
       try {
@@ -956,7 +962,10 @@ namespace crow {
       if (method_actual>=HTTPMethod::InternalMethodCount)
         return;
       auto& per_method=per_methods_[static_cast<int>(method_actual)];
-      if (method_actual==HTTPMethod::OPTIONS) {
+      if (req.method==HTTPMethod::HEAD) {
+        method_actual=HTTPMethod::GET;
+        res.is_head_response=true;
+      } else if (method_actual==HTTPMethod::OPTIONS) {
         std::string allow="OPTIONS, HEAD, ";
         if (req.url=="/*") {
           for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
@@ -982,7 +991,7 @@ namespace crow {
             res.end();
             return;
           } else {
-            CROW_LOG_DEBUG<<"Cannot match rules "<<req.url;
+            CROW_LOG_DEBUG<<"988:Cannot match rules "<<req.url;
             res=Res(404);
             res.end();
             return;
@@ -993,6 +1002,10 @@ namespace crow {
       auto& rules=per_method.rules;
       auto found=trie.find(req.url);
       unsigned rule_index=found.first;
+      /*if (catchall_rule_.has_handler()) {
+        CROW_LOG_DEBUG<<"1010:Cannot match rules "<<req.url<<". Redirecting to Catchall rule";
+        catchall_rule_.handler_(req,res);std::cout<<res.body;return;
+      }*/
       if (!rule_index) {
         for (auto& per_method:per_methods_) {
           if (per_method.trie.find(req.url).first) {
@@ -1002,17 +1015,11 @@ namespace crow {
             return;
           }
         }
-
-        //if (catchall_rule_.has_handler()) {
-        //  CROW_LOG_DEBUG<<"Cannot match rules "<<req.url<<". Redirecting to Catchall rule";
-        //  catchall_rule_.handler_(req,res);
-        //} else {
-        //  CROW_LOG_DEBUG<<"Cannot match rules "<<req.url;
-        //  res=Res(404);
-        //}
-        CROW_LOG_DEBUG<<"Cannot match rules "<<req.url;
-        res=Res(404);
-        res.end();
+        res.set_static_file_info(req.url.substr(1));
+        if (res.code==404&&catchall_rule_.has_handler()) {
+          CROW_LOG_DEBUG<<"1010:Cannot match rules "<<req.url<<". Redirecting to Catchall rule";
+          res.code=200;catchall_rule_.handler_(req,res);
+        } else res.end();
         return;
       }
       if (rule_index>=rules.size())
@@ -1029,8 +1036,7 @@ namespace crow {
         res.end();
         return;
       }
-      CROW_LOG_DEBUG<<"Matched rule '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
-
+      CROW_LOG_DEBUG<<"1027:Matched rule '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
       // any uncaught exceptions become 500s
       try {
         rules[rule_index]->handle(req,res,found.second);
@@ -1054,7 +1060,7 @@ namespace crow {
       }
     }
     private:
-    //CatchallRule catchall_rule_;
+    CatchallRule catchall_rule_;
     struct PerMethod {
       std::vector<BaseRule*> rules;
       Trie trie;

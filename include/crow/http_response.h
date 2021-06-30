@@ -6,7 +6,9 @@
 #include "crow/any_types.h"
 #include "crow/ci_map.h"
 //response
-static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location",Res_Ca[14]="cache-control",Res_Xc[23]="X-Content-Type-Options",Res_No[8]="nosniff";/*,RES_AJ[17]="application/json"*/;
+static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location",Res_Ca[14]="Cache-Control",RES_f[6]="false",
+  RES_Xc[23]="X-Content-Type-Options",RES_No[8]="nosniff",RES_AcC[33]="Access-Control-Allow-Credentials",RES_t[5]="true",
+  RES_AcH[29]="Access-Control-Allow-Headers",RES_AcO[28]="Access-Control-Allow-Origin";/*,RES_AJ[17]="application/json"*/;
 namespace crow {
   using json=nlohmann::json;
   template <typename Adaptor,typename Handler,typename ... Middlewares>
@@ -22,7 +24,7 @@ namespace crow {
 #ifdef CROW_ENABLE_COMPRESSION
 	bool compressed=true; //< If compression is enabled and this is false, the individual response will not be compressed.
 #endif
-
+	bool is_head_response=false;      ///< Whether this is a Res to a HEAD Req.
 	void set_header(std::string key,std::string value) {
 	  headers.erase(key); headers.emplace(std::move(key),std::move(value));
 	}
@@ -52,7 +54,6 @@ namespace crow {
 	  code=r.code;
 	  headers=std::move(r.headers);
 	  path_=std::move(r.path_);
-	  statbuf_=std::move(r.statbuf_);
 	  completed_=r.completed_;
 	  return *this;
 	}
@@ -77,6 +78,10 @@ namespace crow {
 	void end() {
 	  if (!completed_) {
 		completed_=true;
+		if (is_head_response) {
+		  add_header_t(RES_CL,std::to_string(body.size()));
+		  body="";
+		}
 		if (complete_request_handler_) {
 		  complete_request_handler_();
 		}
@@ -86,7 +91,7 @@ namespace crow {
 	bool is_alive() { return is_alive_helper_&&is_alive_helper_();}
 	///Return a static file as the response body
 	void set_static_file_info(std::string path) {
-	  path_=detail::directory_+path;
+	  struct stat statbuf_;path_=detail::directory_+path;
 	  statResult_=stat(path_.c_str(),&statbuf_);
 #ifdef CROW_ENABLE_COMPRESSION
 	  compressed=false;
@@ -100,13 +105,13 @@ namespace crow {
 		  this->add_header_t(RES_CT,types),is_file=1;
 		  if (extension!="ico") //Static resource cache seconds(= 15 minute)
 			this->add_header_t(Res_Ca,"max-age=900,immutable"),
-			this->add_header_s(Res_Xc,Res_No);
+			this->add_header_s(RES_Xc,RES_No);
 		} else {
 		  code=404;this->headers.clear();this->end();
 		}
 		//else this->add_header_s(RES_CT,RES_TP);
 	  } else {
-		code=404;this->end();
+		code=404;
 	  }
 	}
 	/// Stream a static file.
@@ -127,7 +132,6 @@ namespace crow {
 	private:
 	std::string path_;
 	int statResult_;
-	struct stat statbuf_;
 	bool completed_{};
 	std::function<void()> complete_request_handler_;
 	std::function<bool()> is_alive_helper_;

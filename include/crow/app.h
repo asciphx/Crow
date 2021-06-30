@@ -25,7 +25,7 @@
 #else
 #define CROW_ROUTE(app, url) app.route_url<crow::spell::get_parameter_tag(url)>(url)
 #endif
-//#define CROW_CATCHALL_ROUTE(app) app.catchall_route()
+#define CROW_CATCHALL_ROUTE(app) app.catchall_route()
 
 namespace crow {
 #ifdef CROW_ENABLE_SSL
@@ -58,7 +58,7 @@ namespace crow {
       return router_.new_rule_tagged<Tag>(std::move(rule));
     }
     ///Create a route for any requests without a proper route (**Use CROW_CATCHALL_ROUTE instead**)
-    //CatchallRule& catchall_route() { return router_.catchall_rule(); }
+    CatchallRule& catchall_route() { return router_.catchall_rule(); }
     self_t& signal_clear() { signals_.clear(); return *this; }
     self_t& signal_add(int signal_number) { signals_.push_back(signal_number); return *this;}
     ///Set the port that Crow will handle requests on
@@ -122,14 +122,14 @@ namespace crow {
         this->set_types({"html","ico","css","js","json","svg","png","jpg","gif","txt"});//default types
         is_not_set_types=false;
       }
-#ifndef CROW_DISABLE_STATIC_DIR
-      route_url<crow::spell::get_parameter_tag(CROW_STATIC_ENDPOINT)>(CROW_STATIC_ENDPOINT)
-        ([](crow::Res& res,std::string file_path_partial) {
-        res.set_static_file_info(file_path_partial);
-        res.end();
-      });
+//#ifndef CROW_DISABLE_STATIC_DIR
+//      route_url<crow::spell::get_parameter_tag(CROW_STATIC_ENDPOINT)>(CROW_STATIC_ENDPOINT)
+//        ([](crow::Res& res,std::string file_path_partial) {
+//        res.set_static_file_info(file_path_partial);
+//        res.end();
+//      });
+//#endif
       validate();
-#endif
 
 #ifdef CROW_ENABLE_SSL
       if (use_ssl_) {

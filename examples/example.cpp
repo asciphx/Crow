@@ -20,6 +20,10 @@ int main() {
 	auto page=mustache::load("index.html");
 	return page.render(x);
   });
+  //support default route
+  app.catchall_route()([] {
+	return (string)mustache::load("404NotFound.html");
+  });
   //json::parse
   app.route("/list")([]() {
 	json v=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},

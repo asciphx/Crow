@@ -9,11 +9,11 @@
 namespace crow {
   namespace mustache {
 	class invalid_template_exception : public std::exception {
-		public:
-		invalid_template_exception(const std::string& msg)
-		  : msg("crow::mustache error: "+msg) {}
-		virtual const char* what() const throw() { return msg.c_str(); }
-		std::string msg;
+	  public:
+	  invalid_template_exception(const std::string& msg)
+		: msg("crow::mustache error: "+msg) {}
+	  virtual const char* what() const throw() { return msg.c_str(); }
+	  std::string msg;
 	};
 
 	enum class ActionType {
@@ -39,9 +39,9 @@ namespace crow {
 	  static std::function<std::string(std::string)> loader=default_loader;
 	  return loader;
 	}
-
 	class template_t {
 	  public:
+	  operator std::string() const { return body_; };
 	  template_t(std::string body)
 		: body_(std::move(body)) {
 		// {{ {{# {{/ {{^ {{! {{> {{=
@@ -190,11 +190,11 @@ namespace crow {
 			  switch (ctx.type()) {
 				case json::value_t::array: {
 				  if (ctx.is_array())
-				  for (auto it=ctx.array().begin(); it!=ctx.array().end(); ++it) {
-					stack.push_back(&*it);
-					render_internal(current+1,action.pos,stack,out,indent);
-					stack.pop_back();
-				  }
+					for (auto it=ctx.array().begin(); it!=ctx.array().end(); ++it) {
+					  stack.push_back(&*it);
+					  render_internal(current+1,action.pos,stack,out,indent);
+					  stack.pop_back();
+					}
 				  current=action.pos;
 				} break;
 				case json::value_t::number_integer:
@@ -437,7 +437,6 @@ namespace crow {
 	  std::vector<Action> actions_;
 	  std::string body_;
 	};
-
 	inline void set_directory(const std::string& path) {
 	  auto& base=detail::directory_;base=path;
 	  if (base.back()!='\\'&&base.back()!='/') base+='/';
@@ -449,10 +448,6 @@ namespace crow {
 
 	inline template_t load(const std::string& filename) {
 	  return template_t(get_loader_ref()(filename));
-	}
-
-	inline std::string loadOnly(const std::string& filename) {
-	  return get_loader_ref()(filename);
 	}
   }
 }
