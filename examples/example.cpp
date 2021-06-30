@@ -5,8 +5,8 @@
 #include <sstream>
 using namespace crow;
 class ExampleLogHandler : public ILogHandler {
-  public:void log(std::string /*message*/,LogLevel /*level*/) override {
-	//std::cerr << "ExampleLogHandler -> " << message;
+  public:void log(std::string message,LogLevel /*level*/) override {
+	//std::cerr << "ExampleLogHandler -> " <<message;
   }
 };
 int main() {
@@ -14,7 +14,7 @@ int main() {
   app.set_directory("./static").set_types({"html","ico","css","js","json","svg","png","jpg","gif","txt"})
 	.get_middleware<ExampleMiddleware>().setMessage("hello");
   //Server rendering
-  CROW_ROUTE(app,"/")([] {
+  app.route("/")([] {
 	char name[64];gethostname(name,64);
 	json x;x["servername"]=name;
 	auto page=mustache::load("index.html");
@@ -25,14 +25,14 @@ int main() {
 	return (string)mustache::load("404NotFound.html");
   });
   //json::parse
-  app.route("/list")([]() {
+  app.route("/list")([] {
 	json v=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
 	return v;
   });
   //static reflect
-  app.route("/lists")([]() {
+  app.route("/lists")([] {
 	List list=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})").get<List>();
@@ -52,22 +52,12 @@ int main() {
 	return x.dump(2);
   });
   // a request to /path should be forwarded to /path/
-  CROW_ROUTE(app,"/path/")
-	([]() {
+  app.route("/path/")([] {
 	return "Trailing slash test case..";
-  });
-  // simple json response
-  // To see it in action enter {ip}:18080/json
-  CROW_ROUTE(app,"/json")
-	([] {
-	crow::json x;
-	x["message"]="Hello, World!";
-	return x;
   });
   // To see it in action enter {ip}:18080/hello/{integer_between -2^32 and 100} and you should receive
   // {integer_between -2^31 and 100} bottles of beer!
-  CROW_ROUTE(app,"/hello/<int>")
-	([](int count) {
+  app.route("/hello/<int>")([](int count) {
 	if (count>100)
 	  return crow::Res(400);
 	std::ostringstream os;
@@ -75,8 +65,7 @@ int main() {
 	return crow::Res(os.str());
   });
   // To see it in action submit {ip}:18080/add/1/2 and you should receive 3 (exciting, isn't it)
-  CROW_ROUTE(app,"/add/<int>/<int>")
-	([](const crow::Req& /*req*/,crow::Res& res,int a,int b) {
+  app.route("/add/<int>/<int>")([](const Req& req,Res& res,int a,int b) {
 	std::ostringstream os;
 	os<<a+b;
 	res.write(os.str());

@@ -133,7 +133,7 @@ inline int qs_parse(char* qs, char* qs_kv[], int qs_kv_size)
 
   // we only decode the values in place, the keys could have '='s in them
   // which will hose our ability to distinguish keys from values later
-  for (j = 0; j < i; j++) {
+  for (j = 0; j < i; ++j) {
     substr_ptr = qs_kv[j] + strcspn(qs_kv[j], "=&#");
     if (substr_ptr[0] == '&' ||
         substr_ptr[0] == '\0')  // blank value: skip decoding
