@@ -97,7 +97,7 @@ inline int qs_strncmp(const char* s, const char* qs, size_t n)
 
     if (u1 != u2) return u1 - u2;
     if (u1 == '\0') return 0;
-    i++;
+    ++i;
   }
   if (CROW_QS_ISQSCHR(*qs))
     return -1;
@@ -110,12 +110,12 @@ inline int qs_parse(char* qs, char* qs_kv[], int qs_kv_size)
   int i, j;
   char* substr_ptr;
 
-  for (i = 0; i < qs_kv_size; i++) qs_kv[i] = NULL;
+  for (i = 0; i < qs_kv_size; ++i) qs_kv[i] = NULL;
 
   // find the beginning of the k/v substrings or the fragment
   substr_ptr = qs + strcspn(qs, "?#");
   if (substr_ptr[0] != '\0')
-    substr_ptr++;
+    ++substr_ptr;
   else
     return 0;  // no query or fragment
 
@@ -127,9 +127,9 @@ inline int qs_parse(char* qs, char* qs_kv[], int qs_kv_size)
       break;
     }
     substr_ptr += j + 1;
-    i++;
+    ++i;
   }
-  i++;  // x &'s -> means x iterations of this loop -> means *x+1* k/v pairs
+  ++i;  // x &'s -> means x iterations of this loop -> means *x+1* k/v pairs
 
   // we only decode the values in place, the keys could have '='s in them
   // which will hose our ability to distinguish keys from values later
@@ -167,8 +167,8 @@ inline int qs_decode(char* qs)
     } else {
       qs[i] = qs[j];
     }
-    i++;
-    j++;
+    ++i;
+    ++j;
   }
   qs[i] = '\0';
 
@@ -186,11 +186,11 @@ inline char* qs_k2v(const char* key, char* const* qs_kv, int qs_kv_size,
 #ifdef _qsSORTING
 // TODO: binary search for key in the sorted qs_kv
 #else  // _qsSORTING
-  for (i = 0; i < qs_kv_size; i++) {
+  for (i = 0; i < qs_kv_size; ++i) {
     // we rely on the unambiguous '=' to find the value in our k/v pair
     if (qs_strncmp(key, qs_kv[i], key_len) == 0) {
       skip = strcspn(qs_kv[i], "=");
-      if (qs_kv[i][skip] == '=') skip++;
+      if (qs_kv[i][skip] == '=') ++skip;
       // return (zero-char value) ? ptr to trailing '\0' : ptr to value
       if (nth == 0)
         return qs_kv[i] + skip;
@@ -214,12 +214,12 @@ inline boost::optional<std::pair<std::string, std::string>> qs_dict_name2kv(
 #ifdef _qsSORTING
 // TODO: binary search for key in the sorted qs_kv
 #else  // _qsSORTING
-  for (i = 0; i < qs_kv_size; i++) {
+  for (i = 0; i < qs_kv_size; ++i) {
     if (strncmp(dict_name, qs_kv[i], name_len) == 0) {
       skip_to_eq = strcspn(qs_kv[i], "=");
-      if (qs_kv[i][skip_to_eq] == '=') skip_to_eq++;
+      if (qs_kv[i][skip_to_eq] == '=') ++skip_to_eq;
       skip_to_brace_open = strcspn(qs_kv[i], "[");
-      if (qs_kv[i][skip_to_brace_open] == '[') skip_to_brace_open++;
+      if (qs_kv[i][skip_to_brace_open] == '[') ++skip_to_brace_open;
       skip_to_brace_close = strcspn(qs_kv[i], "]");
 
       if (skip_to_brace_open <= skip_to_brace_close && skip_to_brace_open > 0 &&
@@ -257,7 +257,7 @@ inline char* qs_scanvalue(const char* key, const char* qs, char* val,
 
   qs += strcspn(qs, "=&#");
   if (qs[0] == '=') {
-    qs++;
+    ++qs;
     i = strcspn(qs, "&=#");
 #ifdef _MSC_VER
     strncpy_s(val, val_len, qs,
@@ -358,7 +358,7 @@ class query_string
   {
     char* ret = get(name);
     if (ret != nullptr) {
-      for (unsigned int i = 0; i < key_value_pairs_.size(); i++) {
+      for (unsigned int i = 0; i < key_value_pairs_.size(); ++i) {
         std::string str_item(key_value_pairs_[i]);
         if (str_item.substr(0, name.size() + 1) == name + '=') {
           key_value_pairs_.erase(key_value_pairs_.begin() + i);
@@ -398,7 +398,7 @@ class query_string
   {
     std::vector<char*> ret = get_list(name, use_brackets);
     if (!ret.empty()) {
-      for (unsigned int i = 0; i < key_value_pairs_.size(); i++) {
+      for (unsigned int i = 0; i < key_value_pairs_.size(); ++i) {
         std::string str_item(key_value_pairs_[i]);
         if ((use_brackets
                  ? (str_item.substr(0, name.size() + 3) == name + "[]=")
@@ -442,7 +442,7 @@ class query_string
   {
     std::unordered_map<std::string, std::string> ret = get_dict(name);
     if (!ret.empty()) {
-      for (unsigned int i = 0; i < key_value_pairs_.size(); i++) {
+      for (unsigned int i = 0; i < key_value_pairs_.size(); ++i) {
         std::string str_item(key_value_pairs_[i]);
         if (str_item.substr(0, name.size() + 1) == name + '[') {
           key_value_pairs_.erase(key_value_pairs_.begin() + i--);

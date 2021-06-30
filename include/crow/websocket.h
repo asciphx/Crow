@@ -399,7 +399,7 @@ namespace crow {
       /// Unmasks the fragment, checks the opcode, merges fragments into 1 message body, and calls the appropriate handler.
       void handle_fragment() {
         if (has_mask_) {
-          for (decltype(fragment_.length()) i=0; i<fragment_.length(); i++) {
+          for (decltype(fragment_.length()) i=0; i<fragment_.length(); ++i) {
             fragment_[i]^=((char*)&mask_)[i%4];
           }
         }

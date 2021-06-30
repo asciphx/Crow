@@ -1603,17 +1603,17 @@ static const int8_t unhex[256] =
               break;
 
             case h_C:
-              parser->index++;
+            ++parser->index;
               parser->header_state = (c == 'o' ? h_CO : h_general);
               break;
 
             case h_CO:
-              parser->index++;
+            ++parser->index;
               parser->header_state = (c == 'n' ? h_CON : h_general);
               break;
 
             case h_CON:
-              parser->index++;
+            ++parser->index;
               switch (c) {
                 case 'n':
                   parser->header_state = h_matching_connection;
@@ -1630,7 +1630,7 @@ static const int8_t unhex[256] =
             /* connection */
 
             case h_matching_connection:
-              parser->index++;
+            ++parser->index;
               if (parser->index > sizeof(CROW_CONNECTION)-1
                   || c != CROW_CONNECTION[parser->index]) {
                 parser->header_state = h_general;
@@ -1642,7 +1642,7 @@ static const int8_t unhex[256] =
             /* proxy-connection */
 
             case h_matching_proxy_connection:
-              parser->index++;
+            ++parser->index;
               if (parser->index > sizeof(CROW_PROXY_CONNECTION)-1
                   || c != CROW_PROXY_CONNECTION[parser->index]) {
                 parser->header_state = h_general;
@@ -1654,7 +1654,7 @@ static const int8_t unhex[256] =
             /* content-length */
 
             case h_matching_content_length:
-              parser->index++;
+            ++parser->index;
               if (parser->index > sizeof(CROW_CONTENT_LENGTH)-1
                   || c != CROW_CONTENT_LENGTH[parser->index]) {
                 parser->header_state = h_general;
@@ -1666,7 +1666,7 @@ static const int8_t unhex[256] =
             /* transfer-encoding */
 
             case h_matching_transfer_encoding:
-              parser->index++;
+            ++parser->index;
               if (parser->index > sizeof(CROW_TRANSFER_ENCODING)-1
                   || c != CROW_TRANSFER_ENCODING[parser->index]) {
                 parser->header_state = h_general;
@@ -1678,7 +1678,7 @@ static const int8_t unhex[256] =
             /* upgrade */
 
             case h_matching_upgrade:
-              parser->index++;
+            ++parser->index;
               if (parser->index > sizeof(CROW_UPGRADE)-1
                   || c != CROW_UPGRADE[parser->index]) {
                 parser->header_state = h_general;
@@ -1843,7 +1843,7 @@ static const int8_t unhex[256] =
 
           /* Transfer-Encoding: chunked */
           case h_matching_transfer_encoding_chunked:
-            parser->index++;
+          ++parser->index;
             if (parser->index > sizeof(CROW_CHUNKED)-1
                 || c != CROW_CHUNKED[parser->index]) {
               parser->header_state = h_general;
@@ -1854,7 +1854,7 @@ static const int8_t unhex[256] =
 
           /* looking for 'Connection: keep-alive' */
           case h_matching_connection_keep_alive:
-            parser->index++;
+          ++parser->index;
             if (parser->index > sizeof(CROW_KEEP_ALIVE)-1
                 || c != CROW_KEEP_ALIVE[parser->index]) {
               parser->header_state = h_general;
@@ -1865,7 +1865,7 @@ static const int8_t unhex[256] =
 
           /* looking for 'Connection: close' */
           case h_matching_connection_close:
-            parser->index++;
+          ++parser->index;
             if (parser->index > sizeof(CROW_CLOSE)-1 || c != CROW_CLOSE[parser->index]) {
               parser->header_state = h_general;
             } else if (parser->index == sizeof(CROW_CLOSE)-2) {
@@ -2412,7 +2412,7 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
 
   s = found_at ? s_http_userinfo_start : s_http_host_start;
 
-  for (p = buf + u->field_data[UF_HOST].off; p < buf + buflen; p++) {
+  for (p = buf + u->field_data[UF_HOST].off; p < buf + buflen; ++p) {
     enum http_host_state new_s = http_parse_host_char(s, *p);
 
     if (new_s == s_http_host_dead) {
@@ -2424,14 +2424,14 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
         if (s != s_http_host) {
           u->field_data[UF_HOST].off = p - buf;
         }
-        u->field_data[UF_HOST].len++;
+        ++u->field_data[UF_HOST].len;
         break;
 
       case s_http_host_v6:
         if (s != s_http_host_v6) {
           u->field_data[UF_HOST].off = p - buf;
         }
-        u->field_data[UF_HOST].len++;
+        ++u->field_data[UF_HOST].len;
         break;
 
       case s_http_host_port:
@@ -2440,7 +2440,7 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
           u->field_data[UF_PORT].len = 0;
           u->field_set |= (1 << UF_PORT);
         }
-        u->field_data[UF_PORT].len++;
+        ++u->field_data[UF_PORT].len;
         break;
 
       case s_http_userinfo:
@@ -2449,7 +2449,7 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
           u->field_data[UF_USERINFO].len = 0;
           u->field_set |= (1 << UF_USERINFO);
         }
-        u->field_data[UF_USERINFO].len++;
+        ++u->field_data[UF_USERINFO].len;
         break;
 
       default:
@@ -2487,7 +2487,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   s = is_connect ? s_req_server_start : s_req_spaces_before_url;
   old_uf = UF_MAX;
 
-  for (p = buf; p < buf + buflen; p++) {
+  for (p = buf; p < buf + buflen; ++p) {
     s = parse_url_char(s, *p);
 
     /* Figure out the next field that we're operating on */
@@ -2534,7 +2534,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
     /* Nothing's changed; soldier on */
     if (uf == old_uf) {
-      u->field_data[uf].len++;
+      ++u->field_data[uf].len;
       continue;
     }
 

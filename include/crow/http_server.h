@@ -24,12 +24,13 @@ namespace boost {
   }
 }
 namespace crow {
+  static const char RES_GMT[26]="%a, %d %b %Y %H:%M:%S GMT";
   using namespace boost;
   using tcp=asio::ip::tcp;
   template <typename Handler,typename Adaptor=SocketAdaptor,typename ... Middlewares>
   class Server {
     public:
-    Server(Handler* handler,std::string bindaddr,uint16_t port,std::string server_name="Crow/0.4",std::tuple<Middlewares...>* middlewares=nullptr,uint16_t concurrency=1,typename Adaptor::Ctx* adaptor_ctx=nullptr)
+    Server(Handler* handler,std::string bindaddr,uint16_t port,std::string server_name="Crow",std::tuple<Middlewares...>* middlewares=nullptr,uint16_t concurrency=1,typename Adaptor::Ctx* adaptor_ctx=nullptr)
       : acceptor_(io_service_,tcp::endpoint(boost::asio::ip::address::from_string(bindaddr),port)),
       signals_(io_service_,SIGINT,SIGTERM),
       tick_timer_(io_service_),
@@ -56,34 +57,29 @@ namespace crow {
     }
 
     void run() {
-      for (int i=0; i<concurrency_; i++)
+      for (int i=0; i<concurrency_; ++i)
         io_service_pool_.emplace_back(new boost::asio::io_service());
       get_cached_date_str_pool_.resize(concurrency_);
       timer_queue_pool_.resize(concurrency_);
 
       std::vector<std::future<void>> v;
       std::atomic<int> init_count(0);
-      for (uint16_t i=0; i<concurrency_; i++)
+      for (uint16_t i=0; i<concurrency_; ++i)
         v.push_back(
           std::async(std::launch::async,[this,i,&init_count] {
         // thread local date string get function
         auto last=std::chrono::steady_clock::now();
-        std::string date_str;
-        auto last_time_t=time(0);
-        tm my_tm;
-#if defined(_MSC_VER) || defined(__MINGW32__)
-          localtime_s(&my_tm,&last_time_t);
-#else
-        localtime_r(&last_time_t,&my_tm);
-#endif
-        date_str.resize(0x20);
-        date_str.resize(strftime(&date_str[0],0x1f,"%a, %d %b %Y %H:%M:%S GMT",&my_tm));
-        get_cached_date_str_pool_[i]=[&]()->std::string {
-          if (std::chrono::steady_clock::now()-last>=std::chrono::seconds(1)) {
+        std::string date_str;date_str.resize(0x20);
+        get_cached_date_str_pool_[i]=[&date_str,&last]()->std::string {
+          if (std::chrono::steady_clock::now()-last>std::chrono::seconds(2)) {
+            time_t last_time_t=time(0);tm my_tm;
             last=std::chrono::steady_clock::now();
-            //update_date_str();
-            date_str.resize(0x20);
-            date_str.resize(strftime(&date_str[0],0x1f,"%a, %d %b %Y %H:%M:%S GMT",&my_tm));
+#if defined(_MSC_VER) || defined(__MINGW32__)
+            localtime_s(&my_tm,&last_time_t);
+#else
+            localtime_r(&last_time_t,&my_tm);
+#endif
+            date_str.resize(strftime(&date_str[0],0x1f,RES_GMT,&my_tm));
           }
           return date_str;
         };
@@ -101,17 +97,15 @@ namespace crow {
           timer.expires_from_now(boost::posix_time::millseconds(1));
           timer.async_wait(handler);
         });
-        init_count++;
-        while (1) {
-          try {
-            if (io_service_pool_[i]->run()==0) {
-              // when io_service.run returns 0, there are no more works to do.
-              break;
-            }
-          } catch (std::exception& e) {
-            CROW_LOG_ERROR<<"Worker Crash: An uncaught exception occurred: "<<e.what();
-          }
-        }
+        ++init_count;
+        io_service_pool_[i]->run();
+        //try {
+        //  if (io_service_pool_[i]->run()==0) {
+        //    // when io_service.run returns 0, there are no more works to do.
+        //  }
+        //} catch (std::exception& e) {
+        //  CROW_LOG_ERROR<<"Worker Crash: An uncaught exception occurred: "<<e.what();
+        //}
       }));
 
       if (tick_function_&&tick_interval_.count()>0) {
@@ -160,7 +154,7 @@ namespace crow {
     private:
     asio::io_service& pick_io_service() {
       // TODO load balancing
-      roundrobin_index_++;
+      ++roundrobin_index_;
       if (roundrobin_index_>=io_service_pool_.size())
         roundrobin_index_=0;
       return *io_service_pool_[roundrobin_index_];
@@ -173,7 +167,7 @@ namespace crow {
         get_cached_date_str_pool_[roundrobin_index_],*timer_queue_pool_[roundrobin_index_],
         adaptor_ctx_);
       acceptor_.async_accept(p->socket(),
-                             [this,p,&is](boost::system::error_code ec) {
+        [this,p,&is](boost::system::error_code ec) {
         if (!ec) {
           is.post([p] {
             p->start();

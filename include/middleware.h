@@ -6,17 +6,14 @@ namespace crow {
   struct Cors {
 	struct Ctx {};
 	void before_handle(Req& req,Res& res,Ctx&) {
-	  res.set_header("Access-Control-Allow-Credentials","true");
-	  res.set_header("Access-Control-Allow-Headers","content-type,cache-control,x-requested-with,authorization");
+	  res.add_header_t(RES_AcO,"*");
+	  res.add_header_s(RES_AcC,RES_f);
+	  res.add_header_t(RES_AcH,"content-type,cache-control,x-requested-with,authorization");
+	  /*if (!res.is_file) {
+	  }*/
 	  if (req.method==HTTPMethod::OPTIONS) { res.code=204;res.end(); }
 	}
-	void after_handle(Req&,Res& res,Ctx&) {
-	  res.set_header("Access-Control-Allow-Origin","*");//Cross domain request
-	  if (res.is_file) {
-		res.set_header("cache-control","max-age=300,immutable");//Static resource cache seconds(= 5 minute)
-		res.set_header("X-Content-Type-Options","nosniff");
-	  }
-	}
+	void after_handle(Req&,Res& res,Ctx&) {}
   };
   struct CookieParser {
 	struct Ctx {
@@ -45,17 +42,14 @@ namespace crow {
 		pos=pos_equal+1;
 		while (pos<cookies.size()&&cookies[pos]==' ') pos++;
 		if (pos==cookies.size()) break;
-
 		size_t pos_semicolon=cookies.find(';',pos);
 		std::string value=cookies.substr(pos,pos_semicolon-pos);
-
 		boost::trim(value);
 		if (value[0]=='"'&&value[value.size()-1]=='"') value=value.substr(1,value.size()-2);
-
 		ctx.jar.emplace(std::move(name),std::move(value));
 		pos=pos_semicolon;
 		if (pos==cookies.npos) break;
-		pos++;
+		++pos;
 		while (pos<cookies.size()&&cookies[pos]==' ') pos++;
 	  }
 	}

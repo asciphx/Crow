@@ -23,9 +23,9 @@
 #ifndef CROW_STATIC_DIRECTORY
 #define CROW_STATIC_DIRECTORY "static/"
 #endif
-#ifndef CROW_STATIC_ENDPOINT
-#define CROW_STATIC_ENDPOINT "/<path>"
-#endif
+//#ifndef CROW_STATIC_ENDPOINT
+//#define CROW_STATIC_ENDPOINT "/<path>"
+//#endif
 #if defined(_MSC_VER)
 #if _MSC_VER < 1900
 #define CROW_MSVC_WORKAROUND

@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cstdint>
 #include <utility>
 #include <tuple>
@@ -13,16 +12,13 @@
 #include "crow/utility.h"
 #include "crow/logging.h"
 #include "crow/websocket.h"
-
 namespace crow {
   /// A base class for all rules.
-
   /// Used to provide a common interface for code dealing with different types of rules.
   /// A Rule provides a URL, allowed HTTP methods, and handlers.
   class BaseRule {
     public:
-    BaseRule(std::string rule)
-      : rule_(std::move(rule)) {}
+    BaseRule(std::string rule) : rule_(std::move(rule)) {}
 
     virtual ~BaseRule() {}
 
@@ -45,13 +41,10 @@ namespace crow {
     }
 #endif
 
-    uint32_t get_methods() {
-      return methods_;
-    }
-
+    uint32_t get_methods() { return methods_; }
     template <typename F>
     void foreach_method(F f) {
-      for (uint32_t method=0,method_bit=1; method<static_cast<uint32_t>(HTTPMethod::InternalMethodCount); method++,method_bit<<=1) {
+      for (uint32_t method=0,method_bit=1; method<static_cast<uint32_t>(HTTPMethod::InternalMethodCount); ++method,method_bit<<=1) {
         if (methods_&method_bit)
           f(method);
       }
@@ -61,17 +54,13 @@ namespace crow {
 
     protected:
     uint32_t methods_{1<<static_cast<int>(HTTPMethod::GET)};
-
     std::string rule_;
     std::string name_;
-
     std::unique_ptr<BaseRule> rule_to_upgrade_;
-
     friend class Router;
     template <typename T>
     friend struct RuleParameterTraits;
   };
-
 
   namespace detail {
     namespace routing_handler_call_helper {
@@ -226,7 +215,6 @@ namespace crow {
     }
   }
 
-
   class CatchallRule {
     public:
     CatchallRule() {}
@@ -280,16 +268,22 @@ namespace crow {
     }
 
     template <typename Func>
+    //typename std::enable_if<spell::CallHelper<Func,spell::S<>>::value,void>::type
     typename std::enable_if<
       !spell::CallHelper<Func,spell::S<>>::value&&
       !spell::CallHelper<Func,spell::S<crow::Req>>::value&&
       !spell::CallHelper<Func,spell::S<crow::Res&>>::value,
       void>::type
       operator()(Func&& f) {
-      static_assert(std::is_same<void,decltype(f(std::declval<crow::Req>(),std::declval<crow::Res&>()))>::value,
-                    "Handler function with Res argument should have void return type");
+      static_assert(!std::is_same<void,decltype(f(std::declval<crow::Req>(),std::declval<crow::Res&>()))>::value,
+                    "Handler function with Res argument should have other return type");
 
-      handler_=std::move(f);
+      handler_=(
+        [f=std::move(f)]
+        (const Req&req,Res&res){
+          res=Res(f(req,res));
+          res.end();
+        });
     }
 
     bool has_handler() {
@@ -302,11 +296,8 @@ namespace crow {
     std::function<void(const crow::Req&,crow::Res&)> handler_;
   };
 
-
   /// A rule dealing with websockets.
-
   /// Provides the interface for the user to put in the necessary handlers for a websocket to work.
-  ///
   class WebSocketRule : public BaseRule {
     using self_t=WebSocketRule;
     public:
@@ -366,9 +357,7 @@ namespace crow {
     std::function<void(crow::websocket::connection&)> error_handler_;
     std::function<bool(const crow::Req&)> accept_handler_;
   };
-
   /// Allows the user to assign parameters using functions.
-  ///
   /// `rule.name("name").methods(HTTPMethod::POST)`
   template <typename T>
   struct RuleParameterTraits {
@@ -401,10 +390,7 @@ namespace crow {
   /// A rule that can change its parameters during runtime.
   class DynamicRule : public BaseRule,public RuleParameterTraits<DynamicRule> {
     public:
-
-    DynamicRule(std::string rule)
-      : BaseRule(std::move(rule)) {}
-
+    DynamicRule(std::string rule) : BaseRule(std::move(rule)) {}
     void validate() override {
       if (!erased_handler_) {
         throw std::runtime_error(name_+(!name_.empty()?": ":"")+"no handler for url "+rule_);
@@ -719,7 +705,7 @@ namespace crow {
 
       if (node->param_childrens[static_cast<int>(ParamType::STRING)]) {
         size_t epos=pos;
-        for (; epos<req_url.size(); epos++) {
+        for (; epos<req_url.size(); ++epos) {
           if (req_url[epos]=='/')
             break;
         }
@@ -759,7 +745,7 @@ namespace crow {
     void add(const std::string& url,unsigned rule_index) {
       unsigned idx{0};
 
-      for (unsigned i=0; i<url.size(); i++) {
+      for (unsigned i=0; i<url.size(); ++i) {
         char c=url[i];
         if (c=='<') {
           static struct ParamTraits {
@@ -804,7 +790,7 @@ namespace crow {
     }
     private:
     void debug_node_print(Node* n,int level) {
-      for (int i=0; i<static_cast<int>(ParamType::MAX); i++) {
+      for (int i=0; i<static_cast<int>(ParamType::MAX); ++i) {
         if (n->param_childrens[i]) {
           CROW_LOG_DEBUG<<std::string(2*level,' ') /*<< "("<<n->param_childrens[i]<<") "*/;
           switch (static_cast<ParamType>(i)) {
@@ -861,31 +847,24 @@ namespace crow {
 
 
   /// Handles matching requests to existing rules and upgrade requests.
-  class Router {
-    public:
-    Router() {}
 
+  class Router {
+    public: Router() {}
     DynamicRule& new_rule_dynamic(const std::string& rule) {
       auto ruleObject=new DynamicRule(rule);
       all_rules_.emplace_back(ruleObject);
-
       return *ruleObject;
     }
-
     template <uint64_t N>
     typename spell::arguments<N>::type::template rebind<TaggedRule>& new_rule_tagged(const std::string& rule) {
       using RuleT=typename spell::arguments<N>::type::template rebind<TaggedRule>;
-
       auto ruleObject=new RuleT(rule);
       all_rules_.emplace_back(ruleObject);
-
       return *ruleObject;
     }
-
     CatchallRule& catchall_rule() {
       return catchall_rule_;
     }
-
     void internal_add_rule_object(const std::string& rule,BaseRule* ruleObject) {
       bool has_trailing_slash=false;
       std::string rule_without_trailing_slash;
@@ -894,20 +873,16 @@ namespace crow {
         rule_without_trailing_slash=rule;
         rule_without_trailing_slash.pop_back();
       }
-
       ruleObject->foreach_method([&](int method) {
         per_methods_[method].rules.emplace_back(ruleObject);
         per_methods_[method].trie.add(rule,per_methods_[method].rules.size()-1);
-
-        // directory case:
-        //   Req to '/about' url matches '/about/' rule
+        // directory case: 
+        //   request to `/about' url matches `/about/' rule 
         if (has_trailing_slash) {
           per_methods_[method].trie.add(rule_without_trailing_slash,RULE_SPECIAL_REDIRECT_SLASH);
         }
       });
-
     }
-
     void validate() {
       for (auto& rule:all_rules_) {
         if (rule) {
@@ -922,8 +897,6 @@ namespace crow {
         per_method.trie.validate();
       }
     }
-
-    //TODO maybe add actual_method
     template <typename Adaptor>
     void handle_upgrade(const Req& req,Res& res,Adaptor&& adaptor) {
       if (req.method>=HTTPMethod::InternalMethodCount)
@@ -943,7 +916,7 @@ namespace crow {
           }
         }
 
-        CROW_LOG_INFO<<"Cannot match rules "<<req.url;
+        CROW_LOG_INFO<<"913:Cannot match rules "<<req.url;
         res=Res(404);
         res.end();
         return;
@@ -966,7 +939,7 @@ namespace crow {
         return;
       }
 
-      CROW_LOG_DEBUG<<"Matched rule (upgrade) '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
+      CROW_LOG_DEBUG<<"936:Matched rule (upgrade) '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
 
       // any uncaught exceptions become 500s
       try {
@@ -986,16 +959,16 @@ namespace crow {
 
     void handle(const Req& req,Res& res) {
       HTTPMethod method_actual=req.method;
-      if (req.method>=HTTPMethod::InternalMethodCount)
+      if (method_actual>=HTTPMethod::InternalMethodCount)
         return;
-      else if (req.method==HTTPMethod::HEAD) {
+      auto& per_method=per_methods_[static_cast<int>(method_actual)];
+      if (req.method==HTTPMethod::HEAD) {
         method_actual=HTTPMethod::GET;
         res.is_head_response=true;
-      } else if (req.method==HTTPMethod::OPTIONS) {
+      } else if (method_actual==HTTPMethod::OPTIONS) {
         std::string allow="OPTIONS, HEAD, ";
-
         if (req.url=="/*") {
-          for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); i++) {
+          for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
             if (per_methods_[i].trie.is_empty()) {
               allow+=method_name(static_cast<HTTPMethod>(i))+", ";
             }
@@ -1003,11 +976,10 @@ namespace crow {
           allow=allow.substr(0,allow.size()-2);
           res=Res(204);
           res.set_header("Allow",allow);
-          res.manual_length_header=true;
           res.end();
           return;
         } else {
-          for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); i++) {
+          for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
             if (per_methods_[i].trie.find(req.url).first) {
               allow+=method_name(static_cast<HTTPMethod>(i))+", ";
             }
@@ -1016,26 +988,24 @@ namespace crow {
             allow=allow.substr(0,allow.size()-2);
             res=Res(204);
             res.set_header("Allow",allow);
-            res.manual_length_header=true;
             res.end();
             return;
           } else {
-            CROW_LOG_DEBUG<<"Cannot match rules "<<req.url;
+            CROW_LOG_DEBUG<<"988:Cannot match rules "<<req.url;
             res=Res(404);
             res.end();
             return;
           }
         }
       }
-
-      auto& per_method=per_methods_[static_cast<int>(method_actual)];
       auto& trie=per_method.trie;
       auto& rules=per_method.rules;
-
       auto found=trie.find(req.url);
-
       unsigned rule_index=found.first;
-
+      /*if (catchall_rule_.has_handler()) {
+        CROW_LOG_DEBUG<<"1010:Cannot match rules "<<req.url<<". Redirecting to Catchall rule";
+        catchall_rule_.handler_(req,res);std::cout<<res.body;return;
+      }*/
       if (!rule_index) {
         for (auto& per_method:per_methods_) {
           if (per_method.trie.find(req.url).first) {
@@ -1045,37 +1015,28 @@ namespace crow {
             return;
           }
         }
-
-        if (catchall_rule_.has_handler()) {
-          CROW_LOG_DEBUG<<"Cannot match rules "<<req.url<<". Redirecting to Catchall rule";
-          catchall_rule_.handler_(req,res);
-        } else {
-          CROW_LOG_DEBUG<<"Cannot match rules "<<req.url;
-          res=Res(404);
-        }
-        res.end();
+        res.set_static_file_info(req.url.substr(1));
+        if (res.code==404&&catchall_rule_.has_handler()) {
+          CROW_LOG_DEBUG<<"1010:Cannot match rules "<<req.url<<". Redirecting to Catchall rule";
+          res.code=200;catchall_rule_.handler_(req,res);
+        } else res.end();
         return;
       }
-
       if (rule_index>=rules.size())
         throw std::runtime_error("Trie internal structure corrupted!");
-
       if (rule_index==RULE_SPECIAL_REDIRECT_SLASH) {
         CROW_LOG_INFO<<"Redirecting to a url with trailing slash: "<<req.url;
         res=Res(301);
-
         // TODO absolute url building
         if (req.get_header_value("Host").empty()) {
-          res.add_header("Location",req.url+"/");
+          res.add_header_t(RES_Loc,req.url+"/");
         } else {
-          res.add_header("Location","http://"+req.get_header_value("Host")+req.url+"/");
+          res.add_header_t(RES_Loc,"http://"+req.get_header_value("Host")+req.url+"/");
         }
         res.end();
         return;
       }
-
-      CROW_LOG_DEBUG<<"Matched rule '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
-
+      CROW_LOG_DEBUG<<"1027:Matched rule '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
       // any uncaught exceptions become 500s
       try {
         rules[rule_index]->handle(req,res,found.second);
@@ -1093,7 +1054,7 @@ namespace crow {
     }
 
     void debug_print() {
-      for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); i++) {
+      for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
         CROW_LOG_DEBUG<<method_name(static_cast<HTTPMethod>(i));
         per_methods_[i].trie.debug_print();
       }
@@ -1108,6 +1069,5 @@ namespace crow {
     };
     std::array<PerMethod,static_cast<int>(HTTPMethod::InternalMethodCount)> per_methods_;
     std::vector<std::unique_ptr<BaseRule>> all_rules_;
-
   };
 }

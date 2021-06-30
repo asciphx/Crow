@@ -16,23 +16,31 @@ int main() {
   //Server rendering
   CROW_ROUTE(app,"/")([] {
 	char name[64];gethostname(name,64);
-	mustache::Ctx x;x["servername"]=name;
+	json x;x["servername"]=name;
 	auto page=mustache::load("index.html");
 	return page.render(x);
   });
-
-  // a request to /path should be forwarded to /path/
-  CROW_ROUTE(app,"/path/")([]() {
-	return "Trailing slash test case..";
+  //support default route
+  app.catchall_route()([] {
+	return (string)mustache::load("404NotFound.html");
   });
-  app.route_dynamic("/list")([]() {
-	List list=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"www","state":null},
+  //json::parse
+  app.route("/list")([]() {
+	json v=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
+	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
+	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
+	return v;
+  });
+  //static reflect
+  app.route("/lists")([]() {
+	List list=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})").get<List>();
 	json json_output=json(list);
-	return json_output.dump(2);
+	return json_output;
   });
-  app.route_dynamic("/json")([] {
+  //dump(2)
+  app.route("/json")([] {
 	json x;
 	x["message"]="Hello, World!";
 	x["double"]=3.1415926;
@@ -41,6 +49,19 @@ int main() {
 	x["false"]=false;
 	x["null"]=nullptr;
 	x["bignumber"]=2353464586543265455;
+	return x.dump(2);
+  });
+  // a request to /path should be forwarded to /path/
+  CROW_ROUTE(app,"/path/")
+	([]() {
+	return "Trailing slash test case..";
+  });
+  // simple json response
+  // To see it in action enter {ip}:18080/json
+  CROW_ROUTE(app,"/json")
+	([] {
+	crow::json x;
+	x["message"]="Hello, World!";
 	return x;
   });
   // To see it in action enter {ip}:18080/hello/{integer_between -2^32 and 100} and you should receive
@@ -53,7 +74,6 @@ int main() {
 	os<<count<<" bottles of beer!";
 	return crow::Res(os.str());
   });
-
   // To see it in action submit {ip}:18080/add/1/2 and you should receive 3 (exciting, isn't it)
   CROW_ROUTE(app,"/add/<int>/<int>")
 	([](const crow::Req& /*req*/,crow::Res& res,int a,int b) {
@@ -62,22 +82,18 @@ int main() {
 	res.write(os.str());
 	res.end();
   });
-
   // Compile error with message "Handler type is mismatched with URL paramters"
   //CROW_ROUTE(app,"/another/<int>")
   //([](int a, int b){
 	  //return crow::response(500);
   //});
-
   // more json example
-
   // To see it in action, I recommend to use the Postman Chrome extension:
   //      * Set the address to {ip}:18080/add_json
   //      * Set the method to post
   //      * Select 'raw' and then JSON
   //      * Add {"a": 1, "b": 1}
   //      * Send and you should receive 2
-
   // A simpler way for json example:
   //      * curl -d '{"a":1,"b":2}' {ip}:18080/add_json
   CROW_ROUTE(app,"/add_json")
@@ -86,30 +102,27 @@ int main() {
 	auto x=crow::json::parse(req.body);
 	if (!x)
 	  return crow::Res(400);
+	int sum=x["a"].get<int>()+x["b"].get<int>();
 	std::ostringstream os;
-	os<<x;
+	os<<sum;
 	return crow::Res{os.str()};
   });
-
   // Example of a request taking URL parameters
   // If you want to activate all the functions just query
   // {ip}:18080/params?foo='blabla'&pew=32&count[]=a&count[]=b
   CROW_ROUTE(app,"/params")
 	([](const crow::Req& req) {
 	std::ostringstream os;
-
 	// To get a simple string from the url params
 	// To see it in action /params?foo='blabla'
 	os<<"Params: "<<req.url_params<<"\n\n";
 	os<<"The key 'foo' was "<<(req.url_params.get("foo")==nullptr?"not ":"")<<"found.\n";
-
 	// To get a double from the request
 	// To see in action submit something like '/params?pew=42'
 	if (req.url_params.get("pew")!=nullptr) {
 	  double countD=boost::lexical_cast<double>(req.url_params.get("pew"));
 	  os<<"The value of 'pew' is "<<countD<<'\n';
 	}
-
 	// To get a list from the request
 	// You have to submit something like '/params?count[]=a&count[]=b' to have a list with two values (a and b)
 	auto count=req.url_params.get_list("count");
@@ -117,7 +130,6 @@ int main() {
 	for (const auto& countVal:count) {
 	  os<<" - "<<countVal<<'\n';
 	}
-
 	// To get a dictionary from the request
 	// You have to submit something like '/params?mydict[a]=b&mydict[abcd]=42' to have a list of pairs ((a, b) and (abcd, 42))
 	auto mydict=req.url_params.get_dict("mydict");
@@ -125,20 +137,12 @@ int main() {
 	for (const auto& mydictVal:mydict) {
 	  os<<" - "<<mydictVal.first<<" -> "<<mydictVal.second<<'\n';
 	}
-
 	return crow::Res{os.str()};
   });
-
-  CROW_ROUTE(app,"/large")
-	([] {
+  CROW_ROUTE(app,"/large")([] {
 	return std::string(512*1024,' ');
   });
 
-  // enables all log
-  app.loglevel(crow::LogLevel::DEBUG);
   //crow::logger::setHandler(std::make_shared<ExampleLogHandler>());
-
-  app.port(8080)
-	.multithreaded()
-	.run();
+  app.loglevel(LogLevel::WARNING).port(8080).multithreaded().run();
 }
