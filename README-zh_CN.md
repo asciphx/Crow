@@ -1,6 +1,6 @@
-﻿![乌鸦标志](http://i.imgur.com/wqivvjK.jpg)
+﻿﻿![乌鸦标志](http://i.imgur.com/wqivvjK.jpg)
 
-乌鸦是Web的C++微服务框架，支持mac,linux,windows,三大平台，开发速度最快最迅速最猛烈，下一步正打算支持数据库，以及ORM。
+乌鸦是Web的C++微服务框架，支持mac,linux,windows,三大平台，开发速度最快最迅速最猛烈，下一步正打算支持数据库，以及ORM。目前估测能在techempower应该可以排到世界前五。
 
 ### [示例(example_vs)](http://8.129.58.72:8080/)🚀
 （灵感来自 Python Flask）[由Asciphx提供的分支]
@@ -24,8 +24,8 @@ int main(){
 - 类型安全处理程序（参见示例），非常快
  ![基准结果](./Benchmark.png)
 - 更多关于[crow benchmark]的数据(https://github.com/ipkn/crow-benchmark)
-- 第三方JSON解析器nlohmann(crow::json)用于静态反射，输出json。
-- 快速内置JSON解析器（crow:：Cjson）但用于[Mustache](http://mustache.github.io/)基于模板库（crow:：mustache）
+- 第三方JSON解析器[Nlohmann json](https://github.com/nlohmann/json)用于静态反射，输出json。
+- [Mustache](http://mustache.github.io/)基于模板库（crow:：mustache）
 - 仅页眉的每一项功能 [`crow_all.h`](https://github.com/ipkn/crow/releases/download/v0.1/crow_all.h) with every features ([Download from here](https://github.com/ipkn/crow/releases/download/v0.1/crow_all.h))
 - 中间件支持，Websocket支持
 - 支持静态资源,并且默认在'static/'目录
@@ -49,7 +49,7 @@ int main(){
 ```c++
   CROW_ROUTE(app,"/")([] {
 	char name[64];gethostname(name,64);
-	mustache::Ctx x;x["servername"]=name;
+	crow::json x;x["servername"]=name;
 	auto page=mustache::load("index.html");
 	return page.render(x);
   });
@@ -66,7 +66,7 @@ CROW_ROUTE(app, "/json")([]{
 	x["false"]=false;
 	x["null"]=nullptr;
 	x["bignumber"]=2353464586543265455;
-    return x;
+    return x.dump(2);
 });
 ```
 
@@ -94,7 +94,7 @@ CROW_ROUTE(app, "/add_json").methods("POST"_method)
     auto x = crow::json::load(req.body);
     if (!x)
         return crow::Res(400);
-    int sum = x["a"].i()+x["b"].i();
+	int sum=x["a"].get<int>()+x["b"].get<int>();
     std::ostringstream os;
     os << sum;
     return crow::Res{os.str()};

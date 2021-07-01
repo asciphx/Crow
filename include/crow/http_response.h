@@ -139,7 +139,7 @@ namespace crow {
 	void write_streamed(Stream& is,Adaptor& adaptor) {
 	  char buf[16384];
 	  while (is.read(buf,sizeof(buf)).gcount()>0) {
-		std::vector<asio::const_buffer> buffers;
+		std::vector<boost::asio::const_buffer> buffers;
 		buffers.push_back(boost::asio::buffer(buf));
 		write_buffer_list(buffers,adaptor);
 	  }
@@ -149,7 +149,7 @@ namespace crow {
 	template<typename Adaptor>
 	void write_streamed_string(std::string& is,Adaptor& adaptor) {
 	  std::string buf;
-	  std::vector<asio::const_buffer> buffers;
+	  std::vector<boost::asio::const_buffer> buffers;
 	  while (is.length()>16384) {
 		//buf.reserve(16385);
 		buf=is.substr(0,16384);
@@ -163,14 +163,14 @@ namespace crow {
 	}
 
 	template<typename Adaptor>
-	inline void push_and_write(std::vector<asio::const_buffer>& buffers,std::string& buf,Adaptor& adaptor) {
+	inline void push_and_write(std::vector<boost::asio::const_buffer>& buffers,std::string& buf,Adaptor& adaptor) {
 	  buffers.clear();
 	  buffers.push_back(boost::asio::buffer(buf));
 	  write_buffer_list(buffers,adaptor);
 	}
 
 	template<typename Adaptor>
-	inline void write_buffer_list(std::vector<asio::const_buffer>& buffers,Adaptor& adaptor) {
+	inline void write_buffer_list(std::vector<boost::asio::const_buffer>& buffers,Adaptor& adaptor) {
 	  boost::asio::write(adaptor.socket(),buffers,[this](std::error_code ec,std::size_t) {
 		if (!ec) {
 		  return false;

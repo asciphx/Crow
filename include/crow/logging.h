@@ -27,7 +27,7 @@ namespace crow {
 #if defined(_MSC_VER) || defined(__MINGW32__)
 	  localtime_s(&my_tm,&t);
 #else
-	  localtime_s(&t,&my_tm);
+	  localtime_r(&t,&my_tm);
 #endif
 	  size_t sz=strftime(date,sizeof(date),"%Y-%m-%d %H:%M:%S",&my_tm);
 	  return std::string(date,date+sz);

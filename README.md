@@ -1,5 +1,5 @@
-﻿![Crow logo](http://i.imgur.com/wqivvjK.jpg)
-Crow is C++ microframework for web. Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to support database and ORM.
+﻿﻿![Crow logo](http://i.imgur.com/wqivvjK.jpg)
+Crow is C++ microframework for web. Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to support database and ORM. At present, the performance of the framework should be ranked in the top five in the Techempower, and the self-test data may not be accurate enough.
 
 ### [Demo site(example_vs)](http://8.129.58.72:8080/)🚀
 (inspired by Python Flask)[fork by Asciphx]
@@ -26,8 +26,8 @@ int main(){
  - Very Fast
    - ![https://docs.google.com/spreadsheets/d/1KidO9XpuwCRZ2p_JRDJj2aep61H8Sh_KDOhApizv4LE/pubchart?oid=2041467789&format=image](./Benchmark.png)
    - More data on [crow-benchmark](https://github.com/ipkn/crow-benchmark)
- -  The third-party JSON parser nlohmann (Crow::json) is used for static reflection and outputs JSON.
- - Fast built-in JSON parser (crow::Cjson) for[Mustache](http://mustache.github.io/) based templating library (crow::mustache)
+ -  The third-party JSON parser [Nlohmann json](https://github.com/nlohmann/json) is used for static reflection and outputs JSON.
+ - [Mustache](http://mustache.github.io/) based templating library (crow::mustache)
  - Header only
  - Provide an amalgamated header file [`crow_all.h`](https://github.com/ipkn/crow/releases/download/v0.1/crow_all.h) with every features ([Download from here](https://github.com/ipkn/crow/releases/download/v0.1/crow_all.h))
  - Middleware support
@@ -53,7 +53,7 @@ int main(){
 ```c++
   CROW_ROUTE(app,"/")([] {
 	char name[64];gethostname(name,64);
-	mustache::Ctx x;x["servername"]=name;
+	crow::json x;x["servername"]=name;
 	auto page=mustache::load("index.html");
 	return page.render(x);
   });
@@ -70,7 +70,7 @@ CROW_ROUTE(app, "/json")([]{
 	x["false"]=false;
 	x["null"]=nullptr;
 	x["bignumber"]=2353464586543265455;
-    return x;
+    return x.dump(2);
 });
 ```
 
@@ -98,7 +98,7 @@ CROW_ROUTE(app, "/add_json").methods("POST"_method)
     auto x = crow::json::load(req.body);
     if (!x)
         return crow::Res(400);
-    int sum = x["a"].i()+x["b"].i();
+	int sum=x["a"].get<int>()+x["b"].get<int>();
     std::ostringstream os;
     os << sum;
     return crow::Res{os.str()};

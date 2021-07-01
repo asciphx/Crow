@@ -34,7 +34,7 @@ int main() {
 	return page.render(x);
   });
 
-  app.port(8080)
+  app.port(8080).loglevel(crow::LogLevel::WARNING)
 	.multithreaded()
 	.run();
 }

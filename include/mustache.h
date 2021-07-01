@@ -6,6 +6,7 @@
 #include <iterator>
 #include "crow/json.hpp"
 #include "crow/detail.h"
+#include <boost/lexical_cast.hpp>
 namespace crow {
   namespace mustache {
 	class invalid_template_exception : public std::exception {
@@ -51,14 +52,14 @@ namespace crow {
 	  std::string tag_name(const Action& action) {
 		return body_.substr(action.start,action.end-action.start);
 	  }
-	  auto find_context(const std::string& name,const std::vector<json*>& stack)->std::pair<bool,json&> {
+	  auto find_context(const std::string& name,const std::vector<nlohmann::json*>& stack)->std::pair<bool,nlohmann::json&> {
 		if (name==".") {
 		  return {true, *stack.back()};
 		}
 		int dotPosition=name.find(".");
 		if (dotPosition==(int)name.npos) {
 		  for (auto it=stack.rbegin(); it!=stack.rend(); ++it) {
-			if ((*it)->type()==json::value_t::object) {
+			if ((*it)->type()==nlohmann::json::value_t::object) {
 			  if ((*it)->count(name))
 				return {true, (**it)[name]};
 			}
@@ -77,10 +78,10 @@ namespace crow {
 			names.emplace_back(name.substr(dotPositions[i-1]+1,dotPositions[i]-dotPositions[i-1]-1));
 
 		  for (auto it=stack.rbegin(); it!=stack.rend(); ++it) {
-			json* view=*it;
+			nlohmann::json* view=*it;
 			bool found=true;
 			for (auto jt=names.begin(); jt!=names.end(); ++jt) {
-			  if (view->type()==json::value_t::object&&
+			  if (view->type()==nlohmann::json::value_t::object&&
 				  view->count(*jt)) {
 				view=&(*view)[*jt];
 			  } else {
@@ -92,7 +93,7 @@ namespace crow {
 			  return {true, *view};
 		  }
 		}
-		static json empty_str;
+		static nlohmann::json empty_str;
 		empty_str="";
 		return {false, empty_str};
 	  }
@@ -112,7 +113,7 @@ namespace crow {
 		}
 	  }
 
-	  void render_internal(int actionBegin,int actionEnd,std::vector<json*>& stack,std::string& out,int indent) {
+	  void render_internal(int actionBegin,int actionEnd,std::vector<nlohmann::json*>& stack,std::string& out,int indent) {
 		int current=actionBegin;
 		if (indent) out.insert(out.size(),indent,' ');
 		while (current<actionEnd) {
@@ -137,10 +138,10 @@ namespace crow {
 			  auto optional_ctx=find_context(tag_name(action),stack);
 			  auto& ctx=optional_ctx.second;
 			  switch (ctx.type()) {
-				case json::value_t::number_integer:
+				case nlohmann::json::value_t::number_integer:
 				out+=ctx.dump();
 				break;
-				case json::value_t::string: {
+				case nlohmann::json::value_t::string: {
 				  std::string ss=ctx.dump();
 				  if (action.t==ActionType::Tag)
 					escape(ss.substr(1,ss.size()-2),out);
@@ -154,7 +155,7 @@ namespace crow {
 			break;
 			case ActionType::ElseBlock:
 			{
-			  static json nullContext;
+			  static nlohmann::json nullContext;
 			  auto optional_ctx=find_context(tag_name(action),stack);
 			  if (!optional_ctx.first) {
 				stack.emplace_back(&nullContext);
@@ -163,14 +164,14 @@ namespace crow {
 
 			  auto& ctx=optional_ctx.second;
 			  switch (ctx.type()) {
-				case json::value_t::array:
+				case nlohmann::json::value_t::array:
 				if (ctx.is_array()&&!ctx.array().empty())
 				  current=action.pos;
 				else
 				  stack.emplace_back(&nullContext);
 				break;
-				case json::value_t::boolean:
-				case json::value_t::null:
+				case nlohmann::json::value_t::boolean:
+				case nlohmann::json::value_t::null:
 				stack.emplace_back(&nullContext);
 				break;
 				default:
@@ -188,7 +189,7 @@ namespace crow {
 			  }
 			  auto& ctx=optional_ctx.second;
 			  switch (ctx.type()) {
-				case json::value_t::array: {
+				case nlohmann::json::value_t::array: {
 				  if (ctx.is_array())
 					for (auto it=ctx.array().begin(); it!=ctx.array().end(); ++it) {
 					  stack.push_back(&*it);
@@ -197,15 +198,15 @@ namespace crow {
 					}
 				  current=action.pos;
 				} break;
-				case json::value_t::number_integer:
-				case json::value_t::number_float:
-				case json::value_t::number_unsigned:
-				case json::value_t::string:
-				case json::value_t::object:
+				case nlohmann::json::value_t::number_integer:
+				case nlohmann::json::value_t::number_float:
+				case nlohmann::json::value_t::number_unsigned:
+				case nlohmann::json::value_t::string:
+				case nlohmann::json::value_t::object:
 				stack.push_back(&ctx);
 				break;
-				case json::value_t::boolean:
-				case json::value_t::null:
+				case nlohmann::json::value_t::boolean:
+				case nlohmann::json::value_t::null:
 				current=action.pos;
 				break;
 				default:
@@ -237,16 +238,16 @@ namespace crow {
 	  }
 	  public:
 	  std::string render() {
-		json empty_ctx;
-		std::vector<json*> stack;
+		nlohmann::json empty_ctx;
+		std::vector<nlohmann::json*> stack;
 		stack.emplace_back(&empty_ctx);
 
 		std::string ret;
 		render_internal(0,fragments_.size()-1,stack,ret,0);
 		return ret;
 	  }
-	  std::string render(json& ctx) {
-		std::vector<json*> stack;
+	  std::string render(nlohmann::json& ctx) {
+		std::vector<nlohmann::json*> stack;
 		stack.emplace_back(&ctx);
 
 		std::string ret;

@@ -28,7 +28,6 @@ int main() {
   app.set_directory(".");
 
   CROW_ROUTE(app,"/")([] {
-	crow::mustache::Ctx ctx;
 	return crow::mustache::load("example_chat.html").render();
   });
 
