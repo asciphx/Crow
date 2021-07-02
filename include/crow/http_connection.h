@@ -7,7 +7,6 @@
 #include <chrono>
 #include <vector>
 
-#include "crow/http_parser_merged.h"
 #include "crow/parser.h"
 #include "crow/http_response.h"
 #include "crow/logging.h"

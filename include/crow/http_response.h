@@ -6,7 +6,7 @@
 #include "crow/any_types.h"
 #include "crow/ci_map.h"
 //response
-static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location",Res_Ca[14]="Cache-Control",RES_f[6]="false",
+static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location",Res_Ca[14]="Cache-Control",
   RES_Xc[23]="X-Content-Type-Options",RES_No[8]="nosniff",RES_AcC[33]="Access-Control-Allow-Credentials",RES_t[5]="true",
   RES_AcH[29]="Access-Control-Allow-Headers",RES_AcO[28]="Access-Control-Allow-Origin";/*,RES_AJ[17]="application/json"*/;
 namespace crow {
@@ -59,8 +59,7 @@ namespace crow {
 	}
 	bool is_completed() const noexcept { return completed_; }
 	void clear() {
-	  body.clear();headers.clear();
-	  completed_=false;
+	  completed_=false;//body.clear();headers.clear();
 	}
 
 	/// Return a "Temporary Redirect" Res.
