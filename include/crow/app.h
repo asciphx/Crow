@@ -248,7 +248,7 @@ namespace crow {
     private:
     uint16_t port_=80;
     uint16_t concurrency_=1;
-    std::string server_name_="Crow/0.6-beta";
+    std::string server_name_="Crow/0.7-beta";
     std::string bindaddr_="0.0.0.0";
     std::string home_page_="index.html";
     Router router_;

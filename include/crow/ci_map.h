@@ -12,9 +12,23 @@ namespace crow {
 	  }
 	  return seed;
 	}
+	size_t operator()(const char*key) const {
+	  std::size_t seed=0;
+	  std::locale locale;
+	  for (int i=0;key[i];++i) {
+		boost::hash_combine(seed,std::toupper(key[i],locale));
+	  }
+	  return seed;
+	}
   };
   struct ci_key_eq {
 	bool operator()(const std::string& l,const std::string& r) const {
+	  return boost::iequals(l,r);
+	}
+	bool operator()(const char*l,const char*r) const {
+	  return boost::iequals(l,r);
+	}
+	bool operator()(const std::string& l,const char*r) const {
 	  return boost::iequals(l,r);
 	}
   };

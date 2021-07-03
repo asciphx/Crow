@@ -7,7 +7,6 @@
 #include <chrono>
 #include <vector>
 
-#include "crow/http_parser_merged.h"
 #include "crow/parser.h"
 #include "crow/http_response.h"
 #include "crow/logging.h"
@@ -249,7 +248,7 @@ namespace crow {
 	/// Call the after handle middleware and send the write the Res to the connection.
 	void complete_request() {
 	  if (!adaptor_.is_open()) {
-		CROW_LOG_DEBUG << this << " delete (socket is closed) " << is_reading << ' ' << is_writing;
+		CROW_LOG_DEBUG<<this<<" delete (socket is closed) "<<is_reading<<' '<<is_writing;
 		delete this;
 		return;
 	  }
