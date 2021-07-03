@@ -6,18 +6,14 @@
 using namespace crow;
 int main() {
   App<Cors> app;//Global Middleware,and default config
-  app.set_directory("./static")
+  app.set_directory("./static").set_home_page("i.htm")
 	.set_types({"html","ico","css","js","json","svg","png","gif","jpg","txt"});
-  //Server rendering
-  CROW_ROUTE(app,"/")([] {
+  //Server rendering and support default route
+  app.catchall_route()([] {
 	char name[64];gethostname(name,64);
 	json x;x["servername"]=name;
-	auto page=mustache::load("index.html");
+	auto page=mustache::load("404NotFound.html");
 	return page.render(x);
-  });
-  //support default route
-  app.catchall_route()([] {
-	return (string)mustache::load("404NotFound.html");
   });
   //Single path access to files
   app.route("/cat")([](const Req&,Res& res) {

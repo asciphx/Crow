@@ -1,4 +1,3 @@
-#include"staticReflect.h"
 using namespace std;
 struct User {
   bool is; int age; double weight;

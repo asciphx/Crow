@@ -4,9 +4,6 @@
 using namespace crow;using namespace std;
 int main() {
   App<> app;app.set_directory("./static").set_types({"html","css","js","json"});
- // app.route("/")([] {
-	//return (string)mustache::load("index.html");
- // });
   app.route("/plaintext")([] {
 	return "Hello, World!";
   });

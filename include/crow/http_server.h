@@ -50,8 +50,8 @@ namespace crow {
     void on_tick() {
       tick_function_();
       tick_timer_.expires_from_now(boost::posix_time::milliseconds(tick_interval_.count()));
-      tick_timer_.async_wait([this](const boost::system::error_code& ec) {
-        if (ec) return;
+      tick_timer_.async_wait([this](const boost::system::error_code& /*ec*/) {
+        //if (ec) return;
         on_tick();
       });
     }
@@ -86,12 +86,11 @@ namespace crow {
         // initializing timer queue
         detail::dumb_timer_queue timer_queue;
         timer_queue_pool_[i]=&timer_queue;
-
         timer_queue.set_io_service(*io_service_pool_[i]);
         boost::asio::deadline_timer timer(*io_service_pool_[i]);
-        std::function<void(const boost::system::error_code& ec)> handler;
+        std::function<void(const boost::system::error_code&)> handler;
         timer.expires_from_now(boost::posix_time::millseconds(1));
-        timer.async_wait(handler=[&timer_queue,&timer,&handler](const boost::system::error_code&) {
+        timer.async_wait(handler=[&timer_queue,&timer,&handler](const boost::system::error_code& /*ec*/) {
           //if (ec)return;//asciphx
           timer_queue.process();
           timer.expires_from_now(boost::posix_time::millseconds(1));
@@ -99,20 +98,12 @@ namespace crow {
         });
         ++init_count;
         io_service_pool_[i]->run();
-        //try {
-        //  if (io_service_pool_[i]->run()==0) {
-        //    // when io_service.run returns 0, there are no more works to do.
-        //  }
-        //} catch (std::exception& e) {
-        //  CROW_LOG_ERROR<<"Worker Crash: An uncaught exception occurred: "<<e.what();
-        //}
       }));
 
       if (tick_function_&&tick_interval_.count()>0) {
         tick_timer_.expires_from_now(boost::posix_time::milliseconds(tick_interval_.count()));
-        tick_timer_.async_wait([this](const boost::system::error_code& ec) {
-          if (ec)
-            return;
+        tick_timer_.async_wait([this](const boost::system::error_code& /*ec*/) {
+          //if (ec) return;
           on_tick();
         });
       }
@@ -122,12 +113,11 @@ namespace crow {
       CROW_LOG_INFO<<"Call `app.loglevel(crow::LogLevel::Warning)` to hide Info level logs.";
 
       signals_.async_wait(
-        [&](const boost::system::error_code& /*error*/,int /*signal_number*/) {
+        [this](const boost::system::error_code& /*error*/,int /*signal_number*/) {
         stop();
       });
 
-      while (concurrency_!=init_count)
-        std::this_thread::yield();
+      while (concurrency_!=init_count) std::this_thread::yield();
 
       do_accept();
 
@@ -139,24 +129,17 @@ namespace crow {
 
     void stop() {
       io_service_.stop();
-      for (auto& io_service:io_service_pool_)
-        io_service->stop();
+      for (auto& io_service:io_service_pool_) io_service->stop();
     }
 
-    void signal_clear() {
-      signals_.clear();
-    }
-
-    void signal_add(int signal_number) {
-      signals_.add(signal_number);
-    }
+    void signal_clear() { signals_.clear(); }
+    void signal_add(int signal_number) { signals_.add(signal_number); }
 
     private:
     asio::io_service& pick_io_service() {
       // TODO load balancing
       ++roundrobin_index_;
-      if (roundrobin_index_>=io_service_pool_.size())
-        roundrobin_index_=0;
+      if (roundrobin_index_>=io_service_pool_.size()) roundrobin_index_=0;
       return *io_service_pool_[roundrobin_index_];
     }
 
@@ -167,14 +150,11 @@ namespace crow {
         get_cached_date_str_pool_[roundrobin_index_],*timer_queue_pool_[roundrobin_index_],
         adaptor_ctx_);
       acceptor_.async_accept(p->socket(),
-        [this,p,&is](boost::system::error_code ec) {
+        [this,p,&is](const boost::system::error_code&ec) {
         if (!ec) {
-          is.post([p] {
-            p->start();
-          });
-        } else {
+          is.post([p] { p->start(); });
+        } else
           delete p;
-        }
         do_accept();
       });
     }

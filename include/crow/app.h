@@ -28,6 +28,7 @@
 #define CROW_CATCHALL_ROUTE(app) app.catchall_route()
 
 namespace crow {
+  static std::string RES_home=CROW_HOME_PAGE;
 #ifdef CROW_ENABLE_SSL
   using ssl_context_t=boost::asio::ssl::context;
 #endif
@@ -71,7 +72,7 @@ namespace crow {
     self_t& set_directory(std::string path) {
       if (path.back()!='\\'&&path.back()!='/') path+='/';detail::directory_=path;return *this;
     }
-    self_t& set_home_page(std::string path) { home_page_=path; return *this; }
+    self_t& set_home_page(std::string path) { RES_home=path; return *this; }
     //Set content types 
     self_t& set_types(const std::vector<std::string> &line) {
       for (auto iter=line.cbegin(); iter!=line.cend(); ++iter) {
@@ -122,13 +123,11 @@ namespace crow {
         this->set_types({"html","ico","css","js","json","svg","png","jpg","gif","txt"});//default types
         is_not_set_types=false;
       }
-//#ifndef CROW_DISABLE_STATIC_DIR
-//      route_url<crow::spell::get_parameter_tag(CROW_STATIC_ENDPOINT)>(CROW_STATIC_ENDPOINT)
-//        ([](crow::Res& res,std::string file_path_partial) {
-//        res.set_static_file_info(file_path_partial);
-//        res.end();
-//      });
-//#endif
+#ifndef CROW_DISABLE_HOME
+      route_url<crow::spell::get_parameter_tag("/")>("/")([] {
+        return (std::string)mustache::load(RES_home);
+      });
+#endif
       validate();
 
 #ifdef CROW_ENABLE_SSL
@@ -246,11 +245,10 @@ namespace crow {
     }
 
     private:
-    uint16_t port_=80;
+    uint16_t port_=CROW_DEFAULT_PORT;
     uint16_t concurrency_=1;
-    std::string server_name_="Crow/0.7-beta";
+    std::string server_name_=CROW_SERVER_NAME;
     std::string bindaddr_="0.0.0.0";
-    std::string home_page_="index.html";
     Router router_;
     bool is_not_set_types=true;
 #ifdef CROW_ENABLE_COMPRESSION

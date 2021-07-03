@@ -101,8 +101,8 @@ namespace crow {
 		std::string types="";types=content_types[extension];
 		if (types!="") {
 		  this->add_header_t(RES_CT,types),is_file=1;
-		  if (extension!="ico") //Static resource cache seconds(= 15 minute)
-			this->add_header_t(Res_Ca,"max-age=900,immutable"),
+		  if (extension!="ico")
+			this->add_header_s(Res_Ca,CROW_FILE_TIME),
 			this->add_header_s(RES_Xc,RES_No);
 		} else {
 		  code=404;this->headers.clear();this->end();
