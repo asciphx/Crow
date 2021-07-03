@@ -9,7 +9,7 @@ int main() {
   app.set_directory("./static").set_home_page("i.htm")
 	.set_types({"html","ico","css","js","json","svg","png","gif","jpg","txt"});
   //Server rendering and support default route
-  app.catchall_route()([] {
+  app.default_route()([] {
 	char name[64];gethostname(name,64);
 	json x;x["servername"]=name;
 	auto page=mustache::load("404NotFound.html");

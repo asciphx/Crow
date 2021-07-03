@@ -25,7 +25,7 @@
 #else
 #define CROW_ROUTE(app, url) app.route_url<crow::spell::get_parameter_tag(url)>(url)
 #endif
-#define CROW_CATCHALL_ROUTE(app) app.catchall_route()
+#define CROW_CATCHALL_ROUTE(app) app.default_route()
 
 namespace crow {
   static std::string RES_home=CROW_HOME_PAGE;
@@ -59,7 +59,7 @@ namespace crow {
       return router_.new_rule_tagged<Tag>(std::move(rule));
     }
     ///Create a route for any requests without a proper route (**Use CROW_CATCHALL_ROUTE instead**)
-    CatchallRule& catchall_route() { return router_.catchall_rule(); }
+    CatchallRule& default_route() { return router_.catchall_rule(); }
     self_t& signal_clear() { signals_.clear(); return *this; }
     self_t& signal_add(int signal_number) { signals_.push_back(signal_number); return *this;}
     ///Set the port that Crow will handle requests on

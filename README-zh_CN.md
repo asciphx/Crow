@@ -47,10 +47,10 @@ int main(){
 ```
 #### 服务端渲染
 ```c++
-  CROW_ROUTE(app,"/")([] {
+  app.default_route()([] {
 	char name[64];gethostname(name,64);
-	crow::json x;x["servername"]=name;
-	auto page=mustache::load("index.html");
+	json x;x["servername"]=name;
+	auto page=mustache::load("404NotFound.html");
 	return page.render(x);
   });
 ```

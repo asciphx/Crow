@@ -11,11 +11,11 @@ class ExampleLogHandler : public ILogHandler {
 };
 int main() {
   App<ExampleMiddleware,Cors> app;//Global Middleware,and default config
-  app.set_directory("./static").set_home_page("index.html")
+  app.set_directory("./static").set_home_page("i.htm")
 	.set_types({"html","ico","css","js","json","svg","png","jpg","gif","txt"})
 	.get_middleware<ExampleMiddleware>().setMessage("hello");
   //Server rendering and support default route
-  app.catchall_route()([] {
+  app.default_route()([] {
 	char name[64];gethostname(name,64);
 	json x;x["servername"]=name;
 	auto page=mustache::load("404NotFound.html");

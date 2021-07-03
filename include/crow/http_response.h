@@ -19,8 +19,11 @@ namespace crow {
 	int code{200},is_file{0};// Check whether the response has a static file defined.
 	std::string body;
 	json json_value;
-	// `headers' stores HTTP headers.
-	ci_map headers;
+	// `headers' stores HTTP default headers.
+	ci_map headers={//{RES_AcH,"content-type,cache-control,x-requested-with,authorization"},
+	  {RES_AcO,"*"},
+	  //{RES_AcC,RES_t},
+	};
 #ifdef CROW_ENABLE_COMPRESSION
 	bool compressed=true; //< If compression is enabled and this is false, the individual response will not be compressed.
 #endif
@@ -106,8 +109,8 @@ namespace crow {
 			this->add_header_s(RES_Xc,RES_No);
 		} else {
 		  code=404;this->headers.clear();this->end();
+		  //this->add_header_s(RES_CT,"text/plain");
 		}
-		//else this->add_header_s(RES_CT,RES_TP);
 	  } else {
 		code=404;
 	  }
