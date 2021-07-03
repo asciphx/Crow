@@ -773,8 +773,7 @@ namespace crow {
               break;
             }
           }
-
-          i--;
+          --i;
         } else {
           std::string piece(&c,1);
           if (!nodes_[idx].children.count(piece)) {

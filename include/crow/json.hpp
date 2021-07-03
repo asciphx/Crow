@@ -11443,7 +11443,7 @@ namespace nlohmann {
 		  JSON_ASSERT(x.f!=0);
 		  while ((x.f>>63u)==0) {
 			x.f<<=1u;
-			x.e--;
+			--x.e;
 		  }
 		  return x;
 		}
@@ -11892,7 +11892,7 @@ namespace nlohmann {
 		  //      M+ = buffer * 10^(n-1) + (r + p2 * 2^e)
 		  //
 		  p1=r;
-		  n--;
+		  --n;
 		  //
 		  //      M+ = buffer * 10^n + (p1 + p2 * 2^e)
 		  //      pow10 = 10^n

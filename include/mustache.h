@@ -285,14 +285,14 @@ namespace crow {
 		  current=endIdx+tag_close.size();
 		  switch (body_[idx]) {
 			case '#':
-			idx++;
+			++idx;
 			while (body_[idx]==' ') ++idx;
 			while (body_[endIdx-1]==' ') --endIdx;
 			blockPositions.emplace_back(actions_.size());
 			actions_.emplace_back(ActionType::OpenBlock,idx,endIdx);
 			break;
 			case '/':
-			idx++;
+			++idx;
 			while (body_[idx]==' ') ++idx;
 			while (body_[endIdx-1]==' ') --endIdx;
 			{
@@ -309,7 +309,7 @@ namespace crow {
 			blockPositions.pop_back();
 			break;
 			case '^':
-			idx++;
+			++idx;
 			while (body_[idx]==' ') ++idx;
 			while (body_[endIdx-1]==' ') --endIdx;
 			blockPositions.emplace_back(actions_.size());
@@ -320,7 +320,7 @@ namespace crow {
 			actions_.emplace_back(ActionType::Ignore,idx+1,endIdx);
 			break;
 			case '>': // partial
-			idx++;
+			++idx;
 			while (body_[idx]==' ') ++idx;
 			while (body_[endIdx-1]==' ') --endIdx;
 			actions_.emplace_back(ActionType::Partial,idx,endIdx);
@@ -329,32 +329,32 @@ namespace crow {
 			if (tag_open!="{{"||tag_close!="}}")
 			  throw invalid_template_exception("cannot use triple mustache when delimiter changed");
 
-			idx++;
+			++idx;
 			if (body_[endIdx+2]!='}') {
 			  throw invalid_template_exception("{{{: }}} not matched");
 			}
 			while (body_[idx]==' ') ++idx;
 			while (body_[endIdx-1]==' ') --endIdx;
 			actions_.emplace_back(ActionType::UnescapeTag,idx,endIdx);
-			current++;
+			++current;
 			break;
 			case '&':
-			idx++;
+			++idx;
 			while (body_[idx]==' ') ++idx;
 			while (body_[endIdx-1]==' ') --endIdx;
 			actions_.emplace_back(ActionType::UnescapeTag,idx,endIdx);
 			break;
 			case '=':
 			// tag itself is no-op
-			idx++;
+			++idx;
 			actions_.emplace_back(ActionType::Ignore,idx,endIdx);
-			endIdx--;
+			--endIdx;
 			if (body_[endIdx]!='=')
 			  throw invalid_template_exception("{{=: not matching = tag: "+body_.substr(idx,endIdx-idx));
-			endIdx--;
+			--endIdx;
 			while (body_[idx]==' ') ++idx;
 			while (body_[endIdx]==' ') --endIdx;
-			endIdx++;
+			++endIdx;
 			{
 			  bool succeeded=false;
 			  for (size_t i=idx; i<endIdx; ++i) {
@@ -395,7 +395,7 @@ namespace crow {
 		  bool is_last_action=i==(int)actions_.size()-2;
 		  bool all_space_before=true;
 		  int j,k;
-		  for (j=fragment_before.second-1;j>=fragment_before.first;j--) {
+		  for (j=fragment_before.second-1;j>=fragment_before.first;--j) {
 			if (body_[j]!=' ') {
 			  all_space_before=false;
 			  break;
