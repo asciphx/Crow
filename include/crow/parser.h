@@ -1,134 +1,71 @@
 #pragma once
-
 #include <string>
 #include <unordered_map>
 #include <boost/algorithm/string.hpp>
 #include <algorithm>
-
-#include "crow/http_parser_merged.h"
+//#include "crow/http_parser_merged.h"
+#include "crow/picohttpparser.h"
 #include "crow/http_request.h"
-
+#define MAX_URL_LENGTH 99
 namespace crow {
+  //RESmethod=(char**)malloc(sizeof(char*)*MAX_CORE);RESpath=(char**)malloc(sizeof(char*)*MAX_CORE);
   template <typename Handler>
-  struct HTTPParser : public http_parser {
-	static int on_url(http_parser* self_,const char* at,size_t length) {
-	  HTTPParser* self=static_cast<HTTPParser*>(self_);
-	  self->raw_url.insert(self->raw_url.end(),at,at+length);
-	  return 0;
-	}
-	static int on_header_field(http_parser* self_,const char* at,size_t length) {
-	  HTTPParser* self=static_cast<HTTPParser*>(self_);
-	  switch (self->header_state) {
-		case 0:
-		if (!self->header_value.empty()) {
-		  self->headers.emplace(std::move(self->header_field),std::move(self->header_value));
-		}
-		self->header_field.assign(at,at+length);
-		self->header_state=1;
-		break;
-		case 1:
-		self->header_field.insert(self->header_field.end(),at,at+length);
-		break;
-	  }
-	  return 0;
-	}
-	static int on_header_value(http_parser* self_,const char* at,size_t length) {
-	  HTTPParser* self=static_cast<HTTPParser*>(self_);
-	  switch (self->header_state) {
-		case 0:
-		self->header_value.insert(self->header_value.end(),at,at+length);
-		break;
-		case 1:
-		self->header_state=0;
-		self->header_value.assign(at,at+length);
-		break;
-	  }
-	  return 0;
-	}
-	static int on_headers_complete(http_parser* self_) {
-	  HTTPParser* self=static_cast<HTTPParser*>(self_);
-	  if (!self->header_field.empty()) {
-		self->headers.emplace(std::move(self->header_field),std::move(self->header_value));
-	  }
-	  self->process_header();
-	  return 0;
-	}
-	static int on_body(http_parser* self_,const char* at,size_t length) {
-	  HTTPParser* self=static_cast<HTTPParser*>(self_);
-	  self->body.insert(self->body.end(),at,at+length);
-	  return 0;
-	}
-	static int on_message_complete(http_parser* self_) {
-	  HTTPParser* self=static_cast<HTTPParser*>(self_);
-
-	  // url params
-	  self->url=self->raw_url.substr(0,self->raw_url.find("?"));
-	  self->url_params=query_string(self->raw_url);
-	  self->process_message();
-	  return 0;
-	}
-	HTTPParser(Handler* handler):
-	  handler_(handler) {
-	  http_parser_init(this,HTTP_REQUEST);
-	}
-	// return false on error
+  struct HTTPParser {
+	HTTPParser(Handler* handler):handler_(handler) {}
 	bool feed(const char* buffer,int length) {
-	  const static http_parser_settings settings_{
-		  nullptr,
-		  on_url,
-		  nullptr,
-		  on_header_field,
-		  on_header_value,
-		  on_headers_complete,
-		  on_body,
-		  on_message_complete,
-	  };
-	  int nparsed=http_parser_execute(this,&settings_,buffer,length);
-	  return nparsed==length;
+	  //int nparsed=http_parser_execute(this,buffer,length);
+	  RESnum=sizeof(RESheader)/sizeof(RESheader[0]);
+	  RESret=phr_parse_request(buffer,length,&RESmethod,&RESi,&RESpath,&RESl,&minor_version,RESheader,&RESnum,0);
+	  if(RESret==length){
+		RESj=0,RESk=0;char method[8],raw[MAX_URL_LENGTH];
+		while (RESi--)method[RESj]=RESmethod[RESj],++RESj;method[RESj]=0;method_=m2i(method);
+		while (RESl--)raw[RESk]=RESpath[RESk],++RESk;raw[RESk]=0;raw_url=raw;
+		url=raw_url.substr(0,raw_url.find("?"));
+		url_params=query_string(raw_url);
+		for (RESi=0,RESl=0; RESnum--;) {
+		  RESj=0,RESk=0;
+		  RESi=RESheader[RESnum].name_len;
+		  RESl=RESheader[RESnum].value_len;
+		  const char *a=RESheader[RESnum].name;
+		  const char *b=RESheader[RESnum].value;
+		  char c[40],d[165];
+		  while (RESj<RESi) c[RESj]=a[RESj],++RESj;c[RESj]=0;
+		  while (RESk<RESl) d[RESk]=b[RESk],++RESk;d[RESk]=0;
+		  //printf("%s: %s\n", c,d);
+		  headers.emplace(c,d);
+		}
+		handler_->handle_header();
+		handler_->handle();
+		//printf("url: %s\n",url.data());std::cout<<url_params<<std::endl;
+		//pp();
+		url.clear();
+		raw_url.clear();
+		headers.clear();
+		url_params.clear();
+		body.clear();
+		return true;
+	  }
+	  return false;
 	}
-
-	bool done() {
-	  return feed(nullptr,0);
-	}
-	void process_header() {
-	  handler_->handle_header();
-	}
-
-	void process_message() {
-	  handler_->handle();
-	  //printf("url: %s\n",url.data());
-	  //printf("raw_url: %s\n",raw_url.data());
-	  //std::cout<<url_params<<std::endl;
-	  url.clear();
-	  raw_url.clear();
-	  header_field.clear();
-	  header_value.clear();
-	  headers.clear();
-	  url_params.clear();
-	  header_state=0;
-	}
-	//
+	//void pp() {
+	//  for (auto&ii:headers) std::cout<<ii.first<<" , "<<ii.second<<std::endl;
+	//}
 	Req to_request() const {
-	  return Req{(HTTPMethod)method, std::move(raw_url), std::move(url), std::move(url_params), std::move(headers), std::move(body)};
+	  return Req{method_, std::move(raw_url), std::move(url),
+		 std::move(url_params), std::move(headers), std::move(body)};
 	}
-	//
-	bool is_upgrade() const {
-	  return upgrade;
-	}
-	//
-	bool check_version(int major,int minor) const {
-	  return http_major==major&&http_minor==minor;
-	}
-
 	std::string raw_url;
 	std::string url;
-	int header_state=0;
-	std::string header_field;
-	std::string header_value;
 	ci_map headers;
+	HTTPMethod method_;
 	query_string url_params;
 	std::string body;
-
+	int minor_version;
 	Handler* handler_;
+
+	const char*RESmethod,*RESpath;
+	size_t RESi,RESl,RESj,RESk,RESnum;
+	struct phr_header RESheader[16];
+	int RESret;
   };
 }

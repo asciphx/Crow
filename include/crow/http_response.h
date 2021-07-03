@@ -59,7 +59,7 @@ namespace crow {
 	}
 	bool is_completed() const noexcept { return completed_; }
 	void clear() {
-	  completed_=false;//body.clear();headers.clear();
+	  completed_=false;body.clear();headers.clear();
 	}
 
 	/// Return a "Temporary Redirect" Res.

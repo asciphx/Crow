@@ -74,7 +74,7 @@ int main() {
   //});
   // more json example
   app.route("/add_json").methods(HTTPMethod::POST)([](const Req& req) {
-	auto x=json::parse(req.body);
+	auto x=json::parse(req.body);std::cout<<333;
 	if (!x) return Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();
 	std::ostringstream os; os<<sum;

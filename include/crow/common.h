@@ -57,8 +57,22 @@ namespace crow {
   template<>
   inline std::string routing_params::get<std::string>(unsigned index) const { return string_params[index]; }
 }
+crow::HTTPMethod m2i(char* str) {
+  return
+	crow::spell::is_equ_p(str,"GET",3)?crow::HTTPMethod::GET:
+	crow::spell::is_equ_p(str,"DELETE",6)?crow::HTTPMethod::DEL:
+	crow::spell::is_equ_p(str,"HEAD",4)?crow::HTTPMethod::HEAD:
+	crow::spell::is_equ_p(str,"POST",4)?crow::HTTPMethod::POST:
+	crow::spell::is_equ_p(str,"PUT",3)?crow::HTTPMethod::PUT:
+	crow::spell::is_equ_p(str,"OPTIONS",7)?crow::HTTPMethod::OPTIONS:
+	crow::spell::is_equ_p(str,"CONNECT",7)?crow::HTTPMethod::CONNECT:
+	crow::spell::is_equ_p(str,"TRACE",5)?crow::HTTPMethod::TRACE:
+	crow::spell::is_equ_p(str,"PATCH",5)?crow::HTTPMethod::PATCH:
+	crow::spell::is_equ_p(str,"PURGE",5)?crow::HTTPMethod::PURGE:
+	throw std::runtime_error("invalid http method");
+}
 #ifndef CROW_MSVC_WORKAROUND
-constexpr crow::HTTPMethod operator "" _method(const char* str,size_t /*len*/) {
+constexpr crow::HTTPMethod operator "" _method(const char* str,size_t) {
   return
 	crow::spell::is_equ_p(str,"GET",3)?crow::HTTPMethod::GET:
 	crow::spell::is_equ_p(str,"DELETE",6)?crow::HTTPMethod::DEL:

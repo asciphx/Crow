@@ -7,7 +7,7 @@ namespace crow {
 	struct Ctx {};
 	void before_handle(Req& req,Res& res,Ctx&) {
 	  res.add_header_t(RES_AcO,"*");
-	  //res.add_header_s(RES_AcC,RES_t);
+	  res.add_header_s(RES_AcC,RES_t);
 	  res.add_header_t(RES_AcH,"content-type,cache-control,x-requested-with,authorization");
 	  if (req.method==HTTPMethod::OPTIONS) { res.code=204;res.end(); }
 	}

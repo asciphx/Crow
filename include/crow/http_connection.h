@@ -192,7 +192,7 @@ namespace crow {
 
 	void handle_header() {
 	  // HTTP 1.1 Expect: 100-continue
-	  if (parser_.check_version(1,1)&&parser_.headers.count("expect")&&get_header_value(parser_.headers,"expect")=="100-continue") {
+	  if (parser_.minor_version&&parser_.headers.count("expect")&&get_header_value(parser_.headers,"expect")=="100-continue") {
 		buffers_.clear();
 		static std::string expect_100_continue="HTTP/1.1 100 Continue\r\n\r\n";
 		buffers_.emplace_back(expect_100_continue.data(),expect_100_continue.size());
@@ -202,27 +202,28 @@ namespace crow {
 
 	void handle() {
 	  cancel_deadline_timer();
-	  bool is_invalid_request=false;
+	  bool is_invalid_request=false;//std::cout<<1<<" : "<<(int)req_.method;
 	  req_=parser_.to_request();
 	  req_.remoteIpAddress=adaptor_.remote_endpoint().address().to_string();
-	  if (parser_.check_version(1,0)) {// HTTP/1.0
+	  if (parser_.minor_version<1) {// HTTP/1.0
 		close_connection_=true;
-	  } else if (parser_.check_version(1,1)) {// HTTP/1.1
+	  } else if (parser_.minor_version==1) {// HTTP/1.1
 		if (req_.headers.count("Connection")&&req_.get_header_value("Connection")=="close") close_connection_=true;
 		if (!req_.headers.count("host")) {
 		  is_invalid_request=true;res=Res(400);
 		}
-		if (parser_.is_upgrade()) {
-		  if (req_.get_header_value("upgrade")=="h2c") {
-			// TODO HTTP/2 currently, ignore upgrade header
-		  } else {
-			close_connection_=true;
-			handler_->handle_upgrade(req_,res,std::move(adaptor_));
-			return;
-		  }
-		}
+		//std::cout<<(int)parser_.method_<<" | ";
+		//if(parser_.method_==HTTPMethod::POST){
+		//  if (req_.get_header_value("upgrade")=="h2c") {
+		//	// TODO HTTP/2 currently, ignore upgrade header
+		//  } else {
+		//	close_connection_=true;
+		//	//handler_->handle_upgrade(req_,res,std::move(adaptor_));
+		//	return;
+		//  }
+		//}
 	  }
-	  CROW_LOG_INFO<<"Request: "<<boost::lexical_cast<std::string>(adaptor_.remote_endpoint())<<" "<<this<<" HTTP/"<<parser_.http_major<<"."<<parser_.http_minor<<' '
+	  CROW_LOG_INFO<<"Request: "<<boost::lexical_cast<std::string>(adaptor_.remote_endpoint())<<" "<<this<<" HTTP/"<<parser_.minor_version<<' '
 		<<method_name(req_.method)<<" "<<req_.url;
 	  need_to_call_after_handlers_=false;
 	  if (!is_invalid_request) {
@@ -402,18 +403,17 @@ namespace crow {
 		  bool ret=parser_.feed(buffer_.data(),bytes_transferred);
 		  if (ret&&adaptor_.is_open()) {
 			error_while_reading=false;
+			//std::cout<<bytes_transferred<<" > "<<buffer_.data();
 		  }
 		}
 
 		if (error_while_reading) {
 		  cancel_deadline_timer();
-		  parser_.done();
 		  adaptor_.shutdown_read();
 		  adaptor_.close();
 		  delete this;
 		} else if (close_connection_) {
 		  cancel_deadline_timer();
-		  parser_.done();
 		  is_reading=false;
 		  check_destroy();
 		  // adaptor will close after write
