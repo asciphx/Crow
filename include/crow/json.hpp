@@ -67,9 +67,7 @@ SOFTWARE.
 #include <string> // string
 namespace nlohmann {
   namespace detail {
-	///////////////////////////
 	// JSON type enumeration //
-	///////////////////////////
 	/*!
 	@brief the JSON type enumeration
 	This enumeration collects the different JSON types. It is internally used to
@@ -88,7 +86,6 @@ namespace nlohmann {
 	approximate integers which do not fit in the limits of their respective type.
 	@sa see @ref basic_json::basic_json(const value_t value_type) -- create a JSON
 	value with the default value for a given type
-	@since version 1.0.0
 	*/
 	enum class value_t : std::uint8_t {
 	  null,             ///< null value
@@ -2295,7 +2292,6 @@ JSON_HEDLEY_DIAGNOSTIC_POP
 /*!
 @brief macro
 @def NLOHMANN_DEFINE_TYPE_INTRUSIVE
-@since version 3.9.0
 */
 #define NLOHMANN_DEFINE_TYPE_INTRUSIVE(Type, ...)  \
     friend void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
@@ -2303,7 +2299,6 @@ JSON_HEDLEY_DIAGNOSTIC_POP
 /*!
 @brief macro
 @def NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE
-@since version 3.9.0
 */
 #define NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Type, ...)  \
     inline void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
@@ -11526,56 +11521,37 @@ namespace nlohmann {
 	  // Given normalized diyfp w, Grisu needs to find a (normalized) cached
 	  // power-of-ten c, such that the exponent of the product c * w = f * 2^e lies
 	  // within a certain range [alpha, gamma] (Definition 3.2 from [1])
-	  //
 	  //      alpha <= e = e_c + e_w + q <= gamma
-	  //
 	  // or
-	  //
 	  //      f_c * f_w * 2^alpha <= f_c 2^(e_c) * f_w 2^(e_w) * 2^q
 	  //                          <= f_c * f_w * 2^gamma
-	  //
 	  // Since c and w are normalized, i.e. 2^(q-1) <= f < 2^q, this implies
-	  //
 	  //      2^(q-1) * 2^(q-1) * 2^alpha <= c * w * 2^q < 2^q * 2^q * 2^gamma
-	  //
 	  // or
-	  //
 	  //      2^(q - 2 + alpha) <= c * w < 2^(q + gamma)
-	  //
 	  // The choice of (alpha,gamma) determines the size of the table and the form of
 	  // the digit generation procedure. Using (alpha,gamma)=(-60,-32) works out well
 	  // in practice:
 	  //
 	  // The idea is to cut the number c * w = f * 2^e into two parts, which can be
 	  // processed independently: An integral part p1, and a fractional part p2:
-	  //
 	  //      f * 2^e = ( (f div 2^-e) * 2^-e + (f mod 2^-e) ) * 2^e
 	  //              = (f div 2^-e) + (f mod 2^-e) * 2^e
 	  //              = p1 + p2 * 2^e
-	  //
 	  // The conversion of p1 into decimal form requires a series of divisions and
 	  // modulos by (a power of) 10. These operations are faster for 32-bit than for
 	  // 64-bit integers, so p1 should ideally fit into a 32-bit integer. This can be
 	  // achieved by choosing
-	  //
 	  //      -e >= 32   or   e <= -32 := gamma
-	  //
 	  // In order to convert the fractional part
-	  //
 	  //      p2 * 2^e = p2 / 2^-e = d[-1] / 10^1 + d[-2] / 10^2 + ...
-	  //
 	  // into decimal form, the fraction is repeatedly multiplied by 10 and the digits
 	  // d[-i] are extracted in order:
-	  //
 	  //      (10 * p2) div 2^-e = d[-1]
 	  //      (10 * p2) mod 2^-e = d[-2] / 10^1 + ...
-	  //
 	  // The multiplication by 10 must not overflow. It is sufficient to choose
-	  //
 	  //      10 * p2 < 16 * p2 = 2^4 * p2 <= 2^64.
-	  //
 	  // Since p2 = f mod 2^-e < 2^-e,
-	  //
 	  //      -e <= 60   or   e >= -60 := alpha
 	  constexpr int kAlpha=-60;
 	  constexpr int kGamma=-32;
@@ -19627,6 +19603,14 @@ if no parse error occurred.
 #include <tuple>
 #include <type_traits>
 #include <memory>
+template <typename T>
+struct is_optional : std::false_type {};
+template <typename T>
+struct is_optional<std::unique_ptr<T>> : std::true_type {};
+template <typename T>
+inline constexpr bool isOptionalV=is_optional<std::decay_t<T>>::value;
+template <typename T>
+inline constexpr bool hasSchema=std::tuple_size<decltype(StructSchema<T>())>::value;
 namespace nlohmann {
   template <typename Fn,typename Tuple,std::size_t... I>
   inline constexpr void ForEachTuple(Tuple&& tuple,
@@ -19654,6 +19638,29 @@ namespace nlohmann {
   template <typename T>
   constexpr auto is_field_pointer_v=is_field_pointer<T>::value;
 
+  template <typename T>
+  struct adl_serializer<std::unique_ptr<T>> {
+	static void to_json(json& j,const std::unique_ptr<T>& opt) {
+	  j=opt?json(*opt):json(nullptr);
+	}
+	static void from_json(const json& j,std::unique_ptr<T>& opt) {
+	  opt=!j.is_null()?std::make_unique<T>(j.get<T>()):nullptr;
+	}
+  };
+  template <typename T>
+  struct adl_serializer<T,std::enable_if_t<::hasSchema<T>>> {
+	template <typename BasicJsonType>
+	static void to_json(BasicJsonType& j,const T& value) {
+	  ForEachField(value,[&j](auto&& field,auto&& name) { j[name]=field; });
+	}
+	template <typename BasicJsonType>
+	static void from_json(const BasicJsonType& j,T& value) {
+	  ForEachField(value,[&j](auto&& field,auto&& name) {
+		if (::isOptionalV<decltype(field)>&&j.find(name)==j.end())return;
+		try { j.at(name).get_to(field); } catch (const std::exception&) { return; }
+	  });
+	}
+  };
 }  // namespace nlohmann
 template <typename T>
 inline constexpr auto StructSchema() {
@@ -19685,41 +19692,6 @@ inline constexpr void ForEachField(T&& value,Fn&& fn) {
 	fn(value.*(std::get<0>(std::forward<decltype(field_schema)>(field_schema))),
 	   std::get<1>(std::forward<decltype(field_schema)>(field_schema)));
   });
-}
-namespace {
-  template <typename T>
-  struct is_optional : std::false_type {};
-  template <typename T>
-  struct is_optional<std::unique_ptr<T>> : std::true_type {};
-  template <typename T>
-  constexpr bool isOptionalV=is_optional<std::decay_t<T>>::value;
-  template <typename T>
-  constexpr bool hasSchema=std::tuple_size<decltype(StructSchema<T>())>::value;
-}
-namespace nlohmann {
-  template <typename T>
-  struct adl_serializer<std::unique_ptr<T>> {
-	static void to_json(json& j,const std::unique_ptr<T>& opt) {
-	  j=opt?json(*opt):json(nullptr);
-	}
-	static void from_json(const json& j,std::unique_ptr<T>& opt) {
-	  opt=!j.is_null()?std::make_unique<T>(j.get<T>()):nullptr;
-	}
-  };
-  template <typename T>
-  struct adl_serializer<T,std::enable_if_t<::hasSchema<T>>> {
-	template <typename BasicJsonType>
-	static void to_json(BasicJsonType& j,const T& value) {
-	  ForEachField(value,[&j](auto&& field,auto&& name) { j[name]=field; });
-	}
-	template <typename BasicJsonType>
-	static void from_json(const BasicJsonType& j,T& value) {
-	  ForEachField(value,[&j](auto&& field,auto&& name) {
-		if (::isOptionalV<decltype(field)>&&j.find(name)==j.end())return;
-		try { j.at(name).get_to(field); } catch (const std::exception&) { return; }
-	  });
-	}
-  };
 }
 
 JSON_HEDLEY_NON_NULL(1)

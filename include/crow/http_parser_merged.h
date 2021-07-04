@@ -50,7 +50,7 @@ typedef unsigned __int64 uint64_t;
  * faster
  */
 #ifndef CROW_HTTP_PARSER_STRICT
-# define CROW_HTTP_PARSER_STRICT 1
+# define CROW_HTTP_PARSER_STRICT 0
 #endif
 
 /* Maximium header size allowed. If the macro is not defined
@@ -61,7 +61,7 @@ typedef unsigned __int64 uint64_t;
  * to a very large number (e.g. -DHTTP_MAX_HEADER_SIZE=0x7fffffff)
  */
 #ifndef CROW_HTTP_MAX_HEADER_SIZE
-# define CROW_HTTP_MAX_HEADER_SIZE (80*1024)
+# define CROW_HTTP_MAX_HEADER_SIZE (512)
 #endif
 
 typedef struct http_parser http_parser;

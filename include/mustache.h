@@ -248,7 +248,7 @@ namespace crow {
 	  }
 	  std::string render(nlohmann::json& ctx) {
 		std::vector<nlohmann::json*> stack;
-		stack.emplace_back(&ctx);
+		stack.emplace_back(std::move(&ctx));
 
 		std::string ret;
 		render_internal(0,fragments_.size()-1,stack,ret,0);

@@ -11,9 +11,7 @@ int main() {
   //Server rendering and support default route
   app.default_route()([] {
 	char name[64];gethostname(name,64);
-	json x;x["servername"]=name;
-	auto page=mustache::load("404NotFound.html");
-	return page.render(x);
+	return mustache::load("404NotFound.html").render(json{{"servername",name}});
   });
   //Single path access to files
   app.route("/cat")([](const Req&,Res& res) {
