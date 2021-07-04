@@ -7,7 +7,7 @@
 #include <chrono>
 #include <vector>
 
-#include "crow/parser.h"
+#include "crow/parser2.h"
 #include "crow/http_response.h"
 #include "crow/logging.h"
 #include "crow/settings.h"
@@ -222,7 +222,7 @@ namespace crow {
 		  }
 		}
 	  }
-	  CROW_LOG_INFO<<"Request: "<<boost::lexical_cast<std::string>(adaptor_.remote_endpoint())<<" "<<this<<" HTTP/"<<parser_.minor_version<<"."<<1<<' '
+	  CROW_LOG_INFO<<"Request: "<<boost::lexical_cast<std::string>(adaptor_.remote_endpoint())<<" "<<this<<" HTTP/1"<<"."<<1<<' '
 		<<method_name(req_.method)<<" "<<req_.url;
 	  need_to_call_after_handlers_=false;
 	  if (!is_invalid_request) {

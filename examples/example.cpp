@@ -80,8 +80,7 @@ int main() {
   //      * Send and you should receive 2
   // A simpler way for json example:
   //      * curl -d '{"a":1,"b":2}' {ip}:18080/add_json
-  CROW_ROUTE(app,"/add_json")
-	.methods("POST"_method)
+  CROW_ROUTE(app,"/add_json").methods("POST"_type)
 	([](const crow::Req& req) {
 	auto x=crow::json::parse(req.body);
 	if (!x)
