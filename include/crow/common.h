@@ -33,11 +33,11 @@ namespace crow {
 	  case 'HEAD':return crow::HTTPMethod::HEAD;
 	  case 'POST':return crow::HTTPMethod::POST;
 	  case 'PUT':return crow::HTTPMethod::PUT;
-	  case crow::spell::hack("OPTIONS"):return crow::HTTPMethod::PUT;
-	  case crow::spell::hack("CONNECT"):return crow::HTTPMethod::PUT;
-	  case crow::spell::hack("TRACE"):return crow::HTTPMethod::PUT;
-	  case crow::spell::hack("PATCH"):return crow::HTTPMethod::PUT;
-	  case crow::spell::hack("PURGE"):return crow::HTTPMethod::PUT;
+	  case crow::spell::hack("OPTIONS"):return crow::HTTPMethod::OPTIONS;
+	  case crow::spell::hack("CONNECT"):return crow::HTTPMethod::CONNECT;
+	  case crow::spell::hack("TRACE"):return crow::HTTPMethod::TRACE;
+	  case crow::spell::hack("PATCH"):return crow::HTTPMethod::PATCH;
+	  case crow::spell::hack("PURGE"):return crow::HTTPMethod::PURGE;
 	}
 	return HTTPMethod::InternalMethodCount;
   }
@@ -80,11 +80,11 @@ constexpr crow::HTTPMethod operator""_mt(const char* str,size_t /*len*/) {
 	case 'HEAD':return crow::HTTPMethod::HEAD;
 	case 'POST':return crow::HTTPMethod::POST;
 	case 'PUT':return crow::HTTPMethod::PUT;
-	case crow::spell::hack("OPTIONS"):return crow::HTTPMethod::PUT;
-	case crow::spell::hack("CONNECT"):return crow::HTTPMethod::PUT;
-	case crow::spell::hack("TRACE"):return crow::HTTPMethod::PUT;
-	case crow::spell::hack("PATCH"):return crow::HTTPMethod::PUT;
-	case crow::spell::hack("PURGE"):return crow::HTTPMethod::PUT;
+	case crow::spell::hack("OPTIONS"):return crow::HTTPMethod::OPTIONS;
+	case crow::spell::hack("CONNECT"):return crow::HTTPMethod::CONNECT;
+	case crow::spell::hack("TRACE"):return crow::HTTPMethod::TRACE;
+	case crow::spell::hack("PATCH"):return crow::HTTPMethod::PATCH;
+	case crow::spell::hack("PURGE"):return crow::HTTPMethod::PURGE;
   }
   throw std::runtime_error("invalid http method");
 }
