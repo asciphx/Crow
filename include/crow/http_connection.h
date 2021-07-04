@@ -247,11 +247,11 @@ namespace crow {
 	}
 	/// Call the after handle middleware and send the write the Res to the connection.
 	void complete_request() {
-	  if (!adaptor_.is_open()) {
-		CROW_LOG_DEBUG<<this<<" delete (socket is closed) "<<is_reading<<' '<<is_writing;
-		delete this;
-		return;
-	  }
+	 // if (!adaptor_.is_open()) {
+		//CROW_LOG_DEBUG<<this<<" delete (socket is closed) "<<is_reading<<' '<<is_writing;
+		//delete this;
+		//return;
+	 // }
 	  CROW_LOG_INFO<<"Response: "<<this<<' '<<req_.raw_url<<' '<<res.code<<' '<<close_connection_;
 	  if (need_to_call_after_handlers_) {
 		need_to_call_after_handlers_=false;
@@ -397,33 +397,28 @@ namespace crow {
 	  is_reading=true;
 	  adaptor_.socket().async_read_some(boost::asio::buffer(buffer_),
 										[this](const boost::system::error_code& ec,std::size_t bytes_transferred) {
-		bool error_while_reading=true;
 		if (!ec) {
 		  bool ret=parser_.feed(buffer_.data(),bytes_transferred);
 		  if (ret&&adaptor_.is_open()) {
-			error_while_reading=false;
+			if (close_connection_) {
+			  cancel_deadline_timer();
+			  is_reading=false;
+			  check_destroy();
+			  // adaptor will close after write
+			} else if (!need_to_call_after_handlers_) {
+			  cancel_deadline_timer();
+			  do_read();
+			} else {
+			  // res will be completed later by user
+			  need_to_start_read_after_complete_=true;
+			}
+		  }else{
+			cancel_deadline_timer();
+			adaptor_.shutdown_read();
+			adaptor_.close();
+			delete this;
 		  }
-		}
-
-		if (error_while_reading) {
-		  cancel_deadline_timer();
-		  parser_.done();
-		  adaptor_.shutdown_read();
-		  adaptor_.close();
-		  delete this;
-		} else if (close_connection_) {
-		  cancel_deadline_timer();
-		  parser_.done();
-		  is_reading=false;
-		  check_destroy();
-		  // adaptor will close after write
-		} else if (!need_to_call_after_handlers_) {
-		  cancel_deadline_timer();
-		  do_read();
-		} else {
-		  // res will be completed later by user
-		  need_to_start_read_after_complete_=true;
-		}
+		}else delete this;
 	  });
 	}
 

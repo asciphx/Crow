@@ -20,10 +20,7 @@ namespace crow {
 	std::string body;
 	json json_value;
 	// `headers' stores HTTP default headers.
-	ci_map headers={//{RES_AcH,"content-type,cache-control,x-requested-with,authorization"},
-	  {RES_AcO,"*"},
-	  //{RES_AcC,RES_t},
-	};
+	ci_map headers;
 #ifdef CROW_ENABLE_COMPRESSION
 	bool compressed=true; //< If compression is enabled and this is false, the individual response will not be compressed.
 #endif

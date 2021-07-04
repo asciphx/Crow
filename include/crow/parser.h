@@ -7,7 +7,6 @@
 
 #include "crow/http_parser_merged.h"
 #include "crow/http_request.h"
-
 namespace crow {
   template <typename Handler>
   struct HTTPParser : public http_parser {
@@ -85,7 +84,6 @@ namespace crow {
 	  int nparsed=http_parser_execute(this,&settings_,buffer,length);
 	  return nparsed==length;
 	}
-	bool done() { return feed(nullptr,0); }
 	void process_header() { handler_->handle_header(); }
 	void process_message() {
 	  handler_->handle();
@@ -98,6 +96,7 @@ namespace crow {
 	  header_value.clear();
 	  headers.clear();
 	  url_params.clear();
+	  body.clear();
 	  header_state=0;
 	}
 	//

@@ -175,7 +175,7 @@ namespace crow {
         char buf[2+8]="\x80\x00";
         buf[0]+=opcode;
         if (size<126) {
-          buf[1]+=size;
+          buf[1]+=(char)size;
           return {buf, buf+2};
         } else if (size<0x10000) {
           buf[1]+=126;

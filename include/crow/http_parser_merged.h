@@ -61,7 +61,7 @@ typedef unsigned __int64 uint64_t;
  * to a very large number (e.g. -DHTTP_MAX_HEADER_SIZE=0x7fffffff)
  */
 #ifndef CROW_HTTP_MAX_HEADER_SIZE
-# define CROW_HTTP_MAX_HEADER_SIZE (512)
+# define CROW_HTTP_MAX_HEADER_SIZE (1024)
 #endif
 
 typedef struct http_parser http_parser;

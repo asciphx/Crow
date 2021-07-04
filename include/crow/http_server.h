@@ -30,7 +30,7 @@ namespace crow {
   template <typename Handler,typename Adaptor=SocketAdaptor,typename ... Middlewares>
   class Server {
     public:
-    Server(Handler* handler,std::string bindaddr,uint16_t port,std::string server_name="Crow",std::tuple<Middlewares...>* middlewares=nullptr,uint16_t concurrency=1,typename Adaptor::Ctx* adaptor_ctx=nullptr)
+    Server(Handler* handler,std::string bindaddr,uint16_t port,std::string server_name,std::tuple<Middlewares...>* middlewares=nullptr,uint16_t concurrency=1,typename Adaptor::Ctx* adaptor_ctx=nullptr)
       : acceptor_(io_service_,tcp::endpoint(boost::asio::ip::address::from_string(bindaddr),port)),
       signals_(io_service_,SIGINT,SIGTERM),
       tick_timer_(io_service_),
@@ -46,16 +46,6 @@ namespace crow {
       tick_interval_=d;
       tick_function_=f;
     }
-
-    void on_tick() {
-      tick_function_();
-      tick_timer_.expires_from_now(boost::posix_time::milliseconds(tick_interval_.count()));
-      tick_timer_.async_wait([this](const boost::system::error_code& /*ec*/) {
-        //if (ec) return;
-        on_tick();
-      });
-    }
-
     void run() {
       for (int i=0; i<concurrency_; ++i)
         io_service_pool_.emplace_back(new boost::asio::io_service());
@@ -100,14 +90,8 @@ namespace crow {
         io_service_pool_[i]->run();
       }));
 
-      if (tick_function_&&tick_interval_.count()>0) {
-        tick_timer_.expires_from_now(boost::posix_time::milliseconds(tick_interval_.count()));
-        tick_timer_.async_wait([this](const boost::system::error_code& /*ec*/) {
-          //if (ec) return;
-          on_tick();
-        });
-      }
-
+      //if (/*tick_function_&&*/tick_interval_.count()>0) {
+      //}
       CROW_LOG_INFO<<server_name_<<" server is running at "<<bindaddr_<<":"<<acceptor_.local_endpoint().port()
         <<" using "<<concurrency_<<" threads";
       CROW_LOG_INFO<<"Call `app.loglevel(crow::LogLevel::Warning)` to hide Info level logs.";
@@ -118,13 +102,18 @@ namespace crow {
       });
 
       while (concurrency_!=init_count) std::this_thread::yield();
-
       do_accept();
-
       std::thread([this] {
         io_service_.run();
         CROW_LOG_INFO<<"Exiting.";
       }).join();
+      while (tick_interval_.count()>0) {
+        tick_timer_.expires_from_now(boost::posix_time::millseconds(tick_interval_.count()));
+        tick_timer_.async_wait([this](const boost::system::error_code& /*ec*/) {
+          //if (ec) return;
+          tick_function_();
+        });
+      }
     }
 
     void stop() {
