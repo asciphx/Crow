@@ -18,7 +18,7 @@ namespace crow {
   /// A Rule provides a URL, allowed HTTP methods, and handlers.
   class BaseRule {
     public:
-    BaseRule(std::string rule): rule_(std::move(rule)) {}
+    BaseRule(std::string rule) : rule_(std::move(rule)) {}
 
     virtual ~BaseRule() {}
 
@@ -135,7 +135,7 @@ namespace crow {
                   !std::is_same<typename std::tuple_element<0,std::tuple<Args...,void>>::type,const Req&>::value
                   ,int>::type=0) {
           handler_=(
-            [f=std::move(f)]
+          [f=std::move(f)]
           (const Req&,Res&res,Args... args){
             res=Res(f(args...));
             res.end();
@@ -226,7 +226,7 @@ namespace crow {
                     "Handler function cannot have void return type; valid return types: string, int, crow::Res, crow::returnable");
 
       handler_=(
-        [f=std::move(f)]
+      [f=std::move(f)]
       (const Req&,Res&res){
         res=Res(f());
         res.end();
@@ -244,7 +244,7 @@ namespace crow {
                     "Handler function cannot have void return type; valid return types: string, int, crow::Res, crow::returnable");
 
       handler_=(
-        [f=std::move(f)]
+      [f=std::move(f)]
       (const crow::Req&req,crow::Res&res){
         res=Res(f(req));
         res.end();
@@ -261,7 +261,7 @@ namespace crow {
       static_assert(std::is_same<void,decltype(f(std::declval<crow::Res&>()))>::value,
                     "Handler function with Res argument should have void return type");
       handler_=(
-        [f=std::move(f)]
+      [f=std::move(f)]
       (const crow::Req&,crow::Res&res){
         f(res);
       });
@@ -280,10 +280,10 @@ namespace crow {
 
       handler_=(
         [f=std::move(f)]
-      (const Req&req,Res&res){
-        res=Res(f(req,res));
-        res.end();
-      });
+        (const Req&req,Res&res){
+          res=Res(f(req,res));
+          res.end();
+        });
     }
 
     bool has_handler() {
@@ -390,7 +390,7 @@ namespace crow {
   /// A rule that can change its parameters during runtime.
   class DynamicRule : public BaseRule,public RuleParameterTraits<DynamicRule> {
     public:
-    DynamicRule(std::string rule): BaseRule(std::move(rule)) {}
+    DynamicRule(std::string rule) : BaseRule(std::move(rule)) {}
     void validate() override {
       if (!erased_handler_) {
         throw std::runtime_error(name_+(!name_.empty()?": ":"")+"no handler for url "+rule_);
@@ -474,7 +474,7 @@ namespace crow {
                     "Handler function cannot have void return type; valid return types: string, int, crow::Res, crow::returnable");
 
       handler_=(
-        [f=std::move(f)]
+      [f=std::move(f)]
       (const Req&,Res&res,Args ... args){
         res=Res(f(args...));
         res.end();
@@ -494,7 +494,7 @@ namespace crow {
                     "Handler function cannot have void return type; valid return types: string, int, crow::Res, crow::returnable");
 
       handler_=(
-        [f=std::move(f)]
+      [f=std::move(f)]
       (const crow::Req&req,crow::Res&res,Args ... args){
         res=Res(f(req,args...));
         res.end();
@@ -515,7 +515,7 @@ namespace crow {
       static_assert(std::is_same<void,decltype(f(std::declval<crow::Res&>(),std::declval<Args>()...))>::value,
                     "Handler function with Res argument should have void return type");
       handler_=(
-        [f=std::move(f)]
+      [f=std::move(f)]
       (const crow::Req&,crow::Res&res,Args ... args){
         f(res,args...);
       });
@@ -773,8 +773,7 @@ namespace crow {
               break;
             }
           }
-
-          i--;
+          --i;
         } else {
           std::string piece(&c,1);
           if (!nodes_[idx].children.count(piece)) {
@@ -850,215 +849,215 @@ namespace crow {
 
   class Router {
     public: Router() {}
-          DynamicRule& new_rule_dynamic(const std::string& rule) {
-            auto ruleObject=new DynamicRule(rule);
-            all_rules_.emplace_back(ruleObject);
-            return *ruleObject;
+    DynamicRule& new_rule_dynamic(const std::string& rule) {
+      auto ruleObject=new DynamicRule(rule);
+      all_rules_.emplace_back(ruleObject);
+      return *ruleObject;
+    }
+    template <uint64_t N>
+    typename spell::arguments<N>::type::template rebind<TaggedRule>& new_rule_tagged(const std::string& rule) {
+      using RuleT=typename spell::arguments<N>::type::template rebind<TaggedRule>;
+      auto ruleObject=new RuleT(rule);
+      all_rules_.emplace_back(ruleObject);
+      return *ruleObject;
+    }
+    CatchallRule& catchall_rule() {
+      return catchall_rule_;
+    }
+    void internal_add_rule_object(const std::string& rule,BaseRule* ruleObject) {
+      bool has_trailing_slash=false;
+      std::string rule_without_trailing_slash;
+      if (rule.size()>1&&rule.back()=='/') {
+        has_trailing_slash=true;
+        rule_without_trailing_slash=rule;
+        rule_without_trailing_slash.pop_back();
+      }
+      ruleObject->foreach_method([&](int method) {
+        per_methods_[method].rules.emplace_back(ruleObject);
+        per_methods_[method].trie.add(rule,per_methods_[method].rules.size()-1);
+        // directory case: 
+        //   request to `/about' url matches `/about/' rule 
+        if (has_trailing_slash) {
+          per_methods_[method].trie.add(rule_without_trailing_slash,RULE_SPECIAL_REDIRECT_SLASH);
+        }
+      });
+    }
+    void validate() {
+      for (auto& rule:all_rules_) {
+        if (rule) {
+          auto upgraded=rule->upgrade();
+          if (upgraded)
+            rule=std::move(upgraded);
+          rule->validate();
+          internal_add_rule_object(rule->rule(),rule.get());
+        }
+      }
+      for (auto& per_method:per_methods_) {
+        per_method.trie.validate();
+      }
+    }
+    template <typename Adaptor>
+    void handle_upgrade(const Req& req,Res& res,Adaptor&& adaptor) {
+      if (req.method>=HTTPMethod::InternalMethodCount)
+        return;
+
+      auto& per_method=per_methods_[static_cast<int>(req.method)];
+      auto& rules=per_method.rules;
+      unsigned rule_index=per_method.trie.find(req.url).first;
+
+      if (!rule_index) {
+        for (auto& per_method:per_methods_) {
+          if (per_method.trie.find(req.url).first) {
+            CROW_LOG_DEBUG<<"Cannot match method "<<req.url<<" "<<method_name(req.method);
+            res=Res(405);
+            res.end();
+            return;
           }
-          template <uint64_t N>
-          typename spell::arguments<N>::type::template rebind<TaggedRule>& new_rule_tagged(const std::string& rule) {
-            using RuleT=typename spell::arguments<N>::type::template rebind<TaggedRule>;
-            auto ruleObject=new RuleT(rule);
-            all_rules_.emplace_back(ruleObject);
-            return *ruleObject;
-          }
-          CatchallRule& catchall_rule() {
-            return catchall_rule_;
-          }
-          void internal_add_rule_object(const std::string& rule,BaseRule* ruleObject) {
-            bool has_trailing_slash=false;
-            std::string rule_without_trailing_slash;
-            if (rule.size()>1&&rule.back()=='/') {
-              has_trailing_slash=true;
-              rule_without_trailing_slash=rule;
-              rule_without_trailing_slash.pop_back();
-            }
-            ruleObject->foreach_method([&](int method) {
-              per_methods_[method].rules.emplace_back(ruleObject);
-              per_methods_[method].trie.add(rule,per_methods_[method].rules.size()-1);
-              // directory case: 
-              //   request to `/about' url matches `/about/' rule 
-              if (has_trailing_slash) {
-                per_methods_[method].trie.add(rule_without_trailing_slash,RULE_SPECIAL_REDIRECT_SLASH);
-              }
-            });
-          }
-          void validate() {
-            for (auto& rule:all_rules_) {
-              if (rule) {
-                auto upgraded=rule->upgrade();
-                if (upgraded)
-                  rule=std::move(upgraded);
-                rule->validate();
-                internal_add_rule_object(rule->rule(),rule.get());
-              }
-            }
-            for (auto& per_method:per_methods_) {
-              per_method.trie.validate();
-            }
-          }
-          template <typename Adaptor>
-          void handle_upgrade(const Req& req,Res& res,Adaptor&& adaptor) {
-            if (req.method>=HTTPMethod::InternalMethodCount)
-              return;
+        }
 
-            auto& per_method=per_methods_[static_cast<int>(req.method)];
-            auto& rules=per_method.rules;
-            unsigned rule_index=per_method.trie.find(req.url).first;
+        CROW_LOG_INFO<<"913:Cannot match rules "<<req.url;
+        res=Res(404);
+        res.end();
+        return;
+      }
 
-            if (!rule_index) {
-              for (auto& per_method:per_methods_) {
-                if (per_method.trie.find(req.url).first) {
-                  CROW_LOG_DEBUG<<"Cannot match method "<<req.url<<" "<<method_name(req.method);
-                  res=Res(405);
-                  res.end();
-                  return;
-                }
-              }
+      if (rule_index>=rules.size())
+        throw std::runtime_error("Trie internal structure corrupted!");
 
-              CROW_LOG_INFO<<"913:Cannot match rules "<<req.url;
-              res=Res(404);
-              res.end();
-              return;
-            }
+      if (rule_index==RULE_SPECIAL_REDIRECT_SLASH) {
+        CROW_LOG_INFO<<"Redirecting to a url with trailing slash: "<<req.url;
+        res=Res(301);
 
-            if (rule_index>=rules.size())
-              throw std::runtime_error("Trie internal structure corrupted!");
+        // TODO absolute url building
+        if (req.get_header_value("Host").empty()) {
+          res.add_header("Location",req.url+"/");
+        } else {
+          res.add_header("Location","http://"+req.get_header_value("Host")+req.url+"/");
+        }
+        res.end();
+        return;
+      }
 
-            if (rule_index==RULE_SPECIAL_REDIRECT_SLASH) {
-              CROW_LOG_INFO<<"Redirecting to a url with trailing slash: "<<req.url;
-              res=Res(301);
+      CROW_LOG_DEBUG<<"936:Matched rule (upgrade) '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
 
-              // TODO absolute url building
-              if (req.get_header_value("Host").empty()) {
-                res.add_header("Location",req.url+"/");
-              } else {
-                res.add_header("Location","http://"+req.get_header_value("Host")+req.url+"/");
-              }
-              res.end();
-              return;
-            }
+      // any uncaught exceptions become 500s
+      try {
+        rules[rule_index]->handle_upgrade(req,res,std::move(adaptor));
+      } catch (std::exception& e) {
+        CROW_LOG_ERROR<<"An uncaught exception occurred: "<<e.what();
+        res=Res(500);
+        res.end();
+        return;
+      } catch (...) {
+        CROW_LOG_ERROR<<"An uncaught exception occurred. The type was unknown so no information was available.";
+        res=Res(500);
+        res.end();
+        return;
+      }
+    }
 
-            CROW_LOG_DEBUG<<"936:Matched rule (upgrade) '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
-
-            // any uncaught exceptions become 500s
-            try {
-              rules[rule_index]->handle_upgrade(req,res,std::move(adaptor));
-            } catch (std::exception& e) {
-              CROW_LOG_ERROR<<"An uncaught exception occurred: "<<e.what();
-              res=Res(500);
-              res.end();
-              return;
-            } catch (...) {
-              CROW_LOG_ERROR<<"An uncaught exception occurred. The type was unknown so no information was available.";
-              res=Res(500);
-              res.end();
-              return;
-            }
-          }
-
-          void handle(const Req& req,Res& res) {
-            HTTPMethod method_actual=req.method;
-            if (method_actual>=HTTPMethod::InternalMethodCount)
-              return;
-            auto& per_method=per_methods_[static_cast<int>(method_actual)];
-            if (req.method==HTTPMethod::HEAD) {
-              method_actual=HTTPMethod::GET;
-              res.is_head_response=true;
-            } else if (method_actual==HTTPMethod::OPTIONS) {
-              std::string allow="OPTIONS, HEAD, ";
-              if (req.url=="/*") {
-                for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
-                  if (per_methods_[i].trie.is_empty()) {
-                    allow+=method_name(static_cast<HTTPMethod>(i))+", ";
-                  }
-                }
-                allow=allow.substr(0,allow.size()-2);
-                res=Res(204);
-                res.set_header("Allow",allow);
-                res.end();
-                return;
-              } else {
-                for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
-                  if (per_methods_[i].trie.find(req.url).first) {
-                    allow+=method_name(static_cast<HTTPMethod>(i))+", ";
-                  }
-                }
-                if (allow!="OPTIONS, HEAD, ") {
-                  allow=allow.substr(0,allow.size()-2);
-                  res=Res(204);
-                  res.set_header("Allow",allow);
-                  res.end();
-                  return;
-                } else {
-                  CROW_LOG_DEBUG<<"988:Cannot match rules "<<req.url;
-                  res=Res(404);
-                  res.end();
-                  return;
-                }
-              }
-            }
-            auto& trie=per_method.trie;
-            auto& rules=per_method.rules;
-            auto found=trie.find(req.url);
-            unsigned rule_index=found.first;
-            /*if (catchall_rule_.has_handler()) {
-              CROW_LOG_DEBUG<<"1010:Cannot match rules "<<req.url<<". Redirecting to Catchall rule";
-              catchall_rule_.handler_(req,res);std::cout<<res.body;return;
-            }*/
-            if (!rule_index) {
-              for (auto& per_method:per_methods_) {
-                if (per_method.trie.find(req.url).first) {
-                  CROW_LOG_DEBUG<<"Cannot match method "<<req.url<<" "<<method_name(method_actual);
-                  res=Res(405);
-                  res.end();
-                  return;
-                }
-              }
-              res.set_static_file_info(req.url.substr(1));
-              if (res.code==404&&catchall_rule_.has_handler()) {
-                CROW_LOG_DEBUG<<"1010:Cannot match rules "<<req.url<<". Redirecting to Catchall rule";
-                res.code=200;catchall_rule_.handler_(req,res);
-              } else res.end();
-              return;
-            }
-            if (rule_index>=rules.size())
-              throw std::runtime_error("Trie internal structure corrupted!");
-            if (rule_index==RULE_SPECIAL_REDIRECT_SLASH) {
-              CROW_LOG_INFO<<"Redirecting to a url with trailing slash: "<<req.url;
-              res=Res(301);
-              // TODO absolute url building
-              if (req.get_header_value("Host").empty()) {
-                res.add_header_t(RES_Loc,req.url+"/");
-              } else {
-                res.add_header_t(RES_Loc,"http://"+req.get_header_value("Host")+req.url+"/");
-              }
-              res.end();
-              return;
-            }
-            CROW_LOG_DEBUG<<"1027:Matched rule '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
-            // any uncaught exceptions become 500s
-            try {
-              rules[rule_index]->handle(req,res,found.second);
-            } catch (std::exception& e) {
-              CROW_LOG_ERROR<<"An uncaught exception occurred: "<<e.what();
-              res=Res(500);
-              res.end();
-              return;
-            } catch (...) {
-              CROW_LOG_ERROR<<"An uncaught exception occurred. The type was unknown so no information was available.";
-              res=Res(500);
-              res.end();
-              return;
+    void handle(const Req& req,Res& res) {
+      HTTPMethod method_actual=req.method;
+      if (method_actual>=HTTPMethod::InternalMethodCount)
+        return;
+      auto& per_method=per_methods_[static_cast<int>(method_actual)];
+      if (req.method==HTTPMethod::HEAD) {
+        method_actual=HTTPMethod::GET;
+        res.is_head_response=true;
+      } else if (method_actual==HTTPMethod::OPTIONS) {
+        std::string allow="OPTIONS, HEAD, ";
+        if (req.url=="/*") {
+          for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
+            if (per_methods_[i].trie.is_empty()) {
+              allow+=method_name(static_cast<HTTPMethod>(i))+", ";
             }
           }
-
-          void debug_print() {
-            for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
-              CROW_LOG_DEBUG<<method_name(static_cast<HTTPMethod>(i));
-              per_methods_[i].trie.debug_print();
+          allow=allow.substr(0,allow.size()-2);
+          res=Res(204);
+          res.set_header("Allow",allow);
+          res.end();
+          return;
+        } else {
+          for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
+            if (per_methods_[i].trie.find(req.url).first) {
+              allow+=method_name(static_cast<HTTPMethod>(i))+", ";
             }
           }
+          if (allow!="OPTIONS, HEAD, ") {
+            allow=allow.substr(0,allow.size()-2);
+            res=Res(204);
+            res.set_header("Allow",allow);
+            res.end();
+            return;
+          } else {
+            CROW_LOG_DEBUG<<"988:Cannot match rules "<<req.url;
+            res=Res(404);
+            res.end();
+            return;
+          }
+        }
+      }
+      auto& trie=per_method.trie;
+      auto& rules=per_method.rules;
+      auto found=trie.find(req.url);
+      unsigned rule_index=found.first;
+      /*if (catchall_rule_.has_handler()) {
+        CROW_LOG_DEBUG<<"1010:Cannot match rules "<<req.url<<". Redirecting to Catchall rule";
+        catchall_rule_.handler_(req,res);std::cout<<res.body;return;
+      }*/
+      if (!rule_index) {
+        for (auto& per_method:per_methods_) {
+          if (per_method.trie.find(req.url).first) {
+            CROW_LOG_DEBUG<<"Cannot match method "<<req.url<<" "<<method_name(method_actual);
+            res=Res(405);
+            res.end();
+            return;
+          }
+        }
+        res.set_static_file_info(req.url.substr(1));
+        if (res.code==404&&catchall_rule_.has_handler()) {
+          CROW_LOG_DEBUG<<"1010:Cannot match rules "<<req.url<<". Redirecting to Catchall rule";
+          res.code=200;catchall_rule_.handler_(req,res);
+        } else res.end();
+        return;
+      }
+      if (rule_index>=rules.size())
+        throw std::runtime_error("Trie internal structure corrupted!");
+      if (rule_index==RULE_SPECIAL_REDIRECT_SLASH) {
+        CROW_LOG_INFO<<"Redirecting to a url with trailing slash: "<<req.url;
+        res=Res(301);
+        // TODO absolute url building
+        if (req.get_header_value("Host").empty()) {
+          res.add_header_t(RES_Loc,req.url+"/");
+        } else {
+          res.add_header_t(RES_Loc,"http://"+req.get_header_value("Host")+req.url+"/");
+        }
+        res.end();
+        return;
+      }
+      CROW_LOG_DEBUG<<"1027:Matched rule '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
+      // any uncaught exceptions become 500s
+      try {
+        rules[rule_index]->handle(req,res,found.second);
+      } catch (std::exception& e) {
+        CROW_LOG_ERROR<<"An uncaught exception occurred: "<<e.what();
+        res=Res(500);
+        res.end();
+        return;
+      } catch (...) {
+        CROW_LOG_ERROR<<"An uncaught exception occurred. The type was unknown so no information was available.";
+        res=Res(500);
+        res.end();
+        return;
+      }
+    }
+
+    void debug_print() {
+      for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
+        CROW_LOG_DEBUG<<method_name(static_cast<HTTPMethod>(i));
+        per_methods_[i].trie.debug_print();
+      }
+    }
     private:
     CatchallRule catchall_rule_;
     struct PerMethod {

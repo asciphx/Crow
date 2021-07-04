@@ -50,6 +50,10 @@ namespace crow {
 	//void pp() {
 	//  for (auto&ii:headers) std::cout<<ii.first<<" , "<<ii.second<<std::endl;
 	//}
+	//
+	bool is_upgrade() const { return method_==HTTPMethod::POST||method_==HTTPMethod::PUT; }
+	//
+	bool check_version(int major,int minor) const { return minor_version==1; }
 	Req to_request() const {
 	  return Req{method_, std::move(raw_url), std::move(url),
 		 std::move(url_params), std::move(headers), std::move(body)};

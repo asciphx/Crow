@@ -25,12 +25,7 @@ void broadcast(const string& msg) {
 // To see how it works go on {ip}:40080 but I just got it working with external build (not directly in IDE, I guess a problem with dependency)
 int main() {
   crow::SimpleApp app;
-  app.set_directory(".");
-
-  CROW_ROUTE(app,"/")([] {
-	return crow::mustache::load("example_chat.html").render();
-  });
-
+  app.set_directory(".").set_home_page("example_chat.html");
   CROW_ROUTE(app,"/logs")([] {
 	CROW_LOG_INFO<<"logs requested";
 	crow::json x;

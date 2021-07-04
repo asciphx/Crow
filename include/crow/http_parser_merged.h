@@ -50,7 +50,7 @@ typedef unsigned __int64 uint64_t;
  * faster
  */
 #ifndef CROW_HTTP_PARSER_STRICT
-# define CROW_HTTP_PARSER_STRICT 1
+# define CROW_HTTP_PARSER_STRICT 0
 #endif
 
 /* Maximium header size allowed. If the macro is not defined
@@ -61,7 +61,7 @@ typedef unsigned __int64 uint64_t;
  * to a very large number (e.g. -DHTTP_MAX_HEADER_SIZE=0x7fffffff)
  */
 #ifndef CROW_HTTP_MAX_HEADER_SIZE
-# define CROW_HTTP_MAX_HEADER_SIZE (80*1024)
+# define CROW_HTTP_MAX_HEADER_SIZE (1024)
 #endif
 
 typedef struct http_parser http_parser;
@@ -959,6 +959,17 @@ static const int8_t unhex[256] =
 
     if (CROW_PARSING_HEADER(parser->state)) {
       ++parser->nread;
+      /* Don't allow the total size of the HTTP headers (including the status
+       * line) to exceed CROW_HTTP_MAX_HEADER_SIZE.  This check is here to protect
+       * embedders against denial-of-service attacks where the attacker feeds
+       * us a never-ending header that the embedder keeps buffering.
+       *
+       * This check is arguably the responsibility of embedders but we're doing
+       * it on the embedder's behalf because most won't bother and this way we
+       * make the web a little safer.  CROW_HTTP_MAX_HEADER_SIZE is still far bigger
+       * than any reasonable request or response so this should never affect
+       * day-to-day operation.
+       */
       if (parser->nread > (CROW_HTTP_MAX_HEADER_SIZE)) {
         CROW_SET_ERRNO(HPE_HEADER_OVERFLOW);
         goto error;
@@ -969,8 +980,12 @@ static const int8_t unhex[256] =
     switch (parser->state) {
 
       case s_dead:
+        /* this state is used after a 'Connection: close' message
+         * the parser will error out if it reads another message
+         */
         if (ch == CROW_CR || ch == CROW_LF)
           break;
+
         CROW_SET_ERRNO(HPE_CLOSED_CONNECTION);
         goto error;
 

@@ -6,18 +6,12 @@
 using namespace crow;
 int main() {
   App<Cors> app;//Global Middleware,and default config
-  app.set_directory("./static")
+  app.set_directory("./static").set_home_page("i.htm")
 	.set_types({"html","ico","css","js","json","svg","png","gif","jpg","txt"});
-  //Server rendering
-  CROW_ROUTE(app,"/")([] {
+  //Server rendering and support default route
+  app.default_route()([] {
 	char name[64];gethostname(name,64);
-	json x;x["servername"]=name;
-	auto page=mustache::load("index.html");
-	return page.render(x);
-  });
-  //support default route
-  app.catchall_route()([] {
-	return (string)mustache::load("404NotFound.html");
+	return mustache::load("404NotFound.html").render(json{{"servername",name}});
   });
   //Single path access to files
   app.route("/cat")([](const Req&,Res& res) {
@@ -74,7 +68,7 @@ int main() {
   //});
   // more json example
   app.route("/add_json").methods(HTTPMethod::POST)([](const Req& req) {
-	auto x=json::parse(req.body);std::cout<<333;
+	auto x=json::parse(req.body);
 	if (!x) return Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();
 	std::ostringstream os; os<<sum;

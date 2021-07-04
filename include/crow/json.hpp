@@ -67,9 +67,7 @@ SOFTWARE.
 #include <string> // string
 namespace nlohmann {
   namespace detail {
-	///////////////////////////
 	// JSON type enumeration //
-	///////////////////////////
 	/*!
 	@brief the JSON type enumeration
 	This enumeration collects the different JSON types. It is internally used to
@@ -88,7 +86,6 @@ namespace nlohmann {
 	approximate integers which do not fit in the limits of their respective type.
 	@sa see @ref basic_json::basic_json(const value_t value_type) -- create a JSON
 	value with the default value for a given type
-	@since version 1.0.0
 	*/
 	enum class value_t : std::uint8_t {
 	  null,             ///< null value
@@ -2295,7 +2292,6 @@ JSON_HEDLEY_DIAGNOSTIC_POP
 /*!
 @brief macro
 @def NLOHMANN_DEFINE_TYPE_INTRUSIVE
-@since version 3.9.0
 */
 #define NLOHMANN_DEFINE_TYPE_INTRUSIVE(Type, ...)  \
     friend void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
@@ -2303,7 +2299,6 @@ JSON_HEDLEY_DIAGNOSTIC_POP
 /*!
 @brief macro
 @def NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE
-@since version 3.9.0
 */
 #define NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Type, ...)  \
     inline void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
@@ -2546,37 +2541,6 @@ namespace nlohmann {
 		  ", column "+std::to_string(pos.chars_read_current_line);
 	  }
 	};
-	/*!
-	@brief exception indicating errors with iterators
-	This exception is thrown if iterators passed to a library function do not match
-	the expected semantics.
-	Exceptions have ids 2xx.
-	name / id                           | example message | description
-	----------------------------------- | --------------- | -------------------------
-	json.exception.invalid_iterator.201 | iterators are not compatible | The iterators passed to constructor @ref basic_json(InputIT first, InputIT last) are not compatible, meaning they do not belong to the same container. Therefore, the range (@a first, @a last) is invalid.
-	json.exception.invalid_iterator.202 | iterator does not fit current value | In an erase or insert function, the passed iterator @a pos does not belong to the JSON value for which the function was called. It hence does not define a valid position for the deletion/insertion.
-	json.exception.invalid_iterator.203 | iterators do not fit current value | Either iterator passed to function @ref erase(IteratorType first, IteratorType last) does not belong to the JSON value from which values shall be erased. It hence does not define a valid range to delete values from.
-	json.exception.invalid_iterator.204 | iterators out of range | When an iterator range for a primitive type (number, boolean, or string) is passed to a constructor or an erase function, this range has to be exactly (@ref begin(), @ref end()), because this is the only way the single stored value is expressed. All other ranges are invalid.
-	json.exception.invalid_iterator.205 | iterator out of range | When an iterator for a primitive type (number, boolean, or string) is passed to an erase function, the iterator has to be the @ref begin() iterator, because it is the only way to address the stored value. All other iterators are invalid.
-	json.exception.invalid_iterator.206 | cannot construct with iterators from null | The iterators passed to constructor @ref basic_json(InputIT first, InputIT last) belong to a JSON null value and hence to not define a valid range.
-	json.exception.invalid_iterator.207 | cannot use key() for non-object iterators | The key() member function can only be used on iterators belonging to a JSON object, because other types do not have a concept of a key.
-	json.exception.invalid_iterator.208 | cannot use operator[] for object iterators | The operator[] to specify a concrete offset cannot be used on iterators belonging to a JSON object, because JSON objects are unordered.
-	json.exception.invalid_iterator.209 | cannot use offsets with object iterators | The offset operators (+, -, +=, -=) cannot be used on iterators belonging to a JSON object, because JSON objects are unordered.
-	json.exception.invalid_iterator.210 | iterators do not fit | The iterator range passed to the insert function are not compatible, meaning they do not belong to the same container. Therefore, the range (@a first, @a last) is invalid.
-	json.exception.invalid_iterator.211 | passed iterators may not belong to container | The iterator range passed to the insert function must not be a subrange of the container to insert to.
-	json.exception.invalid_iterator.212 | cannot compare iterators of different containers | When two iterators are compared, they must belong to the same container.
-	json.exception.invalid_iterator.213 | cannot compare order of object iterators | The order of object iterators cannot be compared, because JSON objects are unordered.
-	json.exception.invalid_iterator.214 | cannot get value | Cannot get value for iterator: Either the iterator belongs to a null value or it is an iterator to a primitive type (number, boolean, or string), but the iterator is different to @ref begin().
-	@liveexample{The following code shows how an `invalid_iterator` exception can be
-	caught.,invalid_iterator}
-	@sa - @ref exception for the base class of the library exceptions
-	@sa - @ref parse_error for exceptions indicating a parse error
-	@sa - @ref type_error for exceptions indicating executing a member function with
-						a wrong type
-	@sa - @ref out_of_range for exceptions indicating access out of the defined range
-	@sa - @ref other_error for exceptions indicating other library errors
-	@since version 3.0.0
-	*/
 	class invalid_iterator : public exception {
 	  public:
 	  template<typename BasicJsonType>
@@ -2589,39 +2553,6 @@ namespace nlohmann {
 		invalid_iterator(int id_,const char* what_arg)
 		: exception(id_,what_arg) {}
 	};
-	/*!
-	@brief exception indicating executing a member function with a wrong type
-	This exception is thrown in case of a type error; that is, a library function is
-	executed on a JSON value whose type does not match the expected semantics.
-	Exceptions have ids 3xx.
-	name / id                     | example message | description
-	----------------------------- | --------------- | -------------------------
-	json.exception.type_error.301 | cannot create object from initializer list | To create an object from an initializer list, the initializer list must consist only of a list of pairs whose first element is a string. When this constraint is violated, an array is created instead.
-	json.exception.type_error.302 | type must be object, but is array | During implicit or explicit value conversion, the JSON type must be compatible to the target type. For instance, a JSON string can only be converted into string types, but not into numbers or boolean types.
-	json.exception.type_error.303 | incompatible ReferenceType for get_ref, actual type is object | To retrieve a reference to a value stored in a @ref basic_json object with @ref get_ref, the type of the reference must match the value type. For instance, for a JSON array, the @a ReferenceType must be @ref array_t &.
-	json.exception.type_error.304 | cannot use at() with string | The @ref at() member functions can only be executed for certain JSON types.
-	json.exception.type_error.305 | cannot use operator[] with string | The @ref operator[] member functions can only be executed for certain JSON types.
-	json.exception.type_error.306 | cannot use value() with string | The @ref value() member functions can only be executed for certain JSON types.
-	json.exception.type_error.307 | cannot use erase() with string | The @ref erase() member functions can only be executed for certain JSON types.
-	json.exception.type_error.308 | cannot use push_back() with string | The @ref push_back() and @ref operator+= member functions can only be executed for certain JSON types.
-	json.exception.type_error.309 | cannot use insert() with | The @ref insert() member functions can only be executed for certain JSON types.
-	json.exception.type_error.310 | cannot use swap() with number | The @ref swap() member functions can only be executed for certain JSON types.
-	json.exception.type_error.311 | cannot use emplace_back() with string | The @ref emplace_back() member function can only be executed for certain JSON types.
-	json.exception.type_error.312 | cannot use update() with string | The @ref update() member functions can only be executed for certain JSON types.
-	json.exception.type_error.313 | invalid value to unflatten | The @ref unflatten function converts an object whose keys are JSON Pointers back into an arbitrary nested JSON value. The JSON Pointers must not overlap, because then the resulting value would not be well defined.
-	json.exception.type_error.314 | only objects can be unflattened | The @ref unflatten function only works for an object whose keys are JSON Pointers.
-	json.exception.type_error.315 | values in object must be primitive | The @ref unflatten function only works for an object whose keys are JSON Pointers and whose values are primitive.
-	json.exception.type_error.316 | invalid UTF-8 byte at index 10: 0x7E | The @ref dump function only works with UTF-8 encoded strings; that is, if you assign a `std::string` to a JSON value, make sure it is UTF-8 encoded. |
-	json.exception.type_error.317 | JSON value cannot be serialized to requested format | The dynamic type of the object cannot be represented in the requested serialization format (e.g. a raw `true` or `null` JSON object cannot be serialized to BSON) |
-	@liveexample{The following code shows how a `type_error` exception can be
-	caught.,type_error}
-	@sa - @ref exception for the base class of the library exceptions
-	@sa - @ref parse_error for exceptions indicating a parse error
-	@sa - @ref invalid_iterator for exceptions indicating errors with iterators
-	@sa - @ref out_of_range for exceptions indicating access out of the defined range
-	@sa - @ref other_error for exceptions indicating other library errors
-	@since version 3.0.0
-	*/
 	class type_error : public exception {
 	  public:
 	  template<typename BasicJsonType>
@@ -2633,33 +2564,6 @@ namespace nlohmann {
 	  JSON_HEDLEY_NON_NULL(3)
 		type_error(int id_,const char* what_arg): exception(id_,what_arg) {}
 	};
-	/*!
-	@brief exception indicating access out of the defined range
-	This exception is thrown in case a library function is called on an input
-	parameter that exceeds the expected range, for instance in case of array
-	indices or nonexisting object keys.
-	Exceptions have ids 4xx.
-	name / id                       | example message | description
-	------------------------------- | --------------- | -------------------------
-	json.exception.out_of_range.401 | array index 3 is out of range | The provided array index @a i is larger than @a size-1.
-	json.exception.out_of_range.402 | array index '-' (3) is out of range | The special array index `-` in a JSON Pointer never describes a valid element of the array, but the index past the end. That is, it can only be used to add elements at this position, but not to read it.
-	json.exception.out_of_range.403 | key 'foo' not found | The provided key was not found in the JSON object.
-	json.exception.out_of_range.404 | unresolved reference token 'foo' | A reference token in a JSON Pointer could not be resolved.
-	json.exception.out_of_range.405 | JSON pointer has no parent | The JSON Patch operations 'remove' and 'add' can not be applied to the root element of the JSON value.
-	json.exception.out_of_range.406 | number overflow parsing '10E1000' | A parsed number could not be stored as without changing it to NaN or INF.
-	json.exception.out_of_range.407 | number overflow serializing '9223372036854775808' | UBJSON and BSON only support integer numbers up to 9223372036854775807. (until version 3.8.0) |
-	json.exception.out_of_range.408 | excessive array size: 8658170730974374167 | The size (following `#`) of an UBJSON array or object exceeds the maximal capacity. |
-	json.exception.out_of_range.409 | BSON key cannot contain code point U+0000 (at byte 2) | Key identifiers to be serialized to BSON cannot contain code point U+0000, since the key is stored as zero-terminated c-string |
-	@liveexample{The following code shows how an `out_of_range` exception can be
-	caught.,out_of_range}
-	@sa - @ref exception for the base class of the library exceptions
-	@sa - @ref parse_error for exceptions indicating a parse error
-	@sa - @ref invalid_iterator for exceptions indicating errors with iterators
-	@sa - @ref type_error for exceptions indicating executing a member function with
-						a wrong type
-	@sa - @ref other_error for exceptions indicating other library errors
-	@since version 3.0.0
-	*/
 	class out_of_range : public exception {
 	  public:
 	  template<typename BasicJsonType>
@@ -2671,24 +2575,6 @@ namespace nlohmann {
 	  JSON_HEDLEY_NON_NULL(3)
 		out_of_range(int id_,const char* what_arg): exception(id_,what_arg) {}
 	};
-	/*!
-	@brief exception indicating other library errors
-	This exception is thrown in case of errors that cannot be classified with the
-	other exception types.
-	Exceptions have ids 5xx.
-	name / id                      | example message | description
-	------------------------------ | --------------- | -------------------------
-	json.exception.other_error.501 | unsuccessful: {"op":"test","path":"/baz", "value":"bar"} | A JSON Patch operation 'test' failed. The unsuccessful operation is also printed.
-	@sa - @ref exception for the base class of the library exceptions
-	@sa - @ref parse_error for exceptions indicating a parse error
-	@sa - @ref invalid_iterator for exceptions indicating errors with iterators
-	@sa - @ref type_error for exceptions indicating executing a member function with
-						a wrong type
-	@sa - @ref out_of_range for exceptions indicating access out of the defined range
-	@liveexample{The following code shows how an `other_error` exception can be
-	caught.,other_error}
-	@since version 3.0.0
-	*/
 	class other_error : public exception {
 	  public:
 	  template<typename BasicJsonType>
@@ -11552,7 +11438,7 @@ namespace nlohmann {
 		  JSON_ASSERT(x.f!=0);
 		  while ((x.f>>63u)==0) {
 			x.f<<=1u;
-			x.e--;
+			--x.e;
 		  }
 		  return x;
 		}
@@ -11635,56 +11521,37 @@ namespace nlohmann {
 	  // Given normalized diyfp w, Grisu needs to find a (normalized) cached
 	  // power-of-ten c, such that the exponent of the product c * w = f * 2^e lies
 	  // within a certain range [alpha, gamma] (Definition 3.2 from [1])
-	  //
 	  //      alpha <= e = e_c + e_w + q <= gamma
-	  //
 	  // or
-	  //
 	  //      f_c * f_w * 2^alpha <= f_c 2^(e_c) * f_w 2^(e_w) * 2^q
 	  //                          <= f_c * f_w * 2^gamma
-	  //
 	  // Since c and w are normalized, i.e. 2^(q-1) <= f < 2^q, this implies
-	  //
 	  //      2^(q-1) * 2^(q-1) * 2^alpha <= c * w * 2^q < 2^q * 2^q * 2^gamma
-	  //
 	  // or
-	  //
 	  //      2^(q - 2 + alpha) <= c * w < 2^(q + gamma)
-	  //
 	  // The choice of (alpha,gamma) determines the size of the table and the form of
 	  // the digit generation procedure. Using (alpha,gamma)=(-60,-32) works out well
 	  // in practice:
 	  //
 	  // The idea is to cut the number c * w = f * 2^e into two parts, which can be
 	  // processed independently: An integral part p1, and a fractional part p2:
-	  //
 	  //      f * 2^e = ( (f div 2^-e) * 2^-e + (f mod 2^-e) ) * 2^e
 	  //              = (f div 2^-e) + (f mod 2^-e) * 2^e
 	  //              = p1 + p2 * 2^e
-	  //
 	  // The conversion of p1 into decimal form requires a series of divisions and
 	  // modulos by (a power of) 10. These operations are faster for 32-bit than for
 	  // 64-bit integers, so p1 should ideally fit into a 32-bit integer. This can be
 	  // achieved by choosing
-	  //
 	  //      -e >= 32   or   e <= -32 := gamma
-	  //
 	  // In order to convert the fractional part
-	  //
 	  //      p2 * 2^e = p2 / 2^-e = d[-1] / 10^1 + d[-2] / 10^2 + ...
-	  //
 	  // into decimal form, the fraction is repeatedly multiplied by 10 and the digits
 	  // d[-i] are extracted in order:
-	  //
 	  //      (10 * p2) div 2^-e = d[-1]
 	  //      (10 * p2) mod 2^-e = d[-2] / 10^1 + ...
-	  //
 	  // The multiplication by 10 must not overflow. It is sufficient to choose
-	  //
 	  //      10 * p2 < 16 * p2 = 2^4 * p2 <= 2^64.
-	  //
 	  // Since p2 = f mod 2^-e < 2^-e,
-	  //
 	  //      -e <= 60   or   e >= -60 := alpha
 	  constexpr int kAlpha=-60;
 	  constexpr int kGamma=-32;
@@ -12001,7 +11868,7 @@ namespace nlohmann {
 		  //      M+ = buffer * 10^(n-1) + (r + p2 * 2^e)
 		  //
 		  p1=r;
-		  n--;
+		  --n;
 		  //
 		  //      M+ = buffer * 10^n + (p1 + p2 * 2^e)
 		  //      pow10 = 10^n
@@ -19733,6 +19600,100 @@ if no parse error occurred.
 @return a JSON object
 @since version 1.0.0
 */
+#include <tuple>
+#include <type_traits>
+#include <memory>
+template <typename T>
+struct is_optional : std::false_type {};
+template <typename T>
+struct is_optional<std::unique_ptr<T>> : std::true_type {};
+template <typename T>
+inline constexpr bool isOptionalV=is_optional<std::decay_t<T>>::value;
+template <typename T>
+inline constexpr bool hasSchema=std::tuple_size<decltype(StructSchema<T>())>::value;
+namespace nlohmann {
+  template <typename Fn,typename Tuple,std::size_t... I>
+  inline constexpr void ForEachTuple(Tuple&& tuple,
+									 Fn&& fn,
+									 std::index_sequence<I...>) {
+	using Expander=int[];
+	(void)Expander {
+	  0,((void)fn(std::get<I>(std::forward<Tuple>(tuple))),0)...
+	};
+  }
+
+  template <typename Fn,typename Tuple>
+  inline constexpr void ForEachTuple(Tuple&& tuple,Fn&& fn) {
+	ForEachTuple(
+	  std::forward<Tuple>(tuple),std::forward<Fn>(fn),
+	  std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{});
+  }
+
+  template <typename T>
+  struct is_field_pointer : std::false_type {};
+
+  template <typename C,typename T>
+  struct is_field_pointer<T C::*> : std::true_type {};
+
+  template <typename T>
+  constexpr auto is_field_pointer_v=is_field_pointer<T>::value;
+
+  template <typename T>
+  struct adl_serializer<std::unique_ptr<T>> {
+	static void to_json(json& j,const std::unique_ptr<T>& opt) {
+	  j=opt?json(*opt):json(nullptr);
+	}
+	static void from_json(const json& j,std::unique_ptr<T>& opt) {
+	  opt=!j.is_null()?std::make_unique<T>(j.get<T>()):nullptr;
+	}
+  };
+  template <typename T>
+  struct adl_serializer<T,std::enable_if_t<::hasSchema<T>>> {
+	template <typename BasicJsonType>
+	static void to_json(BasicJsonType& j,const T& value) {
+	  ForEachField(value,[&j](auto&& field,auto&& name) { j[name]=field; });
+	}
+	template <typename BasicJsonType>
+	static void from_json(const BasicJsonType& j,T& value) {
+	  ForEachField(value,[&j](auto&& field,auto&& name) {
+		if (::isOptionalV<decltype(field)>&&j.find(name)==j.end())return;
+		try { j.at(name).get_to(field); } catch (const std::exception&) { return; }
+	  });
+	}
+  };
+}  // namespace nlohmann
+template <typename T>
+inline constexpr auto StructSchema() {
+  return std::make_tuple();
+}
+#define SYMBOL_(Struct, ...)        \
+  template <>                                    \
+  inline constexpr auto StructSchema<Struct>() { \
+    using _Struct = Struct;                      \
+    return std::make_tuple(__VA_ARGS__);         \
+  }
+#define AS_(StructField) \
+  std::make_tuple(&_Struct::StructField, #StructField)
+#define AS__(StructField, FieldName) \
+  std::make_tuple(&_Struct::StructField, FieldName)
+
+template <typename T,typename Fn>
+inline constexpr void ForEachField(T&& value,Fn&& fn) {
+  constexpr auto struct_schema=StructSchema<std::decay_t<T>>();
+  static_assert(std::tuple_size<decltype(struct_schema)>::value!=0,
+				"StructSchema<T>() for type T should be specialized to return "
+				"FieldSchema tuples, like ((&T::field, field_name), ...)");
+  nlohmann::ForEachTuple(struct_schema,[&value,&fn](auto&& field_schema) {
+	using FieldSchema=std::decay_t<decltype(field_schema)>;
+	static_assert(
+	  std::tuple_size<FieldSchema>::value>=2&&
+	  nlohmann::is_field_pointer_v<std::tuple_element_t<0,FieldSchema>>,
+	  "FieldSchema tuple should be (&T::field, field_name)");
+	fn(value.*(std::get<0>(std::forward<decltype(field_schema)>(field_schema))),
+	   std::get<1>(std::forward<decltype(field_schema)>(field_schema)));
+  });
+}
+
 JSON_HEDLEY_NON_NULL(1)
 inline nlohmann::json operator "" _json(const char* s,std::size_t n) {
   return nlohmann::json::parse(s,s+n);

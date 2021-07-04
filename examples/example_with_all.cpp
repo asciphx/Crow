@@ -2,9 +2,6 @@
 #include <sstream>
 int main() {
   crow::SimpleApp app;
-  CROW_ROUTE(app,"/").name("hello")([] {
-	return "Hello World!";
-  });
   CROW_ROUTE(app,"/about")([]() {
 	return "About Crow example.";
   });
