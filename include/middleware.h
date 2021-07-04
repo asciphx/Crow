@@ -12,8 +12,7 @@ namespace crow {
 	  //res.add_header("Access-Control-Allow-Methods","GET,POST,DELETE,PUT,OPTIONS,HEAD");
 	  if (req.method==HTTPMethod::OPTIONS) { res.code=204;res.end(); }
 	}
-	void after_handle(Req&,Res& res,Ctx&) {
-	}
+	void after_handle(Req&,Res& res,Ctx&) {}
   };
   struct CookieParser {
 	struct Ctx {
