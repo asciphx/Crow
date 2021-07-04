@@ -908,7 +908,7 @@ namespace crow {
       if (!rule_index) {
         for (auto& per_method:per_methods_) {
           if (per_method.trie.find(req.url).first) {
-            CROW_LOG_DEBUG<<"Cannot match method "<<req.url<<" "<<method_name(req.method);
+            CROW_LOG_DEBUG<<"Cannot match method "<<req.url<<" "<<m2s(req.method);
             res=Res(405);
             res.end();
             return;
@@ -969,7 +969,7 @@ namespace crow {
         if (req.url=="/*") {
           for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
             if (per_methods_[i].trie.is_empty()) {
-              allow+=method_name(static_cast<HTTPMethod>(i))+", ";
+              allow+=m2s(static_cast<HTTPMethod>(i))+", ";
             }
           }
           allow=allow.substr(0,allow.size()-2);
@@ -980,7 +980,7 @@ namespace crow {
         } else {
           for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
             if (per_methods_[i].trie.find(req.url).first) {
-              allow+=method_name(static_cast<HTTPMethod>(i))+", ";
+              allow+=m2s(static_cast<HTTPMethod>(i))+", ";
             }
           }
           if (allow!="OPTIONS, HEAD, ") {
@@ -1008,7 +1008,7 @@ namespace crow {
       if (!rule_index) {
         for (auto& per_method:per_methods_) {
           if (per_method.trie.find(req.url).first) {
-            CROW_LOG_DEBUG<<"Cannot match method "<<req.url<<" "<<method_name(method_actual);
+            CROW_LOG_DEBUG<<"Cannot match method "<<req.url<<" "<<m2s(method_actual);
             res=Res(405);
             res.end();
             return;
@@ -1054,7 +1054,7 @@ namespace crow {
 
     void debug_print() {
       for (int i=0; i<static_cast<int>(HTTPMethod::InternalMethodCount); ++i) {
-        CROW_LOG_DEBUG<<method_name(static_cast<HTTPMethod>(i));
+        CROW_LOG_DEBUG<<m2s(static_cast<HTTPMethod>(i));
         per_methods_[i].trie.debug_print();
       }
     }

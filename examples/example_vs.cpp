@@ -67,7 +67,7 @@ int main() {
 	  //return response(500);
   //});
   // more json example
-  app.route("/add_json").methods(HTTPMethod::POST)([](const Req& req) {
+  app.route("/add_json").methods("POST"_mt)([](const Req& req) {
 	auto x=json::parse(req.body);
 	if (!x) return Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();

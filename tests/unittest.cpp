@@ -296,31 +296,31 @@ TEST(http_method) {
   SimpleApp app;
 
   CROW_ROUTE(app,"/")
-	.methods("POST"_method,"GET"_method)
+	.methods("POST"_mt,"GET"_mt)
 	([](const Req& req) {
-	if (req.method=="GET"_method)
+	if (req.method=="GET"_mt)
 	  return "2";
 	else
 	  return "1";
   });
 
   CROW_ROUTE(app,"/get_only")
-	.methods("GET"_method)
+	.methods("GET"_mt)
 	([](const Req& /*req*/) {
 	return "get";
   });
   CROW_ROUTE(app,"/post_only")
-	.methods("POST"_method)
+	.methods("POST"_mt)
 	([](const Req& /*req*/) {
 	return "post";
   });
   CROW_ROUTE(app,"/patch_only")
-	.methods("PATCH"_method)
+	.methods("PATCH"_mt)
 	([](const Req& /*req*/) {
 	return "patch";
   });
   CROW_ROUTE(app,"/purge_only")
-	.methods("PURGE"_method)
+	.methods("PURGE"_mt)
 	([](const Req& /*req*/) {
 	return "purge";
   });
@@ -331,7 +331,7 @@ TEST(http_method) {
 
   // cannot have multiple handlers for the same url
   //CROW_ROUTE(app, "/")
-  //.methods("GET"_method)
+  //.methods("GET"_mt)
   //([]{ return "2"; });
 
   {
@@ -348,7 +348,7 @@ TEST(http_method) {
 	Res res;
 
 	req.url="/";
-	req.method="POST"_method;
+	req.method="POST"_mt;
 	app.handle(req,res);
 
 	ASSERT_EQUAL("1",res.body);
@@ -369,7 +369,7 @@ TEST(http_method) {
 	Res res;
 
 	req.url="/patch_only";
-	req.method="PATCH"_method;
+	req.method="PATCH"_mt;
 	app.handle(req,res);
 
 	ASSERT_EQUAL("patch",res.body);
@@ -380,7 +380,7 @@ TEST(http_method) {
 	Res res;
 
 	req.url="/purge_only";
-	req.method="PURGE"_method;
+	req.method="PURGE"_mt;
 	app.handle(req,res);
 
 	ASSERT_EQUAL("purge",res.body);
@@ -391,7 +391,7 @@ TEST(http_method) {
 	Res res;
 
 	req.url="/get_only";
-	req.method="POST"_method;
+	req.method="POST"_mt;
 	app.handle(req,res);
 
 	ASSERT_NOTEQUAL("get",res.body);
@@ -429,8 +429,8 @@ TEST(server_handling_error_request) {
 TEST(multi_server) {
   static char buf[2048];
   SimpleApp app1,app2;
-  CROW_ROUTE(app1,"/").methods("GET"_method,"POST"_method)([] {return "A";});
-  CROW_ROUTE(app2,"/").methods("GET"_method,"POST"_method)([] {return "B";});
+  CROW_ROUTE(app1,"/").methods("GET"_mt,"POST"_mt)([] {return "A";});
+  CROW_ROUTE(app2,"/").methods("GET"_mt,"POST"_mt)([] {return "B";});
 
   //Server<SimpleApp> server1(&app1, LOCALHOST_ADDRESS, 45451);
   //Server<SimpleApp> server2(&app2, LOCALHOST_ADDRESS, 45452);

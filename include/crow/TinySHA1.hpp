@@ -67,7 +67,7 @@ namespace sha1 {
 	  const uint8_t* finish=static_cast<const uint8_t*>(end);
 	  while (begin!=finish) {
 		processByte(*begin);
-		begin++;
+		++begin;
 	  }
 	  return *this;
 	}

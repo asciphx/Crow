@@ -42,16 +42,14 @@ int main(){
             "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	    {"is":true,"weight":51.0,"name":"best","age":26}]})").get<List>();
 	json json_output=json(list);
-	return json_output.dump(2);
+	return json_output;
   });
 ```
 #### 服务端渲染
 ```c++
   app.default_route()([] {
 	char name[64];gethostname(name,64);
-	json x;x["servername"]=name;
-	auto page=mustache::load("404NotFound.html");
-	return page.render(x);
+	return mustache::load("404NotFound.html").render(json{{"servername",name}});
   });
 ```
 
@@ -66,7 +64,7 @@ CROW_ROUTE(app, "/json")([]{
 	x["false"]=false;
 	x["null"]=nullptr;
 	x["bignumber"]=2353464586543265455;
-    return x.dump(2);
+    return x;
 });
 ```
 
@@ -89,11 +87,10 @@ CROW_ROUTE(app,"/another/<int>")([](int a, int b){
 
 #### 处理JSON请求
 ```c++
-CROW_ROUTE(app, "/add_json").methods("POST"_method)
+CROW_ROUTE(app, "/add_json").methods("POST"_mt)
 ([](const crow::Req& req){
     auto x = crow::json::load(req.body);
-    if (!x)
-        return crow::Res(400);
+    if (!x) return crow::Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();
     std::ostringstream os;
     os << sum;

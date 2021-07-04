@@ -62,7 +62,7 @@ int main() {
 	}
   });
 
-  CROW_ROUTE(app,"/send").methods("GET"_method,"POST"_method)
+  CROW_ROUTE(app,"/send").methods("GET"_mt,"POST"_mt)
 	([](const crow::Req& req) {
 	CROW_LOG_INFO<<"msg from client: "<<req.body;
 	broadcast(req.body);

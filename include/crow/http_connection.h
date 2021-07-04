@@ -223,7 +223,7 @@ namespace crow {
 		}
 	  }
 	  CROW_LOG_INFO<<"Request: "<<boost::lexical_cast<std::string>(adaptor_.remote_endpoint())<<" "<<this<<" HTTP/"<<parser_.http_major<<"."<<parser_.http_minor<<' '
-		<<method_name(req_.method)<<" "<<req_.url;
+		<<m2s(req_.method)<<" "<<req_.url;
 	  need_to_call_after_handlers_=false;
 	  if (!is_invalid_request) {
 		res.complete_request_handler_=[] {};

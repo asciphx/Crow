@@ -1288,7 +1288,7 @@ namespace crow {
   inline std::string routing_params::get<std::string>(unsigned index) const { return string_params[index]; }
 }
 #ifndef CROW_MSVC_WORKAROUND
-constexpr crow::HTTPMethod operator "" _method(const char* str,size_t /*len*/) {
+constexpr crow::HTTPMethod operator "" _mt(const char* str,size_t /*len*/) {
   return
 	crow::spell::is_equ_p(str,"GET",3)?crow::HTTPMethod::GET:
 	crow::spell::is_equ_p(str,"DELETE",6)?crow::HTTPMethod::DEL:

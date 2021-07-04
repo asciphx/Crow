@@ -81,7 +81,7 @@ int main() {
   // A simpler way for json example:
   //      * curl -d '{"a":1,"b":2}' {ip}:18080/add_json
   CROW_ROUTE(app,"/add_json")
-	.methods("POST"_method)
+	.methods("POST"_mt)
 	([](const crow::Req& req) {
 	auto x=crow::json::parse(req.body);
 	if (!x)
