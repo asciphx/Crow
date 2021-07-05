@@ -101,6 +101,7 @@ namespace crow {
 	}
 	//
 	Req to_request() const {
+	  std::cout<<body;
 	  return Req{static_cast<HTTPMethod>(method), std::move(raw_url), std::move(url), std::move(url_params), std::move(headers), std::move(body)};
 	}
 	//

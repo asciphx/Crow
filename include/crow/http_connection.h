@@ -7,7 +7,7 @@
 #include <chrono>
 #include <vector>
 
-#include "crow/parser2.h"
+#include "crow/parser.h"
 #include "crow/http_response.h"
 #include "crow/logging.h"
 #include "crow/settings.h"
@@ -353,7 +353,6 @@ namespace crow {
 	void prepare_buffers() {
 	  //if (res.body.empty()) {}//res.body
 	  //res.complete_request_handler_=nullptr;
-	  buffers_.reserve(4*(res.headers.size()+5)+3);
 	  buffers_.emplace_back(Res_http_status,9);
 	  buffers_.emplace_back(status_,status_len_);
 	  if (res.code>399) res.body=status_;
@@ -399,7 +398,9 @@ namespace crow {
 										[this](const boost::system::error_code& ec,std::size_t bytes_transferred) {
 		if (!ec) {
 		  bool ret=parser_.feed(buffer_.data(),bytes_transferred);
-		  std::cout<<buffer_.data()<<"  ---> "<<bytes_transferred;
+		  //if(!res.is_file)std::cout<<buffer_.data()<<std::endl
+				//<<"  ---> "<<bytes_transferred
+			;
 		  if (ret&&adaptor_.is_open()) {
 			if (close_connection_) {
 			  cancel_deadline_timer();

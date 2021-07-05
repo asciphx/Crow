@@ -19,7 +19,8 @@
 *.exe
 *.out
 *.app
-
+static/static
+1.html
 example
 unittest
 

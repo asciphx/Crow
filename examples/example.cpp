@@ -1,5 +1,4 @@
 #include "crow.h"
-#include "mustache.h"
 #include "middleware.h"
 #include "module.h"
 #include <sstream>

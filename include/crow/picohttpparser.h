@@ -43,7 +43,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
   struct phr_header {
     const char *name;
     size_t name_len;
@@ -213,7 +212,7 @@ extern "C" {
     return buf;
   }
 
-  static const char *is_complete(const char *buf,const char *buf_end,size_t last_len,int *ret) {
+  static const char *is_Complete(const char *buf,const char *buf_end,size_t last_len,int *ret) {
     int ret_cnt=0;
     buf=last_len<3?buf:buf+last_len-3;
 
@@ -242,7 +241,7 @@ extern "C" {
 
 #define PARSE_INT(valp_, mul_)                                                                                                     \
     if (*buf < '0' || '9' < *buf) {                                                                                                \
-        buf++;                                                                                                                     \
+        ++buf;                                                                                                                     \
         *ret = -1;                                                                                                                 \
         return NULL;                                                                                                               \
     }                                                                                                                              \
@@ -427,7 +426,7 @@ extern "C" {
 
     /* if last_len != 0, check if the request is complete (a fast countermeasure
        againt slowloris */
-    if (last_len!=0&&is_complete(buf,buf_end,last_len,&r)==NULL) {
+    if (last_len!=0&&is_Complete(buf,buf_end,last_len,&r)==NULL) {
       return r;
     }
 
@@ -497,7 +496,7 @@ extern "C" {
 
     /* if last_len != 0, check if the response is complete (a fast countermeasure
        against slowloris */
-    if (last_len!=0&&is_complete(buf,buf_end,last_len,&r)==NULL) {
+    if (last_len!=0&&is_Complete(buf,buf_end,last_len,&r)==NULL) {
       return r;
     }
 
@@ -517,7 +516,7 @@ extern "C" {
 
     /* if last_len != 0, check if the response is complete (a fast countermeasure
        against slowloris */
-    if (last_len!=0&&is_complete(buf,buf_end,last_len,&r)==NULL) {
+    if (last_len!=0&&is_Complete(buf,buf_end,last_len,&r)==NULL) {
       return r;
     }
 
