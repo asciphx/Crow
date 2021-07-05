@@ -247,11 +247,11 @@ namespace crow {
 	}
 	/// Call the after handle middleware and send the write the Res to the connection.
 	void complete_request() {
-	 // if (!adaptor_.is_open()) {
-		//CROW_LOG_DEBUG<<this<<" delete (socket is closed) "<<is_reading<<' '<<is_writing;
+	  if (!adaptor_.is_open()) {
+		CROW_LOG_DEBUG<<this<<" delete (socket is closed) "<<is_reading<<' '<<is_writing;
 		//delete this;
-		//return;
-	 // }
+		return;
+	  }
 	  CROW_LOG_INFO<<"Response: "<<this<<' '<<req_.raw_url<<' '<<res.code<<' '<<close_connection_;
 	  if (need_to_call_after_handlers_) {
 		need_to_call_after_handlers_=false;

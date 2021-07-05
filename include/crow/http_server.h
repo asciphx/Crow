@@ -42,10 +42,10 @@ namespace crow {
       middlewares_(middlewares),
       adaptor_ctx_(adaptor_ctx) {}
 
-    void set_tick_function(std::chrono::milliseconds d,std::function<void()> f) {
-      tick_interval_=d;
-      tick_function_=f;
-    }
+    //void set_tick_function(std::chrono::milliseconds d,std::function<void()> f) {
+    //  tick_interval_=d;
+    //  tick_function_=f;
+    //}
     void run() {
       for (int i=0; i<concurrency_; ++i)
         io_service_pool_.emplace_back(new boost::asio::io_service());
@@ -80,8 +80,8 @@ namespace crow {
         boost::asio::deadline_timer timer(*io_service_pool_[i]);
         std::function<void(const boost::system::error_code&)> handler;
         timer.expires_from_now(boost::posix_time::millseconds(1));
-        timer.async_wait(handler=[&timer_queue,&timer,&handler](const boost::system::error_code& /*ec*/) {
-          //if (ec)return;//asciphx
+        timer.async_wait(handler=[&timer_queue,&timer,&handler](const boost::system::error_code& ec) {
+          if (ec)return;//asciphx
           timer_queue.process();
           timer.expires_from_now(boost::posix_time::millseconds(1));
           timer.async_wait(handler);
@@ -90,7 +90,12 @@ namespace crow {
         io_service_pool_[i]->run();
       }));
 
-      //if (/*tick_function_&&*/tick_interval_.count()>0) {
+      //while (tick_function_&&tick_interval_.count()>0) {
+      //  tick_timer_.expires_from_now(boost::posix_time::millseconds(tick_interval_.count()));
+      //  tick_timer_.async_wait([this](const boost::system::error_code& /*ec*/) {
+      //    //if (ec) return;
+      //    tick_function_();
+      //  });
       //}
       CROW_LOG_INFO<<server_name_<<" server is running at "<<bindaddr_<<":"<<acceptor_.local_endpoint().port()
         <<" using "<<concurrency_<<" threads";
@@ -107,13 +112,6 @@ namespace crow {
         io_service_.run();
         CROW_LOG_INFO<<"Exiting.";
       }).join();
-      while (tick_interval_.count()>0) {
-        tick_timer_.expires_from_now(boost::posix_time::millseconds(tick_interval_.count()));
-        tick_timer_.async_wait([this](const boost::system::error_code& /*ec*/) {
-          //if (ec) return;
-          tick_function_();
-        });
-      }
     }
 
     void stop() {
@@ -164,8 +162,8 @@ namespace crow {
     std::string bindaddr_;
     unsigned int roundrobin_index_{};
 
-    std::chrono::milliseconds tick_interval_;
-    std::function<void()> tick_function_;
+    //std::chrono::milliseconds tick_interval_;
+    //std::function<void()> tick_function_;
 
     std::tuple<Middlewares...>* middlewares_;
 

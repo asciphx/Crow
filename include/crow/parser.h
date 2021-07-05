@@ -65,8 +65,7 @@ namespace crow {
 	  self->process_message();
 	  return 0;
 	}
-	HTTPParser(Handler* handler):
-	  handler_(handler) {
+	HTTPParser(Handler* handler):handler_(handler) {
 	  http_parser_init(this,HTTP_REQUEST);
 	}
 	// return false on error
@@ -81,8 +80,7 @@ namespace crow {
 		  on_body,
 		  on_message_complete,
 	  };
-	  int nparsed=http_parser_execute(this,&settings_,buffer,length);
-	  return nparsed==length;
+	  return http_parser_execute(this,&settings_,buffer,length)==length;
 	}
 	void process_header() { handler_->handle_header(); }
 	void process_message() {

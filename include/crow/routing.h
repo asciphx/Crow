@@ -134,12 +134,12 @@ namespace crow {
         void set_(Func f,typename std::enable_if<
                   !std::is_same<typename std::tuple_element<0,std::tuple<Args...,void>>::type,const Req&>::value
                   ,int>::type=0) {
-          handler_=(
+          handler_=
           [f=std::move(f)]
           (const Req&,Res&res,Args... args){
             res=Res(f(args...));
             res.end();
-          });
+          };
         }
 
         template <typename Req,typename ... Args>
@@ -225,12 +225,12 @@ namespace crow {
       static_assert(!std::is_same<void,decltype(f())>::value,
                     "Handler function cannot have void return type; valid return types: string, int, crow::Res, crow::returnable");
 
-      handler_=(
+      handler_=
       [f=std::move(f)]
       (const Req&,Res&res){
         res=Res(f());
         res.end();
-      });
+      };
 
     }
 
@@ -243,12 +243,12 @@ namespace crow {
       static_assert(!std::is_same<void,decltype(f(std::declval<crow::Req>()))>::value,
                     "Handler function cannot have void return type; valid return types: string, int, crow::Res, crow::returnable");
 
-      handler_=(
+      handler_=
       [f=std::move(f)]
       (const crow::Req&req,crow::Res&res){
         res=Res(f(req));
         res.end();
-      });
+      };
     }
 
     template <typename Func>
@@ -260,11 +260,11 @@ namespace crow {
       operator()(Func&& f) {
       static_assert(std::is_same<void,decltype(f(std::declval<crow::Res&>()))>::value,
                     "Handler function with Res argument should have void return type");
-      handler_=(
+      handler_=
       [f=std::move(f)]
       (const crow::Req&,crow::Res&res){
         f(res);
-      });
+      };
     }
 
     template <typename Func>
@@ -278,12 +278,12 @@ namespace crow {
       static_assert(!std::is_same<void,decltype(f(std::declval<crow::Req>(),std::declval<crow::Res&>()))>::value,
                     "Handler function with Res argument should have other return type");
 
-      handler_=(
+      handler_=
         [f=std::move(f)]
         (const Req&req,Res&res){
           res=Res(f(req,res));
           res.end();
-        });
+        };
     }
 
     bool has_handler() {
@@ -974,7 +974,7 @@ namespace crow {
           }
           allow=allow.substr(0,allow.size()-2);
           res=Res(204);
-          res.set_header("Allow",allow);
+          res.add_header_t(RES_Al,allow);
           res.end();
           return;
         } else {
@@ -986,7 +986,7 @@ namespace crow {
           if (allow!="OPTIONS, HEAD, ") {
             allow=allow.substr(0,allow.size()-2);
             res=Res(204);
-            res.set_header("Allow",allow);
+            res.add_header_t(RES_Al,allow);
             res.end();
             return;
           } else {

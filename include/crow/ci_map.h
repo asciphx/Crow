@@ -28,7 +28,7 @@ namespace crow {
 	bool operator()(const char*l,const char*r) const {
 	  return boost::iequals(l,r);
 	}
-	bool operator()(const std::string& l,const char*r) const {
+	bool operator()(const char*l,const std::string& r) const {
 	  return boost::iequals(l,r);
 	}
   };

@@ -39,7 +39,7 @@ namespace crow {
 		std::string name=cookies.substr(pos,pos_equal-pos);
 		boost::trim(name);
 		pos=pos_equal+1;
-		while (pos<cookies.size()&&cookies[pos]==' ') pos++;
+		while (pos<cookies.size()&&cookies[pos]==' ') ++pos;
 		if (pos==cookies.size()) break;
 		size_t pos_semicolon=cookies.find(';',pos);
 		std::string value=cookies.substr(pos,pos_semicolon-pos);
@@ -49,7 +49,7 @@ namespace crow {
 		pos=pos_semicolon;
 		if (pos==cookies.npos) break;
 		++pos;
-		while (pos<cookies.size()&&cookies[pos]==' ') pos++;
+		while (pos<cookies.size()&&cookies[pos]==' ') ++pos;
 	  }
 	}
 
