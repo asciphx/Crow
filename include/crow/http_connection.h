@@ -201,6 +201,7 @@ namespace crow {
 	}
 
 	void handle() {
+	  buffers_.clear();
 	  cancel_deadline_timer();
 	  bool is_invalid_request=false;
 	  req_=parser_.to_request();
@@ -233,7 +234,6 @@ namespace crow {
 		req_.middleware_context=static_cast<void*>(&ctx_);
 		req_.io_service=&adaptor_.get_io_service();
 		detail::middleware_call_helper<0,decltype(ctx_),decltype(*middlewares_),Middlewares...>(*middlewares_,req_,res,ctx_);
-
 		if (!res.completed_) {
 		  res.complete_request_handler_=[this] { this->complete_request(); };
 		  need_to_call_after_handlers_=true;
@@ -262,8 +262,8 @@ namespace crow {
 		  decltype(*middlewares_)>
 		  (*middlewares_,ctx_,req_,res);
 	  }
+	  //res.complete_request_handler_=nullptr;
 	  set_status(res.code);
-	  buffers_.clear();
 	  prepare_buffers();
 	  if (res.is_file) {
 		buffers_.emplace_back(Res_crlf,2);
@@ -353,7 +353,6 @@ namespace crow {
 	void prepare_buffers() {
 	  //if (res.body.empty()) {}//res.body
 	  //res.complete_request_handler_=nullptr;
-	  buffers_.reserve(4*(res.headers.size()+5)+3);
 	  buffers_.emplace_back(Res_http_status,9);
 	  buffers_.emplace_back(status_,status_len_);
 	  if (res.code>399) res.body=status_;
