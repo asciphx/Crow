@@ -49,7 +49,8 @@ int main(){
 ```c++
   app.default_route()([] {
 	char name[64];gethostname(name,64);
-	return mustache::load("404NotFound.html").render(json{{"servername",name}});
+	json j=json{{"servername",name}};
+	return mustache::load("404NotFound.html").render(j);
   });
 ```
 
