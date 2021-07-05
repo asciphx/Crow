@@ -5,7 +5,6 @@
 #include <sstream>
 #include <vector>
 #include "crow.h"
-#include "mustache.h"
 #include "middleware.h"
 
 using namespace std;

@@ -1,5 +1,4 @@
 #include "crow.h"
-#include "mustache.h"
 #include "middleware.h"
 #include "module.h"
 #include <sstream>
@@ -17,7 +16,8 @@ int main() {
   //Server rendering and support default route
   app.default_route()([] {
 	char name[64];gethostname(name,64);
-	return mustache::load("404NotFound.html").render(json{{"servername",name}});
+	json j=json{{"servername",name}};
+	return mustache::load("404NotFound.html").render(j);
   });
   //json::parse
   app.route("/list")([] {

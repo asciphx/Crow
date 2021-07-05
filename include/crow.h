@@ -6,6 +6,7 @@
 #include "crow/settings.h"
 #include "crow/socket_adaptors.h"
 #include "crow/json.hpp"
+#include "crow/mustache.h"
 #include "crow/logging.h"
 #include "crow/detail.h"
 #include "crow/utility.h"

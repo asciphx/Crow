@@ -9,8 +9,8 @@
 static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location",Res_Ca[14]="Cache-Control",//RES_f[6]="false",
   RES_Xc[23]="X-Content-Type-Options",RES_No[8]="nosniff",RES_AcC[33]="Access-Control-Allow-Credentials",RES_t[5]="true",RES_Al[6]="Allow",
   RES_AcH[29]="Access-Control-Allow-Headers",RES_AcO[28]="Access-Control-Allow-Origin";/*,RES_AJ[17]="application/json"*/;
+using json=nlohmann::json;
 namespace crow {
-  using json=nlohmann::json;
   template <typename Adaptor,typename Handler,typename ... Middlewares>
   class Connection;
   struct Res {

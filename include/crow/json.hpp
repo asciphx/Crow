@@ -19603,14 +19603,6 @@ if no parse error occurred.
 #include <tuple>
 #include <type_traits>
 #include <memory>
-template <typename T>
-struct is_optional : std::false_type {};
-template <typename T>
-struct is_optional<std::unique_ptr<T>> : std::true_type {};
-template <typename T>
-inline constexpr bool isOptionalV=is_optional<std::decay_t<T>>::value;
-template <typename T>
-inline constexpr bool hasSchema=std::tuple_size<decltype(StructSchema<T>())>::value;
 namespace nlohmann {
   template <typename Fn,typename Tuple,std::size_t... I>
   inline constexpr void ForEachTuple(Tuple&& tuple,
@@ -19638,29 +19630,6 @@ namespace nlohmann {
   template <typename T>
   constexpr auto is_field_pointer_v=is_field_pointer<T>::value;
 
-  template <typename T>
-  struct adl_serializer<std::unique_ptr<T>> {
-	static void to_json(json& j,const std::unique_ptr<T>& opt) {
-	  j=opt?json(*opt):json(nullptr);
-	}
-	static void from_json(const json& j,std::unique_ptr<T>& opt) {
-	  opt=!j.is_null()?std::make_unique<T>(j.get<T>()):nullptr;
-	}
-  };
-  template <typename T>
-  struct adl_serializer<T,std::enable_if_t<::hasSchema<T>>> {
-	template <typename BasicJsonType>
-	static void to_json(BasicJsonType& j,const T& value) {
-	  ForEachField(value,[&j](auto&& field,auto&& name) { j[name]=field; });
-	}
-	template <typename BasicJsonType>
-	static void from_json(const BasicJsonType& j,T& value) {
-	  ForEachField(value,[&j](auto&& field,auto&& name) {
-		if (::isOptionalV<decltype(field)>&&j.find(name)==j.end())return;
-		try { j.at(name).get_to(field); } catch (const std::exception&) { return; }
-	  });
-	}
-  };
 }  // namespace nlohmann
 template <typename T>
 inline constexpr auto StructSchema() {
@@ -19692,6 +19661,41 @@ inline constexpr void ForEachField(T&& value,Fn&& fn) {
 	fn(value.*(std::get<0>(std::forward<decltype(field_schema)>(field_schema))),
 	   std::get<1>(std::forward<decltype(field_schema)>(field_schema)));
   });
+}
+namespace {
+  template <typename T>
+  struct is_optional : std::false_type {};
+  template <typename T>
+  struct is_optional<std::unique_ptr<T>> : std::true_type {};
+  template <typename T>
+  constexpr bool isOptionalV=is_optional<std::decay_t<T>>::value;
+  template <typename T>
+  constexpr bool hasSchema=std::tuple_size<decltype(StructSchema<T>())>::value;
+}
+namespace nlohmann {
+  template <typename T>
+  struct adl_serializer<std::unique_ptr<T>> {
+	static void to_json(json& j,const std::unique_ptr<T>& opt) {
+	  j=opt?json(*opt):json(nullptr);
+	}
+	static void from_json(const json& j,std::unique_ptr<T>& opt) {
+	  opt=!j.is_null()?std::make_unique<T>(j.get<T>()):nullptr;
+	}
+  };
+  template <typename T>
+  struct adl_serializer<T,std::enable_if_t<::hasSchema<T>>> {
+	template <typename BasicJsonType>
+	static void to_json(BasicJsonType& j,const T& value) {
+	  ForEachField(value,[&j](auto&& field,auto&& name) { j[name]=field; });
+	}
+	template <typename BasicJsonType>
+	static void from_json(const BasicJsonType& j,T& value) {
+	  ForEachField(value,[&j](auto&& field,auto&& name) {
+		if (::isOptionalV<decltype(field)>&&j.find(name)==j.end())return;
+		try { j.at(name).get_to(field); } catch (const std::exception&) { return; }
+	  });
+	}
+  };
 }
 
 JSON_HEDLEY_NON_NULL(1)
