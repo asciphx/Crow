@@ -5,13 +5,7 @@
 namespace crow {
   struct Cors {
 	struct Ctx {};
-	void before_handle(Req& req,Res& res,Ctx&) {
-	  res.add_header_t(RES_AcO,"*");
-	  //res.add_header_s(RES_AcC,RES_t);
-	  //res.add_header_t(RES_AcH,"content-type,cache-control,x-requested-with,authorization");
-	  //res.add_header("Access-Control-Allow-Methods","GET,POST,DELETE,PUT,OPTIONS,HEAD");
-	  if (req.method==HTTPMethod::OPTIONS) { res.code=204;res.end(); }
-	}
+	void before_handle(Req& req,Res& res,Ctx&) {}
 	void after_handle(Req&,Res& res,Ctx&) {}
   };
   struct CookieParser {

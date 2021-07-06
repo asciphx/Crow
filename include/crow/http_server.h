@@ -36,9 +36,9 @@ namespace crow {
       tick_timer_(io_service_),
       handler_(handler),
       concurrency_(concurrency==0?1:concurrency),
-      server_name_(server_name),
+      server_name_(std::move(server_name)),
       port_(port),
-      bindaddr_(bindaddr),
+      bindaddr_(std::move(bindaddr)),
       middlewares_(middlewares),
       adaptor_ctx_(adaptor_ctx) {}
 
@@ -50,7 +50,6 @@ namespace crow {
       for (int i=0; i<concurrency_; ++i)
         io_service_pool_.emplace_back(new boost::asio::io_service());
       get_cached_date_str_pool_.resize(concurrency_);
-      timer_queue_pool_.resize(concurrency_);
 
       std::vector<std::future<void>> v;
       std::atomic<int> init_count(0);
@@ -75,7 +74,6 @@ namespace crow {
         };
         // initializing timer queue
         detail::dumb_timer_queue timer_queue;
-        timer_queue_pool_[i]=&timer_queue;
         timer_queue.set_io_service(*io_service_pool_[i]);
         boost::asio::deadline_timer timer(*io_service_pool_[i]);
         std::function<void(const boost::system::error_code&)> handler;
@@ -134,7 +132,7 @@ namespace crow {
       asio::io_service& is=pick_io_service();
       auto p=new Connection<Adaptor,Handler,Middlewares...>(
         is,handler_,server_name_,middlewares_,
-        get_cached_date_str_pool_[roundrobin_index_],*timer_queue_pool_[roundrobin_index_],
+        get_cached_date_str_pool_[roundrobin_index_],
         adaptor_ctx_);
       acceptor_.async_accept(p->socket(),
         [this,p,&is](const boost::system::error_code&ec) {
@@ -149,7 +147,6 @@ namespace crow {
     private:
     asio::io_service io_service_;
     std::vector<std::unique_ptr<asio::io_service>> io_service_pool_;
-    std::vector<detail::dumb_timer_queue*> timer_queue_pool_;
     std::vector<std::function<std::string()>> get_cached_date_str_pool_;
     tcp::acceptor acceptor_;
     boost::asio::signal_set signals_;

@@ -12,6 +12,7 @@ namespace crow {
   struct HTTPParser : public http_parser {
 	static int on_url(http_parser* self_,const char* at,size_t length) {
 	  HTTPParser* self=static_cast<HTTPParser*>(self_);
+	  self->clear();
 	  self->raw_url.insert(self->raw_url.end(),at,at+length);
 	  return 0;
 	}
@@ -49,7 +50,7 @@ namespace crow {
 	  if (!self->header_field.empty()) {
 		self->headers.emplace(std::move(self->header_field),std::move(self->header_value));
 	  }
-	  self->process_header();
+	  self->handler_->handle_header();
 	  return 0;
 	}
 	static int on_body(http_parser* self_,const char* at,size_t length) {
@@ -62,7 +63,7 @@ namespace crow {
 	  // url params
 	  self->url=self->raw_url.substr(0,self->raw_url.find("?"));
 	  self->url_params=query_string(self->raw_url);
-	  self->process_message();
+	  self->handler_->handle();
 	  return 0;
 	}
 	HTTPParser(Handler* handler):handler_(handler) {
@@ -82,33 +83,31 @@ namespace crow {
 	  };
 	  return http_parser_execute(this,&settings_,buffer,length)==length;
 	}
-	void process_header() { handler_->handle_header(); }
-	void process_message() {
-	  handler_->handle();
-	  //printf("url: %s\n",url.data());
-	  //printf("raw_url: %s\n",raw_url.data());
-	  //std::cout<<url_params<<std::endl;
-	  url.clear();
-	  raw_url.clear();
-	  header_field.clear();
-	  header_value.clear();
-	  headers.clear();
-	  url_params.clear();
-	  body.clear();
-	  header_state=0;
+	void clear() {
+	  this->url.clear();
+	  this->raw_url.clear();
+	  this->header_field.clear();
+	  this->header_value.clear();
+	  this->headers.clear();
+	  this->url_params.clear();
+	  this->body.clear();
+	  this->header_state=0;
 	}
+	//printf("url: %s\n",url.data());
+	//printf("raw_url: %s\n",raw_url.data());
+	//std::cout<<url_params<<std::endl;
 	//
 	Req to_request() const {
-	  return Req{static_cast<HTTPMethod>(method), std::move(raw_url), std::move(url), std::move(url_params), std::move(headers), std::move(body)};
+	  return Req{static_cast<HTTPMethod>(this->method), std::move(raw_url), std::move(url), std::move(url_params), std::move(headers), std::move(body)};
 	}
 	//
-	bool is_upgrade() const { return upgrade; }
+	bool is_upgrade() const { return this->upgrade; }
 	//
-	bool check_version(int major,int minor) const { return http_major==major&&http_minor==minor; }
+	bool check_version(int major,int minor) const { return this->http_major==major&&this->http_minor==minor; }
 
 	std::string raw_url;
 	std::string url;
-	int header_state=0;
+	int header_state;
 	std::string header_field;
 	std::string header_value;
 	ci_map headers;

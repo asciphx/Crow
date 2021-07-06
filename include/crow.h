@@ -1,7 +1,6 @@
 #pragma once
 #include "crow/query_string.h"
 #include "crow/http_parser_merged.h"
-#include "crow/ci_map.h"
 #include "crow/TinySHA1.hpp"
 #include "crow/settings.h"
 #include "crow/socket_adaptors.h"

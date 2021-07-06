@@ -7,20 +7,21 @@
 #include "crow/ci_map.h"
 //response
 static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location",Res_Ca[14]="Cache-Control",//RES_f[6]="false",
-  RES_Xc[23]="X-Content-Type-Options",RES_No[8]="nosniff",RES_AcC[33]="Access-Control-Allow-Credentials",RES_t[5]="true",RES_Al[6]="Allow",
-  RES_AcH[29]="Access-Control-Allow-Headers",RES_AcO[28]="Access-Control-Allow-Origin";/*,RES_AJ[17]="application/json"*/;
+  RES_Al[6]="Allow",RES_Xc[23]="X-Content-Type-Options",RES_No[8]="nosniff";/*,RES_AJ[17]="application/json"*/;
 using json=nlohmann::json;
 namespace crow {
   template <typename Adaptor,typename Handler,typename ... Middlewares>
   class Connection;
   struct Res {
+	private:
+	ci_map headers;
+	public:
 	template <typename Adaptor,typename Handler,typename ... Middlewares>
 	friend class crow::Connection;
 	int code{200},is_file{0};// Check whether the response has a static file defined.
 	std::string body;
 	json json_value;
 	// `headers' stores HTTP default headers.
-	ci_map headers;
 #ifdef CROW_ENABLE_COMPRESSION
 	bool compressed=true; //< If compression is enabled and this is false, the individual response will not be compressed.
 #endif
