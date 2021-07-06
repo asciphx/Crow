@@ -36,21 +36,20 @@ namespace crow {
       tick_timer_(io_service_),
       handler_(handler),
       concurrency_(concurrency==0?1:concurrency),
-      server_name_(server_name),
+      server_name_(std::move(server_name)),
       port_(port),
-      bindaddr_(bindaddr),
+      bindaddr_(std::move(bindaddr)),
       middlewares_(middlewares),
       adaptor_ctx_(adaptor_ctx) {}
 
-    void set_tick_function(std::chrono::milliseconds d,std::function<void()> f) {
-      tick_interval_=d;
-      tick_function_=f;
-    }
+    //void set_tick_function(std::chrono::milliseconds d,std::function<void()> f) {
+    //  tick_interval_=d;
+    //  tick_function_=f;
+    //}
     void run() {
       for (int i=0; i<concurrency_; ++i)
         io_service_pool_.emplace_back(new boost::asio::io_service());
       get_cached_date_str_pool_.resize(concurrency_);
-      timer_queue_pool_.resize(concurrency_);
 
       std::vector<std::future<void>> v;
       std::atomic<int> init_count(0);
@@ -75,7 +74,6 @@ namespace crow {
         };
         // initializing timer queue
         detail::dumb_timer_queue timer_queue;
-        timer_queue_pool_[i]=&timer_queue;
         timer_queue.set_io_service(*io_service_pool_[i]);
         boost::asio::deadline_timer timer(*io_service_pool_[i]);
         std::function<void(const boost::system::error_code&)> handler;
@@ -90,7 +88,12 @@ namespace crow {
         io_service_pool_[i]->run();
       }));
 
-      //if (/*tick_function_&&*/tick_interval_.count()>0) {
+      //while (tick_function_&&tick_interval_.count()>0) {
+      //  tick_timer_.expires_from_now(boost::posix_time::millseconds(tick_interval_.count()));
+      //  tick_timer_.async_wait([this](const boost::system::error_code& /*ec*/) {
+      //    //if (ec) return;
+      //    tick_function_();
+      //  });
       //}
       CROW_LOG_INFO<<server_name_<<" server is running at "<<bindaddr_<<":"<<acceptor_.local_endpoint().port()
         <<" using "<<concurrency_<<" threads";
@@ -107,13 +110,6 @@ namespace crow {
         io_service_.run();
         CROW_LOG_INFO<<"Exiting.";
       }).join();
-      while (tick_interval_.count()>0) {
-        tick_timer_.expires_from_now(boost::posix_time::millseconds(tick_interval_.count()));
-        tick_timer_.async_wait([this](const boost::system::error_code& /*ec*/) {
-          //if (ec) return;
-          tick_function_();
-        });
-      }
     }
 
     void stop() {
@@ -136,7 +132,7 @@ namespace crow {
       asio::io_service& is=pick_io_service();
       auto p=new Connection<Adaptor,Handler,Middlewares...>(
         is,handler_,server_name_,middlewares_,
-        get_cached_date_str_pool_[roundrobin_index_],*timer_queue_pool_[roundrobin_index_],
+        get_cached_date_str_pool_[roundrobin_index_],
         adaptor_ctx_);
       acceptor_.async_accept(p->socket(),
         [this,p,&is](const boost::system::error_code&ec) {
@@ -151,7 +147,6 @@ namespace crow {
     private:
     asio::io_service io_service_;
     std::vector<std::unique_ptr<asio::io_service>> io_service_pool_;
-    std::vector<detail::dumb_timer_queue*> timer_queue_pool_;
     std::vector<std::function<std::string()>> get_cached_date_str_pool_;
     tcp::acceptor acceptor_;
     boost::asio::signal_set signals_;
@@ -164,8 +159,8 @@ namespace crow {
     std::string bindaddr_;
     unsigned int roundrobin_index_{};
 
-    std::chrono::milliseconds tick_interval_;
-    std::function<void()> tick_function_;
+    //std::chrono::milliseconds tick_interval_;
+    //std::function<void()> tick_function_;
 
     std::tuple<Middlewares...>* middlewares_;
 

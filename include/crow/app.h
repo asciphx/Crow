@@ -94,11 +94,11 @@ namespace crow {
     /// crow::LogLevel::Critical    (4)<br>
     self_t& loglevel(crow::LogLevel level) { crow::logger::setLogLevel(level); return *this; }
     ///Set a custom duration and function to run on every tick
-    template <typename Duration,typename Func>
-    self_t& tick(Duration d,Func f) {
-      tick_interval_=std::chrono::duration_cast<std::chrono::milliseconds>(d);
-      tick_function_=f; return *this;
-    }
+    //template <typename Duration,typename Func>
+    //self_t& tick(Duration d,Func f) {
+    //  tick_interval_=std::chrono::duration_cast<std::chrono::milliseconds>(d);
+    //  tick_function_=f; return *this;
+    //}
 #ifdef CROW_ENABLE_COMPRESSION
     self_t& use_compression(compression::algorithm algorithm) {
       comp_algorithm_=algorithm;
@@ -133,14 +133,14 @@ namespace crow {
 #ifdef CROW_ENABLE_SSL
       if (use_ssl_) {
         ssl_server_=std::move(std::unique_ptr<ssl_server_t>(new ssl_server_t(this,bindaddr_,port_,server_name_,&middlewares_,concurrency_,&ssl_context_)));
-        ssl_server_->set_tick_function(tick_interval_,tick_function_);
+        //ssl_server_->set_tick_function(tick_interval_,tick_function_);
         notify_server_start();
         ssl_server_->run();
       } else
 #endif
       {
         server_=std::move(std::unique_ptr<server_t>(new server_t(this,bindaddr_,port_,server_name_,&middlewares_,concurrency_,nullptr)));
-        server_->set_tick_function(tick_interval_,tick_function_);
+        //server_->set_tick_function(tick_interval_,tick_function_);
         server_->signal_clear();
         for (auto snum:signals_) {
           server_->signal_add(snum);
@@ -255,8 +255,8 @@ namespace crow {
     compression::algorithm comp_algorithm_;
 #endif
 
-    std::chrono::milliseconds tick_interval_;
-    std::function<void()> tick_function_;
+    //std::chrono::milliseconds tick_interval_;
+    //std::function<void()> tick_function_;
 
     std::tuple<Middlewares...> middlewares_;
 

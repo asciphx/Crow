@@ -7,7 +7,6 @@
 #include <chrono>
 #include <vector>
 
-#include "crow/parser.h"
 #include "crow/http_response.h"
 #include "crow/logging.h"
 #include "crow/settings.h"
@@ -15,9 +14,11 @@
 #include "crow/middleware_context.h"
 #include "crow/socket_adaptors.h"
 #include "crow/compression.h"
+#include "crow/llhttp.h"
+#include "crow/http_request.h"
+typedef llhttp_t http_parser;
+typedef llhttp_settings_t http_parser_settings;
 static char Res_server_tag[9]="Server: ",Res_content_length_tag[17]="Content-Length: ",Res_http_status[10]="HTTP/1.1 ",
-RES_AcC[35]="Access-Control-Allow-Credentials: ",RES_t[5]="true",RES_AcM[]="Access-Control-Allow-Methods: ",
-RES_AcH[31]="Access-Control-Allow-Headers: ",RES_AcO[30]="Access-Control-Allow-Origin: ",
 Res_date_tag[7]="Date: ",Res_content_length[15]="content-length",Res_seperator[3]=": ",Res_crlf[3]="\r\n",Res_loc[9]="location";
 namespace crow {
   using namespace boost;
@@ -160,27 +161,126 @@ namespace crow {
 	  const std::string& server_name,
 	  std::tuple<Middlewares...>* middlewares,
 	  std::function<std::string()>& get_cached_date_str_f,
+	  detail::dumb_timer_queue& timer_queue,
 	  typename Adaptor::Ctx* adaptor_ctx_
 	)
 	  : adaptor_(io_service,adaptor_ctx_),
 	  handler_(handler),
-	  parser_(this),
+	  parser_(new http_parser),
 	  server_name_(server_name),
 	  middlewares_(middlewares),
-	  get_cached_date_str(get_cached_date_str_f){}
+	  get_cached_date_str(get_cached_date_str_f),
+	  timer_queue(timer_queue) {
+	  const static http_parser_settings settings_{
+		//on_message_begin,
+		nullptr,
+		on_url,
+		nullptr,
+		on_header_field,
+		on_header_value,
+		on_headers_complete,
+		on_body,
+		on_message_complete,
+	  };
+	  llhttp_init(parser_,HTTP_REQUEST,&setting_);
+	  parser_->data=this;
+	}
 
 	~Connection() {
 	  res.complete_request_handler_=nullptr;
+	  cancel_deadline_timer();
+	}
+	Connection(const Connection&)=delete;
+	Connection& operator=(const Connection&)=delete;
+	static int on_url(http_parser* self_,char const* at,size_t length) {
+	  Connection* self=static_cast<Connection*>(self_->data);
+	  self->raw_url.append(at,length);
+	  self->raw_url.insert(self->raw_url.end(),at,at+length);
+	  return HPE_OK;
+	}
+	static int on_header_field(http_parser* self_,const char* at,size_t length) {
+	  Connection* self=static_cast<Connection*>(self_->data);
+	  switch (self->header_state) {
+		case HPE_OK:
+		if (!self->header_value.empty()) {
+		  self->headers.emplace(std::move(self->header_field),std::move(self->header_value));
+		}
+		self->header_field.assign(at,at+length);
+		self->header_state=1;
+		break;
+		case HPE_INTERNAL:
+		self->header_field.insert(self->header_field.end(),at,at+length);
+		break;
+	  }
+	  return HPE_OK;
+	}
+	static int on_header_value(http_parser* self_,const char* at,size_t length) {
+	  Connection* self=static_cast<Connection*>(self_->data);
+	  switch (self->header_state) {
+		case HPE_OK:
+		self->header_value.insert(self->header_value.end(),at,at+length);
+		break;
+		case HPE_INTERNAL:
+		self->header_state=0;
+		self->header_value.assign(at,at+length);
+		break;
+	  }
+	  return HPE_OK;
+	}
+	static int on_headers_complete(http_parser* self_) {
+	  Connection* self=static_cast<Connection*>(self_->data);
+	  if (!self->header_field.empty()) {
+		self->headers.emplace(std::move(self->header_field),std::move(self->header_value));
+	  }self->handle_header();
+	  return HPE_OK;
+	}
+	static int on_body(http_parser* self_,const char* at,size_t length) {
+	  Connection* self=static_cast<Connection*>(self_->data);
+	  self->body.insert(self->body.end(),at,at+length);
+	  return HPE_OK;
+	}
+	static int on_message_complete(http_parser* self_) {
+	  Connection* self=static_cast<Connection*>(self_->data);
+	  // url params
+	  self->url=self->raw_url.substr(0,self->raw_url.find("?"));
+	  self->url_params=query_string(self->raw_url);
+	  self->handle();
+	  self->url.clear();
+	  self->raw_url.clear();
+	  self->header_field.clear();
+	  self->header_value.clear();
+	  self->headers.clear();
+	  self->url_params.clear();
+	  self->body.clear();
+	  self->header_state=0;
+	  delete self_->data;
+	  return HPE_OK;
+	}
+	bool feed(const char* buffer,int length) {
+	  return llhttp_execute(parser_,buffer,length)==length;
+	}
+	//
+	bool is_upgrade() const { return parser_->upgrade; }
+	//
+	bool check_version(int major,int minor) const {
+	  return parser_->http_major==major&&parser_->http_minor==minor;
+	}
+
+	Req to_request() const {
+	  //printf("url: %s\n",url.data());
+	  //printf("raw_url: %s\n",raw_url.data());
+	  //std::cout<<url_params<<std::endl;
+	  return Req{static_cast<HTTPMethod>(parser_->method), std::move(raw_url), std::move(url), std::move(url_params), std::move(headers), std::move(body)};
 	}
 
 	/// The TCP socket on top of which the connection is established.
 	decltype(std::declval<Adaptor>().raw_socket())& socket() {
 	  return adaptor_.raw_socket();
 	}
-
 	void start() {
 	  adaptor_.start([this](const boost::system::error_code& ec) {
 		if (!ec) {
+		  cancel_deadline_timer();
 		  do_read();
 		} else {
 		  delete this;
@@ -190,7 +290,7 @@ namespace crow {
 
 	void handle_header() {
 	  // HTTP 1.1 Expect: 100-continue
-	  if (parser_.check_version(1,1)&&parser_.headers.count("expect")&&get_header_value(parser_.headers,"expect")=="100-continue") {
+	  if (check_version(1,1)&&headers.count("expect")&&get_header_value(headers,"expect")=="100-continue") {
 		buffers_.clear();
 		static std::string expect_100_continue="HTTP/1.1 100 Continue\r\n\r\n";
 		buffers_.emplace_back(expect_100_continue.data(),expect_100_continue.size());
@@ -199,18 +299,18 @@ namespace crow {
 	}
 
 	void handle() {
-	  buffers_.clear();
+	  cancel_deadline_timer();
 	  bool is_invalid_request=false;
-	  req_=std::move(parser_.to_request());
+	  req_=to_request();
 	  req_.remoteIpAddress=adaptor_.remote_endpoint().address().to_string();
-	  if (parser_.check_version(1,0)) {// HTTP/1.0
+	  if (check_version(1,0)) {// HTTP/1.0
 		close_connection_=true;
-	  } else if (parser_.check_version(1,1)) {// HTTP/1.1
+	  } else if (check_version(1,1)) {// HTTP/1.1
 		if (req_.headers.count("Connection")&&req_.get_header_value("Connection")=="close") close_connection_=true;
 		if (!req_.headers.count("host")) {
 		  is_invalid_request=true;res=Res(400);
 		}
-		if (parser_.is_upgrade()) {
+		if (is_upgrade()) {
 		  if (req_.get_header_value("upgrade")=="h2c") {
 			// TODO HTTP/2 currently, ignore upgrade header
 		  } else {
@@ -220,17 +320,18 @@ namespace crow {
 		  }
 		}
 	  }
-	  CROW_LOG_INFO<<"Request: "<<boost::lexical_cast<std::string>(adaptor_.remote_endpoint())<<" "<<this<<" HTTP/"<<parser_.http_major<<"."<<parser_.http_minor<<' '
+	  CROW_LOG_INFO<<"Request: "<<boost::lexical_cast<std::string>(adaptor_.remote_endpoint())<<" "<<this<<" HTTP/1"<<"."<<1<<' '
 		<<m2s(req_.method)<<" "<<req_.url;
 	  need_to_call_after_handlers_=false;
-	  if (req_.method==HTTPMethod::OPTIONS) { res.code=204;res.end();complete_request();}
-	  else if (!is_invalid_request) {
+	  if (!is_invalid_request) {
 		res.complete_request_handler_=[] {};
 		res.is_alive_helper_=[this]()->bool { return adaptor_.is_open(); };
 
 		ctx_=detail::Ctx<Middlewares...>();
 		req_.middleware_context=static_cast<void*>(&ctx_);
 		req_.io_service=&adaptor_.get_io_service();
+		detail::middleware_call_helper<0,decltype(ctx_),decltype(*middlewares_),Middlewares...>(*middlewares_,req_,res,ctx_);
+
 		if (!res.completed_) {
 		  res.complete_request_handler_=[this] { this->complete_request(); };
 		  need_to_call_after_handlers_=true;
@@ -244,11 +345,11 @@ namespace crow {
 	}
 	/// Call the after handle middleware and send the write the Res to the connection.
 	void complete_request() {
-	  if (!adaptor_.is_open()) {
-		CROW_LOG_DEBUG<<this<<" delete (socket is closed) "<<is_reading<<' '<<is_writing;
+	 // if (!adaptor_.is_open()) {
+		//CROW_LOG_DEBUG<<this<<" delete (socket is closed) "<<is_reading<<' '<<is_writing;
 		//delete this;
-		return;
-	  }
+		//return;
+	 // }
 	  CROW_LOG_INFO<<"Response: "<<this<<' '<<req_.raw_url<<' '<<res.code<<' '<<close_connection_;
 	  if (need_to_call_after_handlers_) {
 		need_to_call_after_handlers_=false;
@@ -259,14 +360,13 @@ namespace crow {
 		  decltype(*middlewares_)>
 		  (*middlewares_,ctx_,req_,res);
 	  }
-	  //res.complete_request_handler_=nullptr;
 	  set_status(res.code);
+	  buffers_.clear();
 	  prepare_buffers();
 	  if (res.is_file) {
 		buffers_.emplace_back(Res_crlf,2);
 		do_write_static();
 	  } else {
-		detail::middleware_call_helper<0,decltype(ctx_),decltype(*middlewares_),Middlewares...>(*middlewares_,req_,res,ctx_);
 		content_length_=std::to_string(res.body.size());
 		buffers_.emplace_back(Res_content_length_tag,16);
 		buffers_.emplace_back(content_length_.data(),content_length_.size());
@@ -360,16 +460,6 @@ namespace crow {
 		buffers_.emplace_back(kv.second.data(),kv.second.size());
 		buffers_.emplace_back(Res_crlf,2);
 	  }
-	  buffers_.emplace_back(RES_AcO,29);
-	  buffers_.emplace_back("*",1);
-	  buffers_.emplace_back(Res_crlf,2);
-	  buffers_.emplace_back(RES_AcM,30);
-	  buffers_.emplace_back("GET,POST,DELETE,PUT,OPTIONS,HEAD",32);
-	  buffers_.emplace_back(Res_crlf,2);
-	  buffers_.emplace_back(RES_AcH,30);
-	  buffers_.emplace_back("content-type,cache-control,x-requested-with,authorization",57);
-	  buffers_.emplace_back(Res_crlf,2);
-	  //res.add_header_s(RES_AcC,RES_t);
 	}
 
 	void do_write_static() {
@@ -386,6 +476,7 @@ namespace crow {
 		do_write();
 		if (need_to_start_read_after_complete_) {
 		  need_to_start_read_after_complete_=false;
+		  cancel_deadline_timer();
 		  do_read();
 		}
 	  } else {
@@ -404,22 +495,30 @@ namespace crow {
 	  adaptor_.socket().async_read_some(boost::asio::buffer(buffer_),
 										[this](const boost::system::error_code& ec,std::size_t bytes_transferred) {
 		if (!ec) {
-		  bool ret=parser_.feed(buffer_.data(),bytes_transferred);
+		  bool ret=feed(buffer_.data(),bytes_transferred);
+		  //if(!res.is_file)std::cout<<buffer_.data()<<std::endl
+				//<<"  ---> "<<bytes_transferred
+			;
 		  if (ret&&adaptor_.is_open()) {
 			if (close_connection_) {
+			  cancel_deadline_timer();
+			  //parser_.done();
 			  is_reading=false;
 			  check_destroy();
 			  // adaptor will close after write
 			} else if (!need_to_call_after_handlers_) {
+			  cancel_deadline_timer();
 			  do_read();
 			} else {
 			  // res will be completed later by user
 			  need_to_start_read_after_complete_=true;
 			}
 		  }else{
+			cancel_deadline_timer();
+			//parser_.done();
 			adaptor_.shutdown_read();
 			adaptor_.close();
-			delete this;
+			check_destroy();
 		  }
 		}else delete this;
 	  });
@@ -451,8 +550,13 @@ namespace crow {
 		CROW_LOG_DEBUG<<this<<" delete (idle) ";
 		delete this;
 	  }
-	  //delete this;
 	}
+
+	void cancel_deadline_timer() {
+	  CROW_LOG_DEBUG<<this<<" timer cancelled: "<<timer_cancel_key_.first<<' '<<timer_cancel_key_.second;
+	  timer_queue.cancel(timer_cancel_key_);
+	}
+
 	private:
 	Adaptor adaptor_;
 	Handler* handler_;
@@ -462,7 +566,17 @@ namespace crow {
 	int status_len_=15;
 	const unsigned res_stream_threshold_=1048576;
 
-	HTTPParser<Connection> parser_;
+	ci_map headers;
+	std::string raw_url;
+	std::string url;
+	int header_state=0;
+	std::string header_field;
+	std::string header_value;
+	query_string url_params;
+	std::string body;
+	http_parser*parser_;
+	http_parser_settings setting_;
+
 	Req req_;
 	Res res;
 
@@ -472,12 +586,18 @@ namespace crow {
 
 	std::string content_length_;
 	std::string date_str_;
+
+	detail::dumb_timer_queue::key timer_cancel_key_;
+
 	bool is_reading{};
 	bool is_writing{};
 	bool need_to_call_after_handlers_{};
 	bool need_to_start_read_after_complete_{};
 	std::tuple<Middlewares...>* middlewares_;
 	detail::Ctx<Middlewares...> ctx_;
+
 	std::function<std::string()>& get_cached_date_str;
+	detail::dumb_timer_queue& timer_queue;
   };
+
 }

@@ -47,6 +47,10 @@ namespace crow {
       return s[p]=='>'?p:find_closing_tag(s,p+1);
     }
 
+    constexpr unsigned long long hack(const char*s) {
+      unsigned long long r=0;for (int i=0;s[i];r*=0x100,r+=s[i++]);return r;
+    }
+
     constexpr bool is_valid(const_str s,unsigned i=0,int f=0) {
       return
         i==s.size()

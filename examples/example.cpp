@@ -16,7 +16,8 @@ int main() {
   //Server rendering and support default route
   app.default_route()([] {
 	char name[64];gethostname(name,64);
-	return mustache::load("404NotFound.html").render(json{{"servername",name}});
+	json j=json{{"servername",name}};
+	return mustache::load("404NotFound.html").render(j);
   });
   //json::parse
   app.route("/list")([] {
@@ -33,7 +34,7 @@ int main() {
 	json json_output=json(list);
 	return json_output;
   });
-  //dump(2)
+  //json
   app.route("/json")([] {
 	json x;
 	x["message"]="Hello, World!";
@@ -43,7 +44,7 @@ int main() {
 	x["false"]=false;
 	x["null"]=nullptr;
 	x["bignumber"]=2353464586543265455;
-	return x.dump(2);
+	return x;
   });
   // a request to /path should be forwarded to /path/
   app.route("/path/")([] {
@@ -79,7 +80,8 @@ int main() {
   //      * Send and you should receive 2
   // A simpler way for json example:
   //      * curl -d '{"a":1,"b":2}' {ip}:18080/add_json
-  CROW_ROUTE(app,"/add_json").methods("POST"_type)
+  CROW_ROUTE(app,"/add_json")
+	.methods("POST"_mt)
 	([](const crow::Req& req) {
 	auto x=crow::json::parse(req.body);
 	if (!x)

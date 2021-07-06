@@ -10,7 +10,8 @@ int main() {
   //Server rendering and support default route
   app.default_route()([] {
 	char name[64];gethostname(name,64);
-	return mustache::load("404NotFound.html").render(json{{"servername",name}});
+	json j=json{{"servername",name}};
+	return mustache::load("404NotFound.html").render(j);
   });
   //Single path access to files
   app.route("/cat")([](const Req&,Res& res) {
@@ -35,7 +36,7 @@ int main() {
 	json json_output=json(list);
 	return json_output;
   });
-  //dump(2)
+  //json
   app.route("/json")([] {
 	json x;
 	x["message"]="Hello, World!";
@@ -45,7 +46,7 @@ int main() {
 	x["false"]=false;
 	x["null"]=nullptr;
 	x["bignumber"]=2353464586543265455;
-	return x.dump(2);
+	return x;
   });
   //status code + return
   app.route("/hello/<int>")([](int count) {
@@ -66,7 +67,7 @@ int main() {
 	  //return response(500);
   //});
   // more json example
-  app.route("/add_json").methods("POST"_type)([](const Req& req) {
+  app.route("/add_json").methods("POST"_mt)([](const Req& req) {
 	auto x=json::parse(req.body);
 	if (!x) return Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();

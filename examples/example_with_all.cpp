@@ -32,11 +32,9 @@ int main() {
   //([](int a, int b){
 	  //return crow::Res(500);
   //});
-  CROW_ROUTE(app,"/add_json")
-	([](const crow::Req& req) {
+  CROW_ROUTE(app,"/add_json").methods("POST"_mt)([](const crow::Req& req) {
 	auto x=crow::json::parse(req.body);
-	if (!x)
-	  return crow::Res(400);
+	if (!x) return crow::Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();
 	std::ostringstream os;
 	os<<sum;
