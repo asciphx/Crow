@@ -19636,8 +19636,6 @@ namespace nlohmann {
   struct is_optional<std::unique_ptr<T>> : std::true_type {};
   template <typename T>
   constexpr bool isOptionalV=is_optional<std::decay_t<T>>::value;
-  template <typename T>
-  constexpr bool hasSchema=std::tuple_size<decltype(StructSchema<T>())>::value;
 }  // namespace nlohmann
 template <typename T>
 inline constexpr auto StructSchema() {
@@ -19671,6 +19669,8 @@ inline constexpr void ForEachField(T&& value,Fn&& fn) {
   });
 }
 namespace nlohmann {
+  template <typename T>
+  constexpr bool hasSchema=std::tuple_size<decltype(StructSchema<T>())>::value;
   template <typename T>
   struct adl_serializer<std::unique_ptr<T>> {
 	static void to_json(json& j,const std::unique_ptr<T>& opt) {
