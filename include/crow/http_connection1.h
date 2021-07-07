@@ -16,8 +16,6 @@
 #include "crow/compression.h"
 #include "crow/llhttp.h"
 #include "crow/http_request.h"
-typedef llhttp_t http_parser;
-typedef llhttp_settings_t http_parser_settings;
 static char Res_server_tag[9]="Server: ",Res_content_length_tag[17]="Content-Length: ",Res_http_status[10]="HTTP/1.1 ",
 Res_date_tag[7]="Date: ",Res_content_length[15]="content-length",Res_seperator[3]=": ",Res_crlf[3]="\r\n",Res_loc[9]="location";
 namespace crow {
@@ -171,35 +169,20 @@ namespace crow {
 	  middlewares_(middlewares),
 	  get_cached_date_str(get_cached_date_str_f),
 	  timer_queue(timer_queue) {
-	  const static http_parser_settings settings_{
-		//on_message_begin,
-		nullptr,
-		on_url,
-		nullptr,
-		on_header_field,
-		on_header_value,
-		on_headers_complete,
-		on_body,
-		on_message_complete,
-	  };
-	  llhttp_init(parser_,HTTP_REQUEST,&setting_);
-	  parser_->data=this;
 	}
 
 	~Connection() {
 	  res.complete_request_handler_=nullptr;
 	  cancel_deadline_timer();
 	}
-	Connection(const Connection&)=delete;
-	Connection& operator=(const Connection&)=delete;
 	static int on_url(http_parser* self_,char const* at,size_t length) {
-	  Connection* self=static_cast<Connection*>(self_->data);
+	  http_parser* self=static_cast<http_parser*>(self_->data);
 	  self->raw_url.append(at,length);
 	  self->raw_url.insert(self->raw_url.end(),at,at+length);
 	  return HPE_OK;
 	}
 	static int on_header_field(http_parser* self_,const char* at,size_t length) {
-	  Connection* self=static_cast<Connection*>(self_->data);
+	  http_parser* self=static_cast<http_parser*>(self_->data);
 	  switch (self->header_state) {
 		case HPE_OK:
 		if (!self->header_value.empty()) {
@@ -215,7 +198,7 @@ namespace crow {
 	  return HPE_OK;
 	}
 	static int on_header_value(http_parser* self_,const char* at,size_t length) {
-	  Connection* self=static_cast<Connection*>(self_->data);
+	  http_parser* self=static_cast<http_parser*>(self_->data);
 	  switch (self->header_state) {
 		case HPE_OK:
 		self->header_value.insert(self->header_value.end(),at,at+length);
@@ -228,19 +211,19 @@ namespace crow {
 	  return HPE_OK;
 	}
 	static int on_headers_complete(http_parser* self_) {
-	  Connection* self=static_cast<Connection*>(self_->data);
+	  http_parser* self=static_cast<http_parser*>(self_->data);
 	  if (!self->header_field.empty()) {
 		self->headers.emplace(std::move(self->header_field),std::move(self->header_value));
 	  }self->handle_header();
 	  return HPE_OK;
 	}
 	static int on_body(http_parser* self_,const char* at,size_t length) {
-	  Connection* self=static_cast<Connection*>(self_->data);
+	  http_parser* self=static_cast<http_parser*>(self_->data);
 	  self->body.insert(self->body.end(),at,at+length);
 	  return HPE_OK;
 	}
 	static int on_message_complete(http_parser* self_) {
-	  Connection* self=static_cast<Connection*>(self_->data);
+	  http_parser* self=static_cast<http_parser*>(self_);
 	  // url params
 	  self->url=self->raw_url.substr(0,self->raw_url.find("?"));
 	  self->url_params=query_string(self->raw_url);
@@ -253,11 +236,24 @@ namespace crow {
 	  self->url_params.clear();
 	  self->body.clear();
 	  self->header_state=0;
-	  delete self_->data;
 	  return HPE_OK;
 	}
+	void init_parser() {
+	  const static http_parser_settings settings_{
+		//on_message_begin,
+		nullptr,
+		on_url,
+		nullptr,
+		on_header_field,
+		on_header_value,
+		on_headers_complete,
+		on_body,
+		on_message_complete,
+	  };
+	  this->llhttp_init(parser_,HTTP_REQUEST,&setting_);
+	}
 	bool feed(const char* buffer,int length) {
-	  return llhttp_execute(parser_,buffer,length)==length;
+	  return this->llhttp_execute(parser_,buffer,length)==length;
 	}
 	//
 	bool is_upgrade() const { return parser_->upgrade; }
@@ -270,7 +266,7 @@ namespace crow {
 	  //printf("url: %s\n",url.data());
 	  //printf("raw_url: %s\n",raw_url.data());
 	  //std::cout<<url_params<<std::endl;
-	  return Req{static_cast<HTTPMethod>(parser_->method), std::move(raw_url), std::move(url), std::move(url_params), std::move(headers), std::move(body)};
+	  return Req{static_cast<HTTPMethod>(parser_->method), std::move(this->raw_url), std::move(this->url), std::move(this->url_params), std::move(this->headers), std::move(this->body)};
 	}
 
 	/// The TCP socket on top of which the connection is established.

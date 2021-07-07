@@ -33,8 +33,8 @@ extern "C" {
 #endif  /* _MSC_VER */
 #define CALLBACK_MAYBE(PARSER, NAME)                                          \
   do {                                                                        \
-    const llhttp_settings_t* settings;                                        \
-    settings = (const llhttp_settings_t*) (PARSER)->settings;                 \
+    const http_parser_settings* settings;                                        \
+    settings = (const http_parser_settings*) (PARSER)->settings;                 \
     if (settings == NULL || settings->NAME == NULL) {                         \
       err = 0;                                                                \
       break;                                                                  \
@@ -44,8 +44,8 @@ extern "C" {
 
 #define SPAN_CALLBACK_MAYBE(PARSER, NAME, START, LEN)                         \
   do {                                                                        \
-    const llhttp_settings_t* settings;                                        \
-    settings = (const llhttp_settings_t*) (PARSER)->settings;                 \
+    const http_parser_settings* settings;                                        \
+    settings = (const http_parser_settings*) (PARSER)->settings;                 \
     if (settings == NULL || settings->NAME == NULL) {                         \
       err = 0;                                                                \
       break;                                                                  \
@@ -56,9 +56,7 @@ extern "C" {
       llhttp_set_error_reason((PARSER),"Span callback error in " #NAME);     \
     }                                                                         \
   } while (0)
-
-  typedef struct llhttp__internal_s llhttp_t;
-  struct llhttp__internal_s {
+  struct http_parser {
     int32_t _index;
     const unsigned char* _span_pos0;
     void* _span_cb0;
@@ -79,10 +77,11 @@ extern "C" {
     uint16_t flags;
     uint16_t status_code;
     void* settings;
+    int p_ready;
   };
 
-  int llhttp__internal_init(llhttp_t* s);
-  int llhttp__internal_execute(llhttp_t* s,const char* p,const char* endp);
+  int llhttp__internal_init(http_parser* s);
+  int llhttp__internal_execute(http_parser* s,const char* p,const char* endp);
 
 #ifdef __cplusplus
 }  /* extern "C" */
@@ -350,12 +349,10 @@ extern "C" {
 extern "C" {
 #endif
 #include <stddef.h>
-  typedef struct llhttp_settings_s llhttp_settings_t;
+  typedef int (*llhttp_data_cb)(http_parser*,const char *at,size_t length);
+  typedef int (*llhttp_cb)(http_parser*);
 
-  typedef int (*llhttp_data_cb)(llhttp_t*,const char *at,size_t length);
-  typedef int (*llhttp_cb)(llhttp_t*);
-
-  struct llhttp_settings_s {
+  struct http_parser_settings {
     /* Possible return values 0, -1, `HPE_PAUSED` */
     llhttp_cb      on_message_begin;
 
@@ -402,16 +399,16 @@ extern "C" {
    * the `parser` here. In practice, `settings` has to be either a static
    * variable or be allocated with `malloc`, `new`, etc.
    */
-  void llhttp_init(llhttp_t* parser,llhttp_type_t type,
-                   const llhttp_settings_t* settings);
+  void llhttp_init(http_parser* parser,llhttp_type_t type,
+                   const http_parser_settings* settings);
 
   /* Reset an already initialized parser back to the start state, preserving the
    * existing parser type, callback settings, user data, and lenient flags.
    */
-  void llhttp_reset(llhttp_t* parser);
+  void llhttp_reset(http_parser* parser);
 
   /* Initialize the settings object */
-  void llhttp_settings_init(llhttp_settings_t* settings);
+  void llhttp_settings_init(http_parser_settings* settings);
 
   /* Parse full or partial request/response, invoking user callbacks along the
    * way.
@@ -429,7 +426,7 @@ extern "C" {
    * to return the same error upon each successive call up until `llhttp_init()`
    * is called.
    */
-  int llhttp_execute(llhttp_t* parser,const char* data,size_t len);
+  int llhttp_execute(http_parser* parser,const char* data,size_t len);
 
   /* This method should be called when the other side has no further bytes to
    * send (e.g. shutdown of readable side of the TCP connection.)
@@ -439,17 +436,17 @@ extern "C" {
    * connection. This method will invoke `on_message_complete()` callback if the
    * request was terminated safely. Otherwise a error code would be returned.
    */
-  int llhttp_finish(llhttp_t* parser);
+  int llhttp_finish(http_parser* parser);
 
   /* Returns `1` if the incoming message is parsed until the last byte, and has
    * to be completed by calling `llhttp_finish()` on EOF
    */
-  int llhttp_message_needs_eof(const llhttp_t* parser);
+  int llhttp_message_needs_eof(const http_parser* parser);
 
   /* Returns `1` if there might be any other messages following the last that was
    * successfully parsed.
    */
-  int llhttp_should_keep_alive(const llhttp_t* parser);
+  int llhttp_should_keep_alive(const http_parser* parser);
 
   /* Make further calls of `llhttp_execute()` return `HPE_PAUSED` and set
    * appropriate error reason.
@@ -457,44 +454,44 @@ extern "C" {
    * Important: do not call this from user callbacks! User callbacks must return
    * `HPE_PAUSED` if pausing is required.
    */
-  void llhttp_pause(llhttp_t* parser);
+  void llhttp_pause(http_parser* parser);
 
   /* Might be called to resume the execution after the pause in user's callback.
    * See `llhttp_execute()` above for details.
    *
    * Call this only if `llhttp_execute()` returns `HPE_PAUSED`.
    */
-  void llhttp_resume(llhttp_t* parser);
+  void llhttp_resume(http_parser* parser);
 
   /* Might be called to resume the execution after the pause in user's callback.
    * See `llhttp_execute()` above for details.
    *
    * Call this only if `llhttp_execute()` returns `HPE_PAUSED_UPGRADE`
    */
-  void llhttp_resume_after_upgrade(llhttp_t* parser);
+  void llhttp_resume_after_upgrade(http_parser* parser);
 
   /* Returns the latest return error */
-  int llhttp_get_errno(const llhttp_t* parser);
+  int llhttp_get_errno(const http_parser* parser);
 
   /* Returns the verbal explanation of the latest returned error.
    *
    * Note: User callback should set error reason when returning the error. See
    * `llhttp_set_error_reason()` for details.
    */
-  const char* llhttp_get_error_reason(const llhttp_t* parser);
+  const char* llhttp_get_error_reason(const http_parser* parser);
 
   /* Assign verbal description to the returned error. Must be called in user
    * callbacks right before returning the errno.
    *
    * Note: `HPE_USER` error code might be useful in user callbacks.
    */
-  void llhttp_set_error_reason(llhttp_t* parser,const char* reason);
+  void llhttp_set_error_reason(http_parser* parser,const char* reason);
   /* Returns the pointer to the last parsed byte before the returned error. The
    * pointer is relative to the `data` argument of `llhttp_execute()`.
    *
    * Note: this method might be useful for counting the number of parsed bytes.
    */
-  const char* llhttp_get_error_pos(const llhttp_t* parser);
+  const char* llhttp_get_error_pos(const http_parser* parser);
   /* Returns textual name of error code */
   const char* llhttp_errno_name(llhttp_errno_t err);
   /* Returns textual name of HTTP method */
@@ -508,7 +505,7 @@ extern "C" {
    *
    * **(USE AT YOUR OWN RISK)**
    */
-    void llhttp_set_lenient_headers(llhttp_t* parser,int enabled);
+    void llhttp_set_lenient_headers(http_parser* parser,int enabled);
   /* Enables/disables lenient handling of conflicting `Transfer-Encoding` and
    * `Content-Length` headers (disabled by default).
    *
@@ -519,7 +516,7 @@ extern "C" {
    *
    * **(USE AT YOUR OWN RISK)**
    */
-    void llhttp_set_lenient_chunked_length(llhttp_t* parser,int enabled);
+    void llhttp_set_lenient_chunked_length(http_parser* parser,int enabled);
   /* Enables/disables lenient handling of `Connection: close` and HTTP/1.0
    * requests responses.
    *
@@ -531,11 +528,11 @@ extern "C" {
    *
    * **(USE AT YOUR OWN RISK)**
    */
-  void llhttp_set_lenient_keep_alive(llhttp_t* parser,int enabled);
+  void llhttp_set_lenient_keep_alive(http_parser* parser,int enabled);
   //asci
 
   typedef int (*llhttp__internal__span_cb)(
-    llhttp_t*,const char*,const  char*);
+    http_parser*,const char*,const  char*);
 
 #ifdef __SSE4_2__
   static const unsigned char ALIGN(16) llparse_blob0[]={
@@ -752,7 +749,7 @@ extern "C" {
   typedef struct llparse_match_s llparse_match_t;
 
   static llparse_match_t llparse__match_sequence_to_lower(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp,
     const unsigned char* seq,uint32_t seq_len) {
     uint32_t index;
@@ -784,7 +781,7 @@ extern "C" {
   }
 
   static llparse_match_t llparse__match_sequence_to_lower_unsafe(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp,
     const unsigned char* seq,uint32_t seq_len) {
     uint32_t index;
@@ -816,7 +813,7 @@ extern "C" {
   }
 
   static llparse_match_t llparse__match_sequence_id(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp,
     const unsigned char* seq,uint32_t seq_len) {
     uint32_t index;
@@ -1035,76 +1032,76 @@ extern "C" {
   typedef enum llparse_state_e llparse_state_t;
 
   int llhttp__on_url(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_header_field(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_header_value(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_body(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_status(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_url_complete(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_chunk_complete(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_message_complete(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
 
   int llhttp__after_message_complete(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
 
   int llhttp__before_headers_complete(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_headers_complete(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__after_headers_complete(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_chunk_header(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_header_field_complete(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_header_value_complete(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
   int llhttp__on_status_complete(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__on_message_begin(
-    llhttp_t* s,const unsigned char* p,
+    http_parser* s,const unsigned char* p,
     const unsigned char* endp);
 
   int llhttp__internal__c_update_finish(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->finish=2;
@@ -1112,14 +1109,14 @@ extern "C" {
   }
 
   int llhttp__internal__c_load_type(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return state->type;
   }
 
   int llhttp__internal__c_store_method(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp,
     int match) {
@@ -1128,14 +1125,14 @@ extern "C" {
   }
 
   int llhttp__internal__c_is_equal_method(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return state->method==5;
   }
 
   int llhttp__internal__c_update_http_major(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->http_major=0;
@@ -1143,7 +1140,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_update_http_minor(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->http_minor=9;
@@ -1151,19 +1148,19 @@ extern "C" {
   }
 
   int llhttp__internal__c_test_flags(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return (state->flags&128)==128;
   }
   int llhttp__internal__c_is_equal_upgrade(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return state->upgrade==1;
   }
   int llhttp__internal__c_update_finish_1(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->finish=0;
@@ -1171,28 +1168,28 @@ extern "C" {
   }
 
   int llhttp__internal__c_test_lenient_flags(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return (state->lenient_flags&4)==4;
   }
 
   int llhttp__internal__c_test_flags_1(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return (state->flags&544)==544;
   }
 
   int llhttp__internal__c_test_lenient_flags_1(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return (state->lenient_flags&2)==2;
   }
 
   int llhttp__internal__c_update_content_length(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->content_length=0;
@@ -1200,7 +1197,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_mul_add_content_length(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp,
     int match) {
@@ -1226,14 +1223,14 @@ extern "C" {
   }
 
   int llhttp__internal__c_is_equal_content_length(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return state->content_length==0;
   }
 
   int llhttp__internal__c_or_flags(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->flags|=128;
@@ -1241,7 +1238,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_update_finish_3(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->finish=1;
@@ -1249,7 +1246,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_or_flags_1(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->flags|=64;
@@ -1257,7 +1254,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_update_upgrade(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->upgrade=1;
@@ -1265,7 +1262,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_store_header_state(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp,
     int match) {
@@ -1274,14 +1271,14 @@ extern "C" {
   }
 
   int llhttp__internal__c_load_header_state(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return state->header_state;
   }
 
   int llhttp__internal__c_or_flags_3(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->flags|=1;
@@ -1289,7 +1286,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_update_header_state(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->header_state=1;
@@ -1298,7 +1295,7 @@ extern "C" {
 
 
   int llhttp__internal__c_or_flags_4(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->flags|=2;
@@ -1306,7 +1303,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_or_flags_5(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->flags|=4;
@@ -1314,7 +1311,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_or_flags_6(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->flags|=8;
@@ -1322,7 +1319,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_update_header_state_2(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->header_state=6;
@@ -1330,14 +1327,14 @@ extern "C" {
   }
 
   int llhttp__internal__c_test_lenient_flags_2(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return (state->lenient_flags&1)==1;
   }
 
   int llhttp__internal__c_update_header_state_4(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->header_state=0;
@@ -1345,7 +1342,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_update_header_state_5(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->header_state=5;
@@ -1353,7 +1350,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_update_header_state_6(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->header_state=7;
@@ -1361,14 +1358,14 @@ extern "C" {
   }
 
   int llhttp__internal__c_test_flags_2(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return (state->flags&32)==32;
   }
 
   int llhttp__internal__c_mul_add_content_length_1(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp,
     int match) {
@@ -1394,7 +1391,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_or_flags_15(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->flags|=32;
@@ -1402,7 +1399,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_or_flags_16(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->flags|=512;
@@ -1410,7 +1407,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_and_flags(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->flags&=-9;
@@ -1418,7 +1415,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_update_header_state_7(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->header_state=8;
@@ -1426,7 +1423,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_or_flags_17(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->flags|=16;
@@ -1434,14 +1431,14 @@ extern "C" {
   }
 
   int llhttp__internal__c_load_method(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return state->method;
   }
 
   int llhttp__internal__c_store_http_major(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp,
     int match) {
@@ -1450,7 +1447,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_store_http_minor(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp,
     int match) {
@@ -1459,7 +1456,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_update_status_code(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->status_code=0;
@@ -1467,7 +1464,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_mul_add_status_code(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp,
     int match) {
@@ -1498,7 +1495,7 @@ extern "C" {
   }
 
   int llhttp__internal__c_update_type(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->type=1;
@@ -1506,21 +1503,21 @@ extern "C" {
   }
 
   int llhttp__internal__c_update_type_1(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     state->type=2;
     return 0;
   }
 
-  int llhttp__internal_init(llhttp_t* state) {
+  int llhttp__internal_init(http_parser* state) {
     memset(state,0,sizeof(*state));
     state->_current=(void*)(intptr_t)s_n_llhttp__internal__n_start;
     return 0;
   }
 
   static llparse_state_t llhttp__internal__run(
-    llhttp_t* state,
+    http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     int match;
@@ -7815,7 +7812,7 @@ abort();
 }
   }
 
-  int llhttp__internal_execute(llhttp_t* state,const char* p,const char* endp) {
+  int llhttp__internal_execute(http_parser* state,const char* p,const char* endp) {
     llparse_state_t next;
 
     /* check lingering errors */
@@ -7850,16 +7847,31 @@ abort();
   }
 
 
-  void llhttp_init(llhttp_t* parser,llhttp_type_t type,
-                   const llhttp_settings_t* settings) {
-    llhttp__internal_init(parser);
+  void llhttp_init(http_parser* parser,llhttp_type_t type,
+                   const http_parser_settings* settings) {
+    if (parser->p_ready==1) {
+      int type=parser->type;
+      const void* settings=parser->settings;
+      void* data=parser->data;
+      uint8_t lenient_flags=parser->lenient_flags;
 
-    parser->type=type;
-    parser->settings=(void*)settings;
+      llhttp__internal_init(parser);
+
+      parser->type=type;
+      parser->settings=(void*)settings;
+      parser->data=data;
+      parser->lenient_flags=lenient_flags;
+      parser->p_ready=1;
+    } else {
+      llhttp__internal_init(parser);
+      parser->type=type;
+      parser->settings=(void*)settings;
+      parser->p_ready=1;
+    }
   }
 
 
-  void llhttp_reset(llhttp_t* parser) {
+  void llhttp_reset(http_parser* parser) {
     int type=parser->type;
     const void* settings=parser->settings;
     void* data=parser->data;
@@ -7874,17 +7886,17 @@ abort();
   }
 
 
-  int llhttp_execute(llhttp_t* parser,const char* data,size_t len) {
+  int llhttp_execute(http_parser* parser,const char* data,size_t len) {
     return llhttp__internal_execute(parser,data,data+len);
   }
 
 
-  void llhttp_settings_init(llhttp_settings_t* settings) {
+  void llhttp_settings_init(http_parser_settings* settings) {
     memset(settings,0,sizeof(*settings));
   }
 
 
-  int llhttp_finish(llhttp_t* parser) {
+  int llhttp_finish(http_parser* parser) {
     int err;
 
     /* We're in an error state. Don't bother doing anything. */
@@ -7909,7 +7921,7 @@ abort();
   }
 
 
-  void llhttp_pause(llhttp_t* parser) {
+  void llhttp_pause(http_parser* parser) {
     if (parser->error!=HPE_OK) {
       return;
     }
@@ -7919,7 +7931,7 @@ abort();
   }
 
 
-  void llhttp_resume(llhttp_t* parser) {
+  void llhttp_resume(http_parser* parser) {
     if (parser->error!=HPE_PAUSED) {
       return;
     }
@@ -7928,7 +7940,7 @@ abort();
   }
 
 
-  void llhttp_resume_after_upgrade(llhttp_t* parser) {
+  void llhttp_resume_after_upgrade(http_parser* parser) {
     if (parser->error!=HPE_PAUSED_UPGRADE) {
       return;
     }
@@ -7937,22 +7949,22 @@ abort();
   }
 
 
-  int llhttp_get_errno(const llhttp_t* parser) {
+  int llhttp_get_errno(const http_parser* parser) {
     return parser->error;
   }
 
 
-  const char* llhttp_get_error_reason(const llhttp_t* parser) {
+  const char* llhttp_get_error_reason(const http_parser* parser) {
     return parser->reason;
   }
 
 
-  void llhttp_set_error_reason(llhttp_t* parser,const char* reason) {
+  void llhttp_set_error_reason(http_parser* parser,const char* reason) {
     parser->reason=reason;
   }
 
 
-  const char* llhttp_get_error_pos(const llhttp_t* parser) {
+  const char* llhttp_get_error_pos(const http_parser* parser) {
     return parser->error_pos;
   }
 
@@ -7977,7 +7989,7 @@ abort();
   }
 
 
-  void llhttp_set_lenient_headers(llhttp_t* parser,int enabled) {
+  void llhttp_set_lenient_headers(http_parser* parser,int enabled) {
     if (enabled) {
       parser->lenient_flags|=LENIENT_HEADERS;
     } else {
@@ -7986,7 +7998,7 @@ abort();
   }
 
 
-  void llhttp_set_lenient_chunked_length(llhttp_t* parser,int enabled) {
+  void llhttp_set_lenient_chunked_length(http_parser* parser,int enabled) {
     if (enabled) {
       parser->lenient_flags|=LENIENT_CHUNKED_LENGTH;
     } else {
@@ -7995,7 +8007,7 @@ abort();
   }
 
 
-  void llhttp_set_lenient_keep_alive(llhttp_t* parser,int enabled) {
+  void llhttp_set_lenient_keep_alive(http_parser* parser,int enabled) {
     if (enabled) {
       parser->lenient_flags|=LENIENT_KEEP_ALIVE;
     } else {
@@ -8006,105 +8018,105 @@ abort();
   /* Callbacks */
 
 
-  int llhttp__on_message_begin(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_message_begin(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_message_begin);
     return err;
   }
 
 
-  int llhttp__on_url(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_url(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     SPAN_CALLBACK_MAYBE(s,on_url,(const char*)p,endp-p);
     return err;
   }
 
 
-  int llhttp__on_url_complete(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_url_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_url_complete);
     return err;
   }
 
 
-  int llhttp__on_status(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_status(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     SPAN_CALLBACK_MAYBE(s,on_status,(const char*)p,endp-p);
     return err;
   }
 
 
-  int llhttp__on_status_complete(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_status_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_status_complete);
     return err;
   }
 
 
-  int llhttp__on_header_field(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_header_field(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     SPAN_CALLBACK_MAYBE(s,on_header_field,(const char*)p,endp-p);
     return err;
   }
 
 
-  int llhttp__on_header_field_complete(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_header_field_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_header_field_complete);
     return err;
   }
 
 
-  int llhttp__on_header_value(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_header_value(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     SPAN_CALLBACK_MAYBE(s,on_header_value,(const char*)p,endp-p);
     return err;
   }
 
 
-  int llhttp__on_header_value_complete(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_header_value_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_header_value_complete);
     return err;
   }
 
 
-  int llhttp__on_headers_complete(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_headers_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_headers_complete);
     return err;
   }
 
 
-  int llhttp__on_message_complete(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_message_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_message_complete);
     return err;
   }
 
 
-  int llhttp__on_body(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_body(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     SPAN_CALLBACK_MAYBE(s,on_body,(const char*)p,endp-p);
     return err;
   }
 
 
-  int llhttp__on_chunk_header(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_chunk_header(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_chunk_header);
     return err;
   }
 
 
-  int llhttp__on_chunk_complete(llhttp_t* s,const unsigned char* p,const unsigned char* endp) {
+  int llhttp__on_chunk_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_chunk_complete);
     return err;
   }
 
 
-  int llhttp__before_headers_complete(llhttp_t* parser,const unsigned char* p,
+  int llhttp__before_headers_complete(http_parser* parser,const unsigned char* p,
                                       const unsigned char* endp) {
     /* Set this here so that on_headers_complete() callbacks can see it */
     if ((parser->flags&F_UPGRADE)&&
@@ -8130,7 +8142,7 @@ abort();
    * 4 - body_identity_eof
    * 5 - invalid transfer-encoding for request
    */
-  int llhttp__after_headers_complete(llhttp_t* parser,const unsigned char* p,
+  int llhttp__after_headers_complete(http_parser* parser,const unsigned char* p,
                                      const unsigned char* endp) {
     int hasBody;
 
@@ -8188,7 +8200,7 @@ abort();
   }
 
 
-  int llhttp__after_message_complete(llhttp_t* parser,const unsigned char* p,
+  int llhttp__after_message_complete(http_parser* parser,const unsigned char* p,
                                      const unsigned char* endp) {
     int should_keep_alive;
 
@@ -8201,7 +8213,7 @@ abort();
   }
 
 
-  int llhttp_message_needs_eof(const llhttp_t* parser) {
+  int llhttp_message_needs_eof(const http_parser* parser) {
     if (parser->type==HTTP_REQUEST) {
       return 0;
     }
@@ -8228,7 +8240,7 @@ abort();
   }
 
 
-  int llhttp_should_keep_alive(const llhttp_t* parser) {
+  int llhttp_should_keep_alive(const http_parser* parser) {
     if (parser->http_major>0&&parser->http_minor>0) {
       /* HTTP/1.1 */
       if (parser->flags&F_CONNECTION_CLOSE) {

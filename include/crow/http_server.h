@@ -133,7 +133,7 @@ namespace crow {
       auto p=new Connection<Adaptor,Handler,Middlewares...>(
         is,handler_,server_name_,middlewares_,
         get_cached_date_str_pool_[roundrobin_index_],
-        adaptor_ctx_);
+        adaptor_ctx_,roundrobin_index_);
       acceptor_.async_accept(p->socket(),
         [this,p,&is](const boost::system::error_code&ec) {
         if (!ec) {

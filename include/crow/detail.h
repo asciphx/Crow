@@ -10,6 +10,7 @@
 namespace crow {
   namespace detail {
     static std::string directory_=CROW_STATIC_DIRECTORY;
+    static int i_core_arr[0x80]={0};
     /// Fast timer queue for fixed tick value.
     class dumb_timer_queue {
       public:
@@ -57,5 +58,6 @@ namespace crow {
       std::deque<std::pair<decltype(std::chrono::steady_clock::now()),std::function<void()>>> dq_;
       int step_{};
     };
+  
   }
 }
