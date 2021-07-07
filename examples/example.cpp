@@ -5,11 +5,11 @@
 using namespace crow;
 class ExampleLogHandler : public ILogHandler {
   public:void log(std::string message,LogLevel /*level*/) override {
-	//std::cerr << "ExampleLogHandler -> " <<message;
+	std::cerr << "ExampleLogHandler -> " <<message;
   }
 };
 int main() {
-  App<ExampleMiddleware,Cors> app;//Global Middleware,and default config
+  App<ExampleMiddleware/*,Middle*/> app;//Global Middleware,and default config
   app.set_directory("./static").set_home_page("i.htm")
 	.set_types({"html","ico","css","js","json","svg","png","jpg","gif","txt"})
 	.get_middleware<ExampleMiddleware>().setMessage("hello");

@@ -3,7 +3,7 @@
 #include "crow/http_request.h"
 #include "crow/http_response.h"
 namespace crow {
-  struct Cors {
+  struct Middle {
 	struct Ctx {};
 	void before_handle(Req& req,Res& res,Ctx&) {}
 	void after_handle(Req&,Res& res,Ctx&) {}
@@ -79,7 +79,7 @@ namespace crow {
 	ExampleMiddleware() { message="fastify"; }
 	void setMessage(std::string s) { message=s; }
 	struct Ctx {};
-	void before_handle(Req& req,Res& res,Ctx& ctx) { CROW_LOG_DEBUG<<" - MESSAGE: "<<message; }
+	void before_handle(Req& req,Res& res,Ctx& ctx) { CROW_LOG_WARNING<<" - MESSAGE: "<<message; }
 	void after_handle(Req& req,Res& res,Ctx& ctx) {}
   };
 }

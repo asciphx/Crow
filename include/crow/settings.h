@@ -11,6 +11,11 @@
 #define CROW_SERVER_NAME "Crow/0.7-beta"
 #define CROW_DEFAULT_PORT 80
 
+#define AccessControlAllowOrigin "*"
+#define AccessControlAllowMethods "GET,POST,DELETE,PUT,OPTIONS,HEAD"
+#define AccessControlAllowHeaders "content-type,cache-control,x-requested-with,authorization"
+//#define AccessControlAllowCredentials "true"
+
 #if defined(_MSC_VER)
 #if _MSC_VER < 1900
 #define CROW_MSVC_WORKAROUND

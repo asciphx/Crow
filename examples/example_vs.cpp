@@ -4,7 +4,7 @@
 #include <sstream>
 using namespace crow;
 int main() {
-  App<Cors> app;//Global Middleware,and default config
+  App</*Middle*/> app;//Global Middleware,and default config
   app.set_directory("./static").set_home_page("i.htm")
 	.set_types({"html","ico","css","js","json","svg","png","gif","jpg","txt"});
   //Server rendering and support default route
