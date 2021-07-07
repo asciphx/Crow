@@ -103,7 +103,6 @@ namespace crow {
         [this](const boost::system::error_code& /*error*/,int /*signal_number*/) {
         stop();
       });
-
       while (concurrency_!=init_count) std::this_thread::yield();
       do_accept();
       std::thread([this] {
@@ -124,7 +123,7 @@ namespace crow {
     asio::io_service& pick_io_service() {
       // TODO load balancing
       ++roundrobin_index_;
-      if (roundrobin_index_>=io_service_pool_.size()) roundrobin_index_=0;
+      if (roundrobin_index_>=concurrency_) roundrobin_index_=0;
       return *io_service_pool_[roundrobin_index_];
     }
 

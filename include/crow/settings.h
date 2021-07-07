@@ -1,8 +1,8 @@
 #pragma once// settings for crow
 #define CROW_ENABLE_LOGGING
 /* #ifdef - enables ssl */
-//#define CROW_ENABLE_SSL
 //#define CROW_DISABLE_HOME//The route of '/' can be customized only after it is disabled.
+//#define CROW_ENABLE_SSL
 #define CROW_LOG_LEVEL 1
 
 #define CROW_FILE_TIME "max-age=900,immutable"//Static resource cache seconds(= 15 minute)
