@@ -23,6 +23,7 @@ extern "C" {
 #endif  /* __SSE4_2__ */
 
 #ifdef _MSC_VER
+#include <stddef.h>
 #define ALIGN(n) _declspec(align(n))
 #else  /* !_MSC_VER */
 #define ALIGN(n) __attribute__((aligned(n)))
@@ -344,7 +345,6 @@ extern "C" {
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <stddef.h>
   typedef int (*llhttp_data_cb)(http_parser*,const char *at,size_t length);
   typedef int (*llhttp_cb)(http_parser*);
 
@@ -1617,7 +1617,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_body;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_body;
+      state->_span_cb0=(void*)llhttp__on_body;
       goto s_n_llhttp__internal__n_consume_content_length;
       /* UNREACHABLE */;
       abort();
@@ -1965,7 +1965,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_body_1;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_body;
+      state->_span_cb0=(void*)llhttp__on_body;
       goto s_n_llhttp__internal__n_consume_content_length_1;
       /* UNREACHABLE */;
       abort();
@@ -1986,7 +1986,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_body_2;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_body;
+      state->_span_cb0=(void*)llhttp__on_body;
       goto s_n_llhttp__internal__n_eof;
       /* UNREACHABLE */;
       abort();
@@ -2035,7 +2035,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_header_value;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_header_value;
+      state->_span_cb0=(void*)llhttp__on_header_value;
       goto s_n_llhttp__internal__n_span_end_llhttp__on_header_value;
       /* UNREACHABLE */;
       abort();
@@ -2595,7 +2595,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_header_value_1;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_header_value;
+      state->_span_cb0=(void*)llhttp__on_header_value;
       goto s_n_llhttp__internal__n_invoke_load_header_state_2;
       /* UNREACHABLE */;
       abort();
@@ -2950,7 +2950,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_header_field;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_header_field;
+      state->_span_cb0=(void*)llhttp__on_header_field;
       goto s_n_llhttp__internal__n_header_field;
       /* UNREACHABLE */;
       abort();
@@ -3800,7 +3800,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_url_1;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_url;
+      state->_span_cb0=(void*)llhttp__on_url;
       goto s_n_llhttp__internal__n_url_start;
       /* UNREACHABLE */;
       abort();
@@ -3811,7 +3811,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_url;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_url;
+      state->_span_cb0=(void*)llhttp__on_url;
       goto s_n_llhttp__internal__n_url_server;
       /* UNREACHABLE */;
       abort();
@@ -5587,7 +5587,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_status;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_status;
+      state->_span_cb0=(void*)llhttp__on_status;
       goto s_n_llhttp__internal__n_res_status;
       /* UNREACHABLE */;
       abort();

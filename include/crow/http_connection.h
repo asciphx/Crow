@@ -20,6 +20,132 @@ RES_AcC[35]="Access-Control-Allow-Credentials: ",RES_t[5]="true",RES_AcM[]="Acce
 RES_AcH[31]="Access-Control-Allow-Headers: ",RES_AcO[30]="Access-Control-Allow-Origin: ",
 Res_date_tag[7]="Date: ",Res_content_length[15]="content-length",Res_seperator[3]=": ",Res_crlf[3]="\r\n",Res_loc[9]="location";
 namespace crow {
+  namespace detail {
+    template <typename MW>
+    struct check_before_handle_arity_3_const {
+      template <typename T,
+      void (T::*)(Req&,Res&,typename MW::Ctx&) const=&T::before_handle
+      >
+      struct get {};
+    };
+
+    template <typename MW>
+    struct check_before_handle_arity_3 {
+      template <typename T,
+      void (T::*)(Req&,Res&,typename MW::Ctx&)=&T::before_handle
+      >
+      struct get {};
+    };
+
+    template <typename MW>
+    struct check_after_handle_arity_3_const {
+      template <typename T,
+      void (T::*)(Req&,Res&,typename MW::Ctx&) const=&T::after_handle
+      >
+      struct get {};
+    };
+
+    template <typename MW>
+    struct check_after_handle_arity_3 {
+      template <typename T,
+      void (T::*)(Req&,Res&,typename MW::Ctx&)=&T::after_handle
+      >
+      struct get {};
+    };
+
+    template <typename T>
+    struct is_before_handle_arity_3_impl {
+      template <typename C>
+      static std::true_type f(typename check_before_handle_arity_3_const<T>::template get<C>*);
+
+      template <typename C>
+      static std::true_type f(typename check_before_handle_arity_3<T>::template get<C>*);
+
+      template <typename C>
+      static std::false_type f(...);
+
+      public:
+      static const bool value=decltype(f<T>(nullptr))::value;
+    };
+
+    template <typename T>
+    struct is_after_handle_arity_3_impl {
+      template <typename C>
+      static std::true_type f(typename check_after_handle_arity_3_const<T>::template get<C>*);
+
+      template <typename C>
+      static std::true_type f(typename check_after_handle_arity_3<T>::template get<C>*);
+
+      template <typename C>
+      static std::false_type f(...);
+
+      public:
+      static const bool value=decltype(f<T>(nullptr))::value;
+    };
+
+    template <typename MW,typename Context,typename ParentContext>
+    typename std::enable_if<!is_before_handle_arity_3_impl<MW>::value>::type
+      before_handler_call(MW& mw,Req& req,Res& res,Context& ctx,ParentContext& /*parent_ctx*/) {
+      mw.before_handle(req,res,ctx.template get<MW>(),ctx);
+    }
+
+    template <typename MW,typename Context,typename ParentContext>
+    typename std::enable_if<is_before_handle_arity_3_impl<MW>::value>::type
+      before_handler_call(MW& mw,Req& req,Res& res,Context& ctx,ParentContext& /*parent_ctx*/) {
+      mw.before_handle(req,res,ctx.template get<MW>());
+    }
+
+    template <typename MW,typename Context,typename ParentContext>
+    typename std::enable_if<!is_after_handle_arity_3_impl<MW>::value>::type
+      after_handler_call(MW& mw,Req& req,Res& res,Context& ctx,ParentContext& /*parent_ctx*/) {
+      mw.after_handle(req,res,ctx.template get<MW>(),ctx);
+    }
+
+    template <typename MW,typename Context,typename ParentContext>
+    typename std::enable_if<is_after_handle_arity_3_impl<MW>::value>::type
+      after_handler_call(MW& mw,Req& req,Res& res,Context& ctx,ParentContext& /*parent_ctx*/) {
+      mw.after_handle(req,res,ctx.template get<MW>());
+    }
+
+    template <int N,typename Context,typename Container,typename CurrentMW,typename ... Middlewares>
+    bool middleware_call_helper(Container& middlewares,Req& req,Res& res,Context& ctx) {
+      using parent_context_t=typename Context::template partial<N-1>;
+      before_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
+      if (res.is_completed()) {
+      after_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
+      return true;
+      }
+      if (middleware_call_helper<N+1,Context,Container,Middlewares...>(middlewares,req,res,ctx)) {
+      after_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
+      return true;
+      }
+      return false;
+    }
+
+    template <int N,typename Context,typename Container>
+    bool middleware_call_helper(Container& /*middlewares*/,Req& /*req*/,Res& /*res*/,Context& /*ctx*/) {
+      return false;
+    }
+
+    template <int N,typename Context,typename Container>
+    typename std::enable_if<(N<0)>::type
+      after_handlers_call_helper(Container& /*middlewares*/,Context& /*context*/,Req& /*req*/,Res& /*res*/) {}
+
+    template <int N,typename Context,typename Container>
+    typename std::enable_if<(N==0)>::type after_handlers_call_helper(Container& middlewares,Context& ctx,Req& req,Res& res) {
+      using parent_context_t=typename Context::template partial<N-1>;
+      using CurrentMW=typename std::tuple_element<N,typename std::remove_reference<Container>::type>::type;
+      after_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
+    }
+
+    template <int N,typename Context,typename Container>
+    typename std::enable_if<(N>0)>::type after_handlers_call_helper(Container& middlewares,Context& ctx,Req& req,Res& res) {
+      using parent_context_t=typename Context::template partial<N-1>;
+      using CurrentMW=typename std::tuple_element<N,typename std::remove_reference<Container>::type>::type;
+      after_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
+      after_handlers_call_helper<N-1,Context,Container>(middlewares,ctx,req,res);
+    }
+  }
   using namespace boost;
   using tcp=asio::ip::tcp;
   /// An HTTP connection.
@@ -44,14 +170,14 @@ namespace crow {
 	}
 	~Connection() { res.complete_request_handler_=nullptr; delete parser_;}
 	// return false on error
-	bool Connection::feed(const char* buffer,int length) {
+	bool feed(const char* buffer,int length) {
 	  return llhttp_execute(parser_,buffer,length)==0;
 	}
-	static int Connection::on_url(http_parser* self_,const char* at,size_t length) {
+	static int on_url(http_parser* self_,const char* at,size_t length) {
 	  Connection* self=static_cast<Connection*>(self_->data);self->raw_url.insert(self->raw_url.end(),at,at+length);
 	  return 0;
 	}
-	static int Connection::on_header_field(http_parser* self_,const char* at,size_t length) {
+	static int on_header_field(http_parser* self_,const char* at,size_t length) {
 	  Connection* self=static_cast<Connection*>(self_->data);
 	  switch (self->header_state) {
 		case 0:if (!self->header_value.empty()) self->headers.emplace(std::move(self->header_field),std::move(self->header_value));
@@ -60,7 +186,7 @@ namespace crow {
 	  }
 	  return 0;
 	}
-	static int Connection::on_header_value(http_parser* self_,const char* at,size_t length) {
+	static int on_header_value(http_parser* self_,const char* at,size_t length) {
 	  Connection* self=static_cast<Connection*>(self_->data);
 	  switch (self->header_state) {
 		case 0:self->header_value.insert(self->header_value.end(),at,at+length);break;
@@ -68,7 +194,7 @@ namespace crow {
 	  }
 	  return 0;
 	}
-	static int Connection::on_headers_complete(http_parser* self_) {
+	static int on_headers_complete(http_parser* self_) {
 	  Connection* self=static_cast<Connection*>(self_->data);
 	  if (!self->header_field.empty()) self->headers.emplace(std::move(self->header_field),std::move(self->header_value));
 	  // HTTP 1.1 Expect: 100-continue
@@ -78,22 +204,22 @@ namespace crow {
 	  }
 	  return 0;
 	}
-	static int Connection::on_body(http_parser* self_,const char* at,size_t length) {
+	static int on_body(http_parser* self_,const char* at,size_t length) {
 	  Connection* self=static_cast<Connection*>(self_->data);self->body.insert(self->body.end(),at,at+length);
 	  return 0;
 	}
-	static int Connection::on_message_complete(http_parser* self_) {
+	static int on_message_complete(http_parser* self_) {
 	  Connection* self=static_cast<Connection*>(self_->data);self->url=self->raw_url.substr(0,self->raw_url.find("?"));
 	  self->url_params=query_string(self->raw_url);self->handle();
 	  self->header_state=0;self->url.clear();self->raw_url.clear();self->header_field.clear();
 	  self->header_value.clear();self->headers.clear();self->url_params.clear();self->body.clear();
 	  return 0;
 	}
-	Req Connection::to_request() const {
+	Req to_request() const {
 	  //printf("this:raw_url: %s\n",this->raw_url.data());printf("parser_:method: %d\n",parser_->method);
 	  return Req{static_cast<HTTPMethod>(parser_->method), std::move(this->raw_url), std::move(this->url), std::move(this->url_params), std::move(this->headers), std::move(this->body)};
 	}
-	bool Connection::is_upgrade() const { return parser_->upgrade; }
+	bool is_upgrade() const { return parser_->upgrade; }
 	/// The TCP socket on top of which the connection is established.
 	decltype(std::declval<Adaptor>().raw_socket())& socket() { return adaptor_.raw_socket(); }
 	void start() {
@@ -424,130 +550,4 @@ namespace crow {
 	detail::Ctx<Middlewares...> ctx_;
 	std::function<std::string()>& get_cached_date_str;
   };
-  namespace detail {
-	template <typename MW>
-	struct check_before_handle_arity_3_const {
-	  template <typename T,
-		void (T::*)(Req&,Res&,typename MW::Ctx&) const=&T::before_handle
-	  >
-		struct get {};
-	};
-
-	template <typename MW>
-	struct check_before_handle_arity_3 {
-	  template <typename T,
-		void (T::*)(Req&,Res&,typename MW::Ctx&)=&T::before_handle
-	  >
-		struct get {};
-	};
-
-	template <typename MW>
-	struct check_after_handle_arity_3_const {
-	  template <typename T,
-		void (T::*)(Req&,Res&,typename MW::Ctx&) const=&T::after_handle
-	  >
-		struct get {};
-	};
-
-	template <typename MW>
-	struct check_after_handle_arity_3 {
-	  template <typename T,
-		void (T::*)(Req&,Res&,typename MW::Ctx&)=&T::after_handle
-	  >
-		struct get {};
-	};
-
-	template <typename T>
-	struct is_before_handle_arity_3_impl {
-	  template <typename C>
-	  static std::true_type f(typename check_before_handle_arity_3_const<T>::template get<C>*);
-
-	  template <typename C>
-	  static std::true_type f(typename check_before_handle_arity_3<T>::template get<C>*);
-
-	  template <typename C>
-	  static std::false_type f(...);
-
-	  public:
-	  static const bool value=decltype(f<T>(nullptr))::value;
-	};
-
-	template <typename T>
-	struct is_after_handle_arity_3_impl {
-	  template <typename C>
-	  static std::true_type f(typename check_after_handle_arity_3_const<T>::template get<C>*);
-
-	  template <typename C>
-	  static std::true_type f(typename check_after_handle_arity_3<T>::template get<C>*);
-
-	  template <typename C>
-	  static std::false_type f(...);
-
-	  public:
-	  static const bool value=decltype(f<T>(nullptr))::value;
-	};
-
-	template <typename MW,typename Context,typename ParentContext>
-	typename std::enable_if<!is_before_handle_arity_3_impl<MW>::value>::type
-	  before_handler_call(MW& mw,Req& req,Res& res,Context& ctx,ParentContext& /*parent_ctx*/) {
-	  mw.before_handle(req,res,ctx.template get<MW>(),ctx);
-	}
-
-	template <typename MW,typename Context,typename ParentContext>
-	typename std::enable_if<is_before_handle_arity_3_impl<MW>::value>::type
-	  before_handler_call(MW& mw,Req& req,Res& res,Context& ctx,ParentContext& /*parent_ctx*/) {
-	  mw.before_handle(req,res,ctx.template get<MW>());
-	}
-
-	template <typename MW,typename Context,typename ParentContext>
-	typename std::enable_if<!is_after_handle_arity_3_impl<MW>::value>::type
-	  after_handler_call(MW& mw,Req& req,Res& res,Context& ctx,ParentContext& /*parent_ctx*/) {
-	  mw.after_handle(req,res,ctx.template get<MW>(),ctx);
-	}
-
-	template <typename MW,typename Context,typename ParentContext>
-	typename std::enable_if<is_after_handle_arity_3_impl<MW>::value>::type
-	  after_handler_call(MW& mw,Req& req,Res& res,Context& ctx,ParentContext& /*parent_ctx*/) {
-	  mw.after_handle(req,res,ctx.template get<MW>());
-	}
-
-	template <int N,typename Context,typename Container,typename CurrentMW,typename ... Middlewares>
-	bool middleware_call_helper(Container& middlewares,Req& req,Res& res,Context& ctx) {
-	  using parent_context_t=typename Context::template partial<N-1>;
-	  before_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
-	  if (res.is_completed()) {
-		after_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
-		return true;
-	  }
-	  if (middleware_call_helper<N+1,Context,Container,Middlewares...>(middlewares,req,res,ctx)) {
-		after_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
-		return true;
-	  }
-	  return false;
-	}
-
-	template <int N,typename Context,typename Container>
-	bool middleware_call_helper(Container& /*middlewares*/,Req& /*req*/,Res& /*res*/,Context& /*ctx*/) {
-	  return false;
-	}
-
-	template <int N,typename Context,typename Container>
-	typename std::enable_if<(N<0)>::type
-	  after_handlers_call_helper(Container& /*middlewares*/,Context& /*context*/,Req& /*req*/,Res& /*res*/) {}
-
-	template <int N,typename Context,typename Container>
-	typename std::enable_if<(N==0)>::type after_handlers_call_helper(Container& middlewares,Context& ctx,Req& req,Res& res) {
-	  using parent_context_t=typename Context::template partial<N-1>;
-	  using CurrentMW=typename std::tuple_element<N,typename std::remove_reference<Container>::type>::type;
-	  after_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
-	}
-
-	template <int N,typename Context,typename Container>
-	typename std::enable_if<(N>0)>::type after_handlers_call_helper(Container& middlewares,Context& ctx,Req& req,Res& res) {
-	  using parent_context_t=typename Context::template partial<N-1>;
-	  using CurrentMW=typename std::tuple_element<N,typename std::remove_reference<Container>::type>::type;
-	  after_handler_call<CurrentMW,Context,parent_context_t>(std::get<N>(middlewares),req,res,ctx,static_cast<parent_context_t&>(ctx));
-	  after_handlers_call_helper<N-1,Context,Container>(middlewares,ctx,req,res);
-	}
-  }
 }

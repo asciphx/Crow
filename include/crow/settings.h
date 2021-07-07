@@ -8,7 +8,7 @@
 #define CROW_FILE_TIME "max-age=900,immutable"//Static resource cache seconds(= 15 minute)
 #define CROW_STATIC_DIRECTORY "static/"//Make sure you bring '/' with you at the end
 #define CROW_HOME_PAGE "index.html"
-#define CROW_SERVER_NAME "Crow/0.7-beta"
+#define CROW_SERVER_NAME "Crow/0.8-beta"
 #define CROW_DEFAULT_PORT 80
 
 #define AccessControlAllowOrigin "*"

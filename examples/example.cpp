@@ -34,7 +34,7 @@ int main() {
 	json json_output=json(list);
 	return json_output;
   });
-  //json
+  //status code + return json
   app.route("/json")([] {
 	json x;
 	x["message"]="Hello, World!";
@@ -44,7 +44,7 @@ int main() {
 	x["false"]=false;
 	x["null"]=nullptr;
 	x["bignumber"]=2353464586543265455;
-	return x;
+	return Res(203,x);
   });
   // a request to /path should be forwarded to /path/
   app.route("/path/")([] {
