@@ -6,7 +6,7 @@
 #include <atomic>
 #include <chrono>
 #include <vector>
-
+#include <cstring>
 #include "crow/llhttp.h"
 #include "crow/http_response.h"
 #include "crow/logging.h"

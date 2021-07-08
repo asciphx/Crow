@@ -29,10 +29,10 @@ namespace crow {
   inline HTTPMethod c2m(const char*m) {
 	switch (crow::spell::hack(m)) {
 	  case crow::spell::hack("DELETE"):return crow::HTTPMethod::DEL;
-	  case 'GET':return crow::HTTPMethod::GET;
-	  case 'HEAD':return crow::HTTPMethod::HEAD;
-	  case 'POST':return crow::HTTPMethod::POST;
-	  case 'PUT':return crow::HTTPMethod::PUT;
+	  case 4670804:return crow::HTTPMethod::GET;
+	  case 1212498244:return crow::HTTPMethod::HEAD;
+	  case 1347375956:return crow::HTTPMethod::POST;
+	  case 5264724:return crow::HTTPMethod::PUT;
 	  case crow::spell::hack("OPTIONS"):return crow::HTTPMethod::OPTIONS;
 	  case crow::spell::hack("CONNECT"):return crow::HTTPMethod::CONNECT;
 	  case crow::spell::hack("TRACE"):return crow::HTTPMethod::TRACE;

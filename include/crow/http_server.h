@@ -161,7 +161,7 @@ namespace crow {
     std::string bindaddr_;
     unsigned int roundrobin_index_{};
 
-    std::chrono::milliseconds tick_interval_//Safe
+    std::chrono::milliseconds tick_interval_;//Safe
     std::function<void()> tick_function_;//Safe
 
     std::tuple<Middlewares...>* middlewares_;

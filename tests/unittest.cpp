@@ -649,7 +649,7 @@ TEST(template_basic) {
 }
 
 TEST(template_load) {
-  crow::mustache::set_directory(".");
+  crow::mustache::directory(".");
   ofstream("test.mustache")<<R"---(attack of {{name}})---";
   auto t=crow::mustache::load("test.mustache");
   crow::json ctx;
