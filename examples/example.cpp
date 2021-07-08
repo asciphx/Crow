@@ -10,8 +10,8 @@ class ExampleLogHandler : public ILogHandler {
 };
 int main() {
   App<ExampleMiddleware/*,Middle*/> app;//Global Middleware,and default config
-  app.set_directory("./static").set_home_page("i.htm")
-	.set_types({"html","ico","css","js","json","svg","png","jpg","gif","txt"})
+  app.directory("./static").home("i.htm").timeout(2)
+	.file_type({"html","ico","css","js","json","svg","png","jpg","gif","txt"})
 	.get_middleware<ExampleMiddleware>().setMessage("hello");
   //Server rendering and support default route
   app.default_route()([] {

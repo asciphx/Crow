@@ -438,7 +438,7 @@ namespace crow {
 	  std::vector<Action> actions_;
 	  std::string body_;
 	};
-	inline void set_directory(const std::string& path) {
+	inline void directory(const std::string& path) {
 	  auto& base=detail::directory_;base=path;
 	  if (base.back()!='\\'&&base.back()!='/') base+='/';
 	}

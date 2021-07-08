@@ -13,6 +13,7 @@ namespace crow {
     /// Fast timer queue for fixed tick value.
     class dumb_timer_queue {
       public:
+      static int tick;
       using key=std::pair<dumb_timer_queue*,int>;
       void cancel(key& k) {
         auto self=k.first;
@@ -32,20 +33,20 @@ namespace crow {
       /// Process the queue: take functions out in time intervals and execute them.
       void process() {
         if (!io_service_)return;
-        //auto now=std::chrono::steady_clock::now();
-        //while (!dq_.empty()) {
-        //  auto& x=dq_.front();
-        //  if (now-x.first<std::chrono::seconds(tick))
-        //    break;
-        //  if (x.second) {
-        //    CROW_LOG_DEBUG<<"timer call: "<<this<<' '<<step_;
-        //    // we know that timer handlers are very simple currenty; call here
-        //    x.second();
-        //  }
-        //  dq_.pop_front();
-        //  ++step_;
-        //}
-        while (!dq_.empty()) dq_.pop_front(),++step_;
+        auto now=std::chrono::steady_clock::now();
+        while (!dq_.empty()) {
+          auto& x=dq_.front();
+          if (now-x.first<std::chrono::seconds(tick))
+            break;
+          if (x.second) {
+            CROW_LOG_DEBUG<<"timer call: "<<this<<' '<<step_;
+            // we know that timer handlers are very simple currenty; call here
+            x.second();
+          }
+          dq_.pop_front();
+          ++step_;
+        }
+        //while (!dq_.empty()) dq_.pop_front(),++step_;
       }
       void set_io_service(boost::asio::io_service& io_service) {
         io_service_=&io_service;

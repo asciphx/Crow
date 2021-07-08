@@ -33,6 +33,6 @@ int main() {
   });
 
   app.port(8080).loglevel(crow::LogLevel::WARNING)
-	.multithreaded().set_home_page("ws.html")
+	.multithreaded()
 	.run();
 }

@@ -14,7 +14,7 @@
 #define AccessControlAllowOrigin "*"
 #define AccessControlAllowMethods "GET,POST,DELETE,PUT,OPTIONS,HEAD"
 #define AccessControlAllowHeaders "content-type,cache-control,x-requested-with,authorization"
-//#define AccessControlAllowCredentials "true"
+//#define AccessControlAllowCredentials constexpr "true"
 
 #if defined(_MSC_VER)
 #if _MSC_VER < 1900

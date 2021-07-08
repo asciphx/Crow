@@ -29,6 +29,7 @@
 
 namespace crow {
   static std::string RES_home=CROW_HOME_PAGE;
+  int detail::dumb_timer_queue::tick=4;//Prevent being stuck by long connection
 #ifdef CROW_ENABLE_SSL
   using ssl_context_t=boost::asio::ssl::context;
 #endif
@@ -64,17 +65,19 @@ namespace crow {
     self_t& signal_add(int signal_number) { signals_.push_back(signal_number); return *this;}
     ///Set the port that Crow will handle requests on
     self_t& port(std::uint16_t port) { port_=port; return *this; }
+    ///Set the maximum number of seconds (latency) per request (default is 4)
+    self_t& timeout(std::uint8_t timeout) {detail::dumb_timer_queue::tick=timeout;return *this;}
     ///Set the server name
     self_t& server_name(std::string server_name) { server_name_=server_name;return *this; }
     ///The IP address that Crow will handle requests on (default is 0.0.0.0)
     self_t& bindaddr(std::string bindaddr) { bindaddr_=bindaddr; return *this; }
     //Set static directory
-    self_t& set_directory(std::string path) {
+    self_t& directory(std::string path) {
       if (path.back()!='\\'&&path.back()!='/') path+='/';detail::directory_=path;return *this;
     }
-    self_t& set_home_page(std::string path) { RES_home=path; return *this; }
+    self_t& home(std::string path) { RES_home=path; return *this; }
     //Set content types 
-    self_t& set_types(const std::vector<std::string> &line) {
+    self_t& file_type(const std::vector<std::string> &line) {
       for (auto iter=line.cbegin(); iter!=line.cend(); ++iter) {
         std::string types="";types=content_any_types[*iter];
         if (types!="") content_types.emplace(*iter,types);
@@ -94,11 +97,11 @@ namespace crow {
     /// crow::LogLevel::Critical    (4)<br>
     self_t& loglevel(crow::LogLevel level) { crow::logger::setLogLevel(level); return *this; }
     ///Set a custom duration and function to run on every tick
-    //template <typename Duration,typename Func>
-    //self_t& tick(Duration d,Func f) {
-    //  tick_interval_=std::chrono::duration_cast<std::chrono::milliseconds>(d);
-    //  tick_function_=f; return *this;
-    //}
+    template <typename Duration,typename Func>
+    self_t& tick(Duration d,Func f) {
+      tick_interval_=std::chrono::duration_cast<std::chrono::milliseconds>(d);
+      tick_function_=f; return *this;
+    }
 #ifdef CROW_ENABLE_COMPRESSION
     self_t& use_compression(compression::algorithm algorithm) {
       comp_algorithm_=algorithm;
@@ -120,7 +123,7 @@ namespace crow {
     ///Run the server
     void run() {
       if (is_not_set_types) {
-        this->set_types({"html","ico","css","js","json","svg","png","jpg","gif","txt"});//default types
+        this->file_type({"html","ico","css","js","json","svg","png","jpg","gif","txt"});//default types
         is_not_set_types=false;
       }
 #ifndef CROW_DISABLE_HOME
@@ -133,14 +136,14 @@ namespace crow {
 #ifdef CROW_ENABLE_SSL
       if (use_ssl_) {
         ssl_server_=std::move(std::unique_ptr<ssl_server_t>(new ssl_server_t(this,bindaddr_,port_,server_name_,&middlewares_,concurrency_,&ssl_context_)));
-        //ssl_server_->set_tick_function(tick_interval_,tick_function_);
+        ssl_server_->set_tick_function(tick_interval_,tick_function_);
         notify_server_start();
         ssl_server_->run();
       } else
 #endif
       {
         server_=std::move(std::unique_ptr<server_t>(new server_t(this,bindaddr_,port_,server_name_,&middlewares_,concurrency_,nullptr)));
-        //server_->set_tick_function(tick_interval_,tick_function_);
+        server_->set_tick_function(tick_interval_,tick_function_);
         server_->signal_clear();
         for (auto snum:signals_) {
           server_->signal_add(snum);
@@ -255,8 +258,8 @@ namespace crow {
     compression::algorithm comp_algorithm_;
 #endif
 
-    //std::chrono::milliseconds tick_interval_;
-    //std::function<void()> tick_function_;
+    std::chrono::milliseconds tick_interval_;
+    std::function<void()> tick_function_;
 
     std::tuple<Middlewares...> middlewares_;
 

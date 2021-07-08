@@ -2,7 +2,7 @@
 #include <sstream>
 using namespace crow;using namespace std;
 int main() {
-  App<> app;app.set_directory("./static").set_types({"html","css","js","json"});
+  App<> app;app.directory("./static").file_type({"html","css","js","json"});
   app.route("/plaintext")([] {
 	return "Hello, World!";
   });

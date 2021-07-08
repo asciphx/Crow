@@ -113,6 +113,9 @@ namespace crow {
   }
   using namespace boost;
   using tcp=asio::ip::tcp;
+#ifdef CROW_ENABLE_DEBUG
+  static std::atomic<int> connectionCount;
+#endif
   /// An HTTP connection.
   template <typename Adaptor,typename Handler,typename ... Middlewares>
   class Connection {
@@ -122,16 +125,18 @@ namespace crow {
 	  Handler* handler,const std::string& server_name,
 	  std::tuple<Middlewares...>* middlewares,
 	  std::function<std::string()>& get_cached_date_str_f,
+	  detail::dumb_timer_queue& timer_queue,
 	  typename Adaptor::Ctx* adaptor_ctx_):
 	  adaptor_(io_service,adaptor_ctx_),
 	  handler_(handler),
 	  parser_(new http_parser),
 	  server_name_(server_name),
 	  middlewares_(middlewares),
-	  get_cached_date_str(get_cached_date_str_f) {
+	  get_cached_date_str(get_cached_date_str_f),
+	  timer_queue_(timer_queue) {
 	  llhttp_init(parser_,HTTP_REQUEST,&settings_);parser_->data=this;
 	}
-	~Connection() { res.complete_request_handler_=nullptr; delete parser_; }
+	~Connection() { res.complete_request_handler_=nullptr; delete parser_;cancel_deadline_timer();}
 	// return false on error
 	bool feed(const char* buffer,int length) {
 	  return llhttp_execute(parser_,buffer,length)==0;
@@ -187,11 +192,14 @@ namespace crow {
 	decltype(std::declval<Adaptor>().raw_socket())& socket() { return adaptor_.raw_socket(); }
 	void start() {
 	  adaptor_.start([this](const boost::system::error_code& ec) {
-		if (!ec) do_read();else delete this;
+		if (!ec) {
+		  start_deadline();do_read();
+		} else delete this;
 	  });
 	}
 
 	void handle() {
+	  cancel_deadline_timer();
 	  buffers_.clear();
 	  bool is_invalid_request=false;
 	  req_=std::move(to_request());
@@ -218,7 +226,7 @@ namespace crow {
 	  need_to_call_after_handlers_=false;
 	  if (req_.method==HTTPMethod::OPTIONS) { res.code=204;res.end();complete_request(); } else if (!is_invalid_request) {
 		res.complete_request_handler_=[] {};
-		res.is_alive_helper_=[this]()->bool { return adaptor_.is_open(); };
+		//res.is_alive_helper_=[this]()->bool { return adaptor_.is_open(); };
 
 		ctx_=detail::Ctx<Middlewares...>();
 		req_.middleware_context=static_cast<void*>(&ctx_);
@@ -342,8 +350,7 @@ namespace crow {
 	}
 	void prepare_buffers() {
 	  //if (res.body.empty()) {}//res.body
-	  //res.complete_request_handler_=nullptr;
-	  buffers_.reserve(4*(res.headers.size()+5)+3);
+	  //res.complete_request_handler_=nullptr;buffers_.reserve(4*(res.headers.size()+5)+3);
 	  buffers_.emplace_back(Res_http_status,9);
 	  buffers_.emplace_back(status_,status_len_);
 	  if (res.code>399) res.body=status_;
@@ -353,29 +360,24 @@ namespace crow {
 		buffers_.emplace_back(kv.second.data(),kv.second.size());
 		buffers_.emplace_back(Res_crlf,2);
 	  }
-	  std::string access;
 #ifdef AccessControlAllowCredentials
-	  access=AccessControlAllowCredentials;
 	  buffers_.emplace_back(RES_AcC,34);
-	  buffers_.emplace_back(AccessControlAllowCredentials,access.size());
+	  buffers_.emplace_back(AccessControlAllowCredentials,strnlen_s(AccessControlAllowCredentials,5));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowHeaders
-	  access=AccessControlAllowHeaders;
 	  buffers_.emplace_back(RES_AcH,30);
-	  buffers_.emplace_back(AccessControlAllowHeaders,access.size());
+	  buffers_.emplace_back(AccessControlAllowHeaders,strnlen_s(AccessControlAllowHeaders,99));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowMethods
-	  access=AccessControlAllowMethods;
 	  buffers_.emplace_back(RES_AcM,30);
-	  buffers_.emplace_back(AccessControlAllowMethods,access.size());
+	  buffers_.emplace_back(AccessControlAllowMethods,strnlen_s(AccessControlAllowMethods,33));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowOrigin
-	  access=AccessControlAllowOrigin;
 	  buffers_.emplace_back(RES_AcO,29);
-	  buffers_.emplace_back(AccessControlAllowOrigin,access.size());
+	  buffers_.emplace_back(AccessControlAllowOrigin,strnlen_s(AccessControlAllowOrigin,33));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 	}
@@ -394,6 +396,7 @@ namespace crow {
 		do_write();
 		if (need_to_start_read_after_complete_) {
 		  need_to_start_read_after_complete_=false;
+		  start_deadline();
 		  do_read();
 		}
 	  } else {
@@ -416,16 +419,19 @@ namespace crow {
 		  //std::cout<<adaptor_.is_open()<<"  |  "<<ret<<std::endl;
 		  if (ret&&adaptor_.is_open()) {
 			if (close_connection_) {
+			  cancel_deadline_timer();
 			  is_reading=false;
 			  check_destroy();
 			  // adaptor will close after write
 			} else if (!need_to_call_after_handlers_) {
+			  start_deadline();
 			  do_read();
 			} else {
 			  // res will be completed later by user
 			  need_to_start_read_after_complete_=true;
 			}
 		  } else {
+			cancel_deadline_timer();
 			is_reading=false;
 			adaptor_.shutdown_read();
 			adaptor_.close();
@@ -433,6 +439,7 @@ namespace crow {
 			//check_destroy();
 		  }
 		} else {
+		  cancel_deadline_timer();
 		  is_reading=false;
 		  adaptor_.close();
 		  delete this;
@@ -467,6 +474,22 @@ namespace crow {
 		delete this;
 	  }
 	}
+	void cancel_deadline_timer() {
+	  CROW_LOG_DEBUG<<this<<" timer cancelled: "<<timer_cancel_key_.first<<' '<<timer_cancel_key_.second;
+	  timer_queue_.cancel(timer_cancel_key_);
+	}
+
+	void start_deadline(/*int timeout = 4*/) {
+	  timer_cancel_key_=timer_queue_.add([this] {
+		timer_queue_.cancel(timer_cancel_key_);
+		if (adaptor_.is_open()) {
+		  if(is_reading)adaptor_.shutdown_read(),is_reading=false;
+		  if (is_writing)adaptor_.shutdown_write(),is_writing=false;
+		  adaptor_.close();
+		}
+	  });
+	  CROW_LOG_DEBUG<<this<<" timer added: "<<timer_cancel_key_.first<<' '<<timer_cancel_key_.second;
+	}
 	private:
 	Adaptor adaptor_;
 	Handler* handler_;
@@ -496,6 +519,8 @@ namespace crow {
 	ci_map headers;
 	query_string url_params;
 	std::string body;
+	detail::dumb_timer_queue& timer_queue_;
+	detail::dumb_timer_queue::key timer_cancel_key_;
 
 	Req req_;
 	Res res;
