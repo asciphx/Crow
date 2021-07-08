@@ -1,4 +1,3 @@
-#define CROW_ENABLE_DEBUG
 #include "crow.h"
 #include "middleware.h"
 #include "module.h"

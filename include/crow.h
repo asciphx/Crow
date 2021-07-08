@@ -7,6 +7,7 @@
 #include "crow/json.hpp"
 #include "crow/mustache.h"
 #include "crow/logging.h"
+#include "crow/str.h"
 #include "crow/detail.h"
 #include "crow/utility.h"
 #include "crow/common.h"

@@ -6,7 +6,7 @@
 #include <atomic>
 #include <chrono>
 #include <vector>
-#include <cstring>
+#include "crow/str.h"
 #include "crow/llhttp.h"
 #include "crow/http_response.h"
 #include "crow/logging.h"
@@ -362,22 +362,22 @@ namespace crow {
 	  }
 #ifdef AccessControlAllowCredentials
 	  buffers_.emplace_back(RES_AcC,34);
-	  buffers_.emplace_back(AccessControlAllowCredentials,strnlen(AccessControlAllowCredentials,5));
+	  buffers_.emplace_back(AccessControlAllowCredentials,strLen(AccessControlAllowCredentials));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowHeaders
 	  buffers_.emplace_back(RES_AcH,30);
-	  buffers_.emplace_back(AccessControlAllowHeaders,strnlen(AccessControlAllowHeaders,99));
+	  buffers_.emplace_back(AccessControlAllowHeaders,strLen(AccessControlAllowHeaders));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowMethods
 	  buffers_.emplace_back(RES_AcM,30);
-	  buffers_.emplace_back(AccessControlAllowMethods,strnlen(AccessControlAllowMethods,33));
+	  buffers_.emplace_back(AccessControlAllowMethods,strLen(AccessControlAllowMethods));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowOrigin
 	  buffers_.emplace_back(RES_AcO,29);
-	  buffers_.emplace_back(AccessControlAllowOrigin,strnlen(AccessControlAllowOrigin,33));
+	  buffers_.emplace_back(AccessControlAllowOrigin,strLen(AccessControlAllowOrigin));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 	}
@@ -480,8 +480,8 @@ namespace crow {
 	}
 
 	void start_deadline(/*int timeout = 4*/) {
+	  timer_queue_.cancel(timer_cancel_key_);
 	  timer_cancel_key_=timer_queue_.add([this] {
-		timer_queue_.cancel(timer_cancel_key_);
 		if (adaptor_.is_open()) {
 		  if(is_reading)adaptor_.shutdown_read(),is_reading=false;
 		  if (is_writing)adaptor_.shutdown_write(),is_writing=false;
