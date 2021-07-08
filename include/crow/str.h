@@ -51,15 +51,15 @@ char*toStr(int i) {
 constexpr unsigned long long hack8Str(const char*s) {
   unsigned long long r=0;for (int i=0;s[i];r*=0x100,r+=s[i++]);return r;
 }
-constexpr int hack4Str(const char*s) { int r=0;for (int i=0;s[i];r*=256,r+=s[i++]);return r; }
+constexpr int hack4Str(const char*s) { int r=0;for (int i=0;s[i];r*=0x100,r+=s[i++]);return r; }
 int hack_str(const char*oid) {
   int t=0,i=strLen(oid),j,pow=1;
   while (i-->0) {
     char*chr=subStr(oid,i,i+1);j=0;
-    while (j++<97) {
+    while (j++<0x61) {
       char*s=subStr(RES_ASCII,j-1,j);
       if (strCmp(chr,s)==0) {
-        t=t+(j+31)*pow; pow=pow*0x100;free(s);break;
+        t=t+(j+0x1f)*pow; pow=pow*0x100;free(s);break;
       } free(s);
     } free(chr);
   } return t;

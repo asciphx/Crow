@@ -6,7 +6,7 @@
 #include <atomic>
 #include <chrono>
 #include <vector>
-#include "crow/str.h"
+
 #include "crow/llhttp.h"
 #include "crow/http_response.h"
 #include "crow/logging.h"
@@ -136,11 +136,9 @@ namespace crow {
 	  timer_queue_(timer_queue) {
 	  llhttp_init(parser_,HTTP_REQUEST,&settings_);parser_->data=this;
 	}
-	~Connection() { res.complete_request_handler_=nullptr; delete parser_;cancel_deadline_timer();}
+	~Connection() { res.complete_request_handler_=nullptr;/*delete parser_;*/timer_queue_.cancel(timer_cancel_key_);}
 	// return false on error
-	bool feed(const char* buffer,int length) {
-	  return llhttp_execute(parser_,buffer,length)==0;
-	}
+	bool feed(const char* buffer,int length) { return llhttp_execute(parser_,buffer,length)==0; }
 	static int on_url(http_parser* self_,const char* at,size_t length) {
 	  Connection* self=static_cast<Connection*>(self_->data);self->raw_url.insert(self->raw_url.end(),at,at+length);
 	  return 0;
@@ -244,11 +242,10 @@ namespace crow {
 	}
 	/// Call the after handle middleware and send the write the Res to the connection.
 	void complete_request() {
-	 // if (!adaptor_.is_open()) {
-		//CROW_LOG_DEBUG<<this<<" delete (socket is closed) "<<is_reading<<' '<<is_writing;
-		////delete this;
-		//return;
-	 // }
+	  if (!adaptor_.is_open()) {
+		res.complete_request_handler_=nullptr;//delete this;
+		return;
+	  }
 	  CROW_LOG_INFO<<"Response: "<<this<<' '<<req_.raw_url<<' '<<res.code<<' '<<close_connection_;
 	  if (need_to_call_after_handlers_) {
 		need_to_call_after_handlers_=false;
@@ -258,18 +255,33 @@ namespace crow {
 		  decltype(ctx_),
 		  decltype(*middlewares_)>
 		  (*middlewares_,ctx_,req_,res);
-	  }
-	  //res.complete_request_handler_=nullptr;
+	  }//res.complete_request_handler_=nullptr;
+	  num_headers_=1;
+#ifdef AccessControlAllowCredentials
+	  ++num_headers_;
+#endif
+#ifdef AccessControlAllowHeaders
+	  ++num_headers_;
+#endif
+#ifdef AccessControlAllowMethods
+	  ++num_headers_;
+#endif
+#ifdef AccessControlAllowOrigin
+	  ++num_headers_;
+#endif
 	  set_status(res.code);
-	  prepare_buffers();
 	  if (res.is_file) {
+		buffers_.reserve(4*(res.headers.size()+num_headers_)+3);
+		prepare_buffers();
 		buffers_.emplace_back(Res_crlf,2);
 		do_write_static();
 	  } else {
+		buffers_.reserve(4*(res.headers.size()+num_headers_)+15);
+		prepare_buffers();
 		detail::middleware_call_helper<0,decltype(ctx_),decltype(*middlewares_),Middlewares...>(*middlewares_,req_,res,ctx_);
-		content_length_=std::to_string(res.body.size());
+		hack_=std::to_string(res.body.size());
 		buffers_.emplace_back(Res_content_length_tag,16);
-		buffers_.emplace_back(content_length_.data(),content_length_.size());
+		buffers_.emplace_back(hack_.data(),hack_.size());
 		buffers_.emplace_back(Res_crlf,2);
 
 		buffers_.emplace_back(Res_server_tag,8);
@@ -350,7 +362,7 @@ namespace crow {
 	}
 	void prepare_buffers() {
 	  //if (res.body.empty()) {}//res.body
-	  //res.complete_request_handler_=nullptr;buffers_.reserve(4*(res.headers.size()+5)+3);
+	  //res.complete_request_handler_=nullptr;
 	  buffers_.emplace_back(Res_http_status,9);
 	  buffers_.emplace_back(status_,status_len_);
 	  if (res.code>399) res.body=status_;
@@ -362,22 +374,22 @@ namespace crow {
 	  }
 #ifdef AccessControlAllowCredentials
 	  buffers_.emplace_back(RES_AcC,34);
-	  buffers_.emplace_back(AccessControlAllowCredentials,strLen(AccessControlAllowCredentials));
+	  buffers_.emplace_back(AccessControlAllowCredentials,ACAC);
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowHeaders
 	  buffers_.emplace_back(RES_AcH,30);
-	  buffers_.emplace_back(AccessControlAllowHeaders,strLen(AccessControlAllowHeaders));
+	  buffers_.emplace_back(AccessControlAllowHeaders,ACAH);
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowMethods
 	  buffers_.emplace_back(RES_AcM,30);
-	  buffers_.emplace_back(AccessControlAllowMethods,strLen(AccessControlAllowMethods));
+	  buffers_.emplace_back(AccessControlAllowMethods,ACAM);
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowOrigin
 	  buffers_.emplace_back(RES_AcO,29);
-	  buffers_.emplace_back(AccessControlAllowOrigin,strLen(AccessControlAllowOrigin));
+	  buffers_.emplace_back(AccessControlAllowOrigin,ACAO);
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 	}
@@ -440,8 +452,6 @@ namespace crow {
 		  }
 		} else {
 		  cancel_deadline_timer();
-		  is_reading=false;
-		  adaptor_.close();
 		  delete this;
 		}
 	  });
@@ -496,6 +506,7 @@ namespace crow {
 	const char* status_="404 Not Found\r\n";
 	int status_len_=15;
 	const unsigned res_stream_threshold_=1048576;
+	uint8_t num_headers_;
 
 	//std::unique_ptr<http_parser> parser_;
 	http_parser*parser_;
@@ -527,8 +538,7 @@ namespace crow {
 	const std::string& server_name_;
 	std::vector<boost::asio::const_buffer> buffers_;
 
-	std::string content_length_;
-	std::string date_str_;
+	std::string hack_,date_str_;
 	bool is_reading{};
 	bool is_writing{};
 	bool need_to_call_after_handlers_{};
