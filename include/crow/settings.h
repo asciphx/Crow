@@ -13,7 +13,7 @@
 
 #define AccessControlAllowOrigin "*"
 #define AccessControlAllowMethods "GET,POST,DELETE,PUT,OPTIONS,HEAD"
-#define AccessControlAllowHeaders "content-type,cache-control,x-requested-with,authorization"
+//#define AccessControlAllowHeaders "content-type,cache-control,x-requested-with,authorization"
 //#define AccessControlAllowCredentials constexpr "true"
 
 #if defined(_MSC_VER)
