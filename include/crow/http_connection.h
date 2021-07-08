@@ -362,22 +362,22 @@ namespace crow {
 	  }
 #ifdef AccessControlAllowCredentials
 	  buffers_.emplace_back(RES_AcC,34);
-	  buffers_.emplace_back(AccessControlAllowCredentials,strnlen_s(AccessControlAllowCredentials,5));
+	  buffers_.emplace_back(AccessControlAllowCredentials,strnlen(AccessControlAllowCredentials,5));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowHeaders
 	  buffers_.emplace_back(RES_AcH,30);
-	  buffers_.emplace_back(AccessControlAllowHeaders,strnlen_s(AccessControlAllowHeaders,99));
+	  buffers_.emplace_back(AccessControlAllowHeaders,strnlen(AccessControlAllowHeaders,99));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowMethods
 	  buffers_.emplace_back(RES_AcM,30);
-	  buffers_.emplace_back(AccessControlAllowMethods,strnlen_s(AccessControlAllowMethods,33));
+	  buffers_.emplace_back(AccessControlAllowMethods,strnlen(AccessControlAllowMethods,33));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 #ifdef AccessControlAllowOrigin
 	  buffers_.emplace_back(RES_AcO,29);
-	  buffers_.emplace_back(AccessControlAllowOrigin,strnlen_s(AccessControlAllowOrigin,33));
+	  buffers_.emplace_back(AccessControlAllowOrigin,strnlen(AccessControlAllowOrigin,33));
 	  buffers_.emplace_back(Res_crlf,2);
 #endif
 	}
