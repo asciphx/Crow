@@ -113,9 +113,6 @@ namespace crow {
   }
   using namespace boost;
   using tcp=asio::ip::tcp;
-#ifdef CROW_ENABLE_DEBUG
-  static std::atomic<int> connectionCount;
-#endif
   /// An HTTP connection.
   template <typename Adaptor,typename Handler,typename ... Middlewares>
   class Connection {
