@@ -483,8 +483,6 @@ namespace crow {
 	  timer_queue_.cancel(timer_cancel_key_);
 	  timer_cancel_key_=timer_queue_.add([this] {
 		if (adaptor_.is_open()) {
-		  if(is_reading)adaptor_.shutdown_read(),is_reading=false;
-		  if (is_writing)adaptor_.shutdown_write(),is_writing=false;
 		  adaptor_.close();
 		}
 	  });
