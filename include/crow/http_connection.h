@@ -137,7 +137,10 @@ namespace crow {
 	// return false on error
 	bool feed(const char* buffer,int length) { return llhttp_execute(parser_,buffer,length)==0; }
 	static int on_url(http_parser* self_,const char* at,size_t length) {
-	  Connection* self=static_cast<Connection*>(self_->data);self->raw_url.insert(self->raw_url.end(),at,at+length);
+	  Connection* self=static_cast<Connection*>(self_->data);
+	  self->header_state = 0;self->url.clear();self->raw_url.clear();self->header_field.clear();
+	  self->header_value.clear();self->headers.clear();self->url_params.clear();self->body.clear();
+	  self->raw_url.insert(self->raw_url.end(),at,at+length);
 	  return 0;
 	}
 	static int on_header_field(http_parser* self_,const char* at,size_t length) {
@@ -174,8 +177,6 @@ namespace crow {
 	static int on_message_complete(http_parser* self_) {
 	  Connection* self=static_cast<Connection*>(self_->data);self->url=self->raw_url.substr(0,self->raw_url.find("?"));
 	  self->url_params=query_string(self->raw_url);self->handle();
-	  self->header_state=0;self->url.clear();self->raw_url.clear();self->header_field.clear();
-	  self->header_value.clear();self->headers.clear();self->url_params.clear();self->body.clear();
 	  return 0;
 	}
 	Req to_request() const {
