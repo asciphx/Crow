@@ -124,9 +124,8 @@ namespace crow {
 	/// Stream the response body (send the body in chunks).
 	template<typename Adaptor>
 	void do_stream_body(Adaptor& adaptor) {
-	  if (body.length()>0) {
+	  //if (body.length()>0)
 		write_streamed_string(body,adaptor);
-	  }
 	}
 	private:
 	std::string path_;

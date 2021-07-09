@@ -35,7 +35,8 @@ namespace crow {
       signals_(io_service_,SIGINT,SIGTERM),
       tick_timer_(io_service_),
       handler_(handler),
-      concurrency_(concurrency==0?1:concurrency),
+      concurrency_(concurrency<1?1:concurrency),
+      core_(concurrency_-1),
       server_name_(std::move(server_name)),
       port_(port),
       bindaddr_(std::move(bindaddr)),
@@ -51,7 +52,6 @@ namespace crow {
         io_service_pool_.emplace_back(new boost::asio::io_service());
       get_cached_date_str_pool_.resize(concurrency_);
       timer_queue_pool_.resize(concurrency_);
-      core_=concurrency_-1;
       std::vector<std::future<void>> v;
       std::atomic<int> init_count(0);
       for (uint16_t i=0; i<concurrency_; ++i)

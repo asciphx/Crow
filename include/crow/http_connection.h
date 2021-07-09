@@ -404,9 +404,7 @@ namespace crow {
 		buffers_.emplace_back(res.body.data(),res.body.size());
 		do_write();
 		if (need_to_start_read_after_complete_) {
-		  need_to_start_read_after_complete_=false;
-		  start_deadline();
-		  do_read();
+		  need_to_start_read_after_complete_=false;start_deadline();do_read();
 		}
 	  } else {
 		is_writing=true;
@@ -435,10 +433,8 @@ namespace crow {
 			} else if (!need_to_call_after_handlers_) {
 			  start_deadline();
 			  do_read();
-			} else {
-			  // res will be completed later by user
-			  need_to_start_read_after_complete_=true;
-			}
+			} 
+			else {need_to_start_read_after_complete_=true;}// res will be completed later by user
 		  } else {
 			cancel_deadline_timer();
 			is_reading=false;
@@ -449,7 +445,7 @@ namespace crow {
 		  }
 		} else {
 		  cancel_deadline_timer();
-		  delete this;
+		  //delete this;
 		}
 	  });
 	}
@@ -468,8 +464,8 @@ namespace crow {
 			check_destroy();
 		  }
 		} else {
-		  delete this;
-		  //check_destroy();
+		  //delete this;
+		  check_destroy();
 		}
 	  });
 	}
@@ -491,6 +487,7 @@ namespace crow {
 	  timer_cancel_key_=timer_queue_.add([this] {
 		if (adaptor_.is_open()) {
 		  adaptor_.close();
+		  delete this;
 		}
 	  });
 	  CROW_LOG_DEBUG<<this<<" timer added: "<<timer_cancel_key_.first<<' '<<timer_cancel_key_.second;

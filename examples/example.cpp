@@ -16,7 +16,7 @@ int main() {
   //Server rendering and support default route
   app.default_route()([] {
 	char name[64];gethostname(name,64);
-	json j=json{{"servername",name}};
+	json j{{"servername",name}};
 	return mustache::load("404NotFound.html").render(j);
   });
   //json::parse
