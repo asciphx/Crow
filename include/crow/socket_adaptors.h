@@ -10,7 +10,7 @@
 #define GET_IO_SERVICE(s) ((s).get_io_service())
 #endif
 namespace crow {
-  using namespace boost;
+  using namespace boost;//unsigned int utimeout_milli = 1500;int nSendBuf = 20*1024,nRecvBuf = 20*1024;
   using tcp=asio::ip::tcp;
   ///A wrapper for the asio::ip::tcp::socket and asio::ssl::stream
   struct SocketAdaptor {
@@ -19,6 +19,18 @@ namespace crow {
 
     asio::io_service& get_io_service() {
       return GET_IO_SERVICE(socket_);
+      //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDBUF,(const char*)&crow::nSendBuf,sizeof(int));
+      //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVBUF,(const char*)&crow::nRecvBuf,sizeof(int));
+//#if defined __linux__ || defined __APPLE__// platform-specific switch
+//	  struct timeval tv;// assume everything else is posix
+//	  tv.tv_sec = timeout_milli/1000;tv.tv_usec = (timeout_milli%1000)*1000;
+//	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVTIMEO,&tv,sizeof(tv));//Receiving time limit
+//	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDTIMEO,&tv,sizeof(tv));//Sending time limit
+//#else
+//	  int32_t timeout = crow::utimeout_milli; // use windows-specific time
+//	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVTIMEO,(const char*)&timeout,sizeof(timeout));
+//	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDTIMEO,(const char*)&timeout,sizeof(timeout));
+//#endif
     }
 
     /// Get the TCP socket handling data trasfers, regardless of what layer is handling transfers on top of the socket.
@@ -38,7 +50,9 @@ namespace crow {
     bool is_open() {
       return socket_.is_open();
     }
-
+    void cancel() {
+      socket_.cancel();
+    }
     void close() {
       system::error_code ec;
       socket_.close(ec);

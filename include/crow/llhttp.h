@@ -17,17 +17,17 @@ extern "C" {
 #ifdef __SSE4_2__
 #ifdef _MSC_VER
 #include <nmmintrin.h>
-#else  /* !_MSC_VER */
+#else  
 #include <x86intrin.h>
-#endif  /* _MSC_VER */
-#endif  /* __SSE4_2__ */
+#endif  
+#endif  
 
 #ifdef _MSC_VER
 #include <stddef.h>
 #define ALIGN(n) _declspec(align(n))
-#else  /* !_MSC_VER */
+#else  
 #define ALIGN(n) __attribute__((aligned(n)))
-#endif  /* _MSC_VER */
+#endif  
 #define CALLBACK_MAYBE(PARSER, NAME)                                          \
   do {                                                                        \
     const http_parser_settings* settings;                                        \
@@ -74,16 +74,13 @@ extern "C" {
     uint16_t flags;
     uint16_t status_code;
     void* settings;
-    int p_ready;
   };
-
   int llhttp__internal_init(http_parser* s);
   int llhttp__internal_execute(http_parser* s,const char* p,const char* endp);
-
 #ifdef __cplusplus
-}  /* extern "C" */
+}  
 #endif
-#endif  /* INCLUDE_LLHTTP_ITSELF_H_ */
+#endif  
 
 #ifndef LLLLHTTP_C_HEADERS_
 #define LLLLHTTP_C_HEADERS_
@@ -119,7 +116,6 @@ extern "C" {
     HPE_USER=24
   };
   typedef enum llhttp_errno llhttp_errno_t;
-
   enum llhttp_flags {
     F_CONNECTION_KEEP_ALIVE=0x1,
     F_CONNECTION_CLOSE=0x2,
@@ -132,28 +128,24 @@ extern "C" {
     F_TRANSFER_ENCODING=0x200
   };
   typedef enum llhttp_flags llhttp_flags_t;
-
   enum llhttp_lenient_flags {
     LENIENT_HEADERS=0x1,
     LENIENT_CHUNKED_LENGTH=0x2,
     LENIENT_KEEP_ALIVE=0x4
   };
   typedef enum llhttp_lenient_flags llhttp_lenient_flags_t;
-
   enum llhttp_type {
     HTTP_BOTH=0,
     HTTP_REQUEST=1,
     HTTP_RESPONSE=2
   };
   typedef enum llhttp_type llhttp_type_t;
-
   enum llhttp_finish {
     HTTP_FINISH_SAFE=0,
     HTTP_FINISH_SAFE_WITH_CB=1,
     HTTP_FINISH_UNSAFE=2
   };
   typedef enum llhttp_finish llhttp_finish_t;
-
   enum llhttp_method {
     HTTP_DELETE=0,
     HTTP_GET=1,
@@ -203,7 +195,6 @@ extern "C" {
     HTTP_FLUSH=45
   };
   typedef enum llhttp_method llhttp_method_t;
-
 #define HTTP_ERRNO_MAP(XX) \
   XX(0, OK, OK) \
   XX(1, INTERNAL, INTERNAL) \
@@ -336,9 +327,9 @@ extern "C" {
 
 
 #ifdef __cplusplus
-}  /* extern "C" */
+}  
 #endif
-#endif  /* LLLLHTTP_C_HEADERS_ */
+#endif  
 
 #ifndef INCLUDE_LLHTTP_API_H_
 #define INCLUDE_LLHTTP_API_H_
@@ -347,195 +338,76 @@ extern "C" {
 #endif
   typedef int (*llhttp_data_cb)(http_parser*,const char *at,size_t length);
   typedef int (*llhttp_cb)(http_parser*);
-
   struct http_parser_settings {
-    /* Possible return values 0, -1, `HPE_PAUSED` */
     llhttp_cb      on_message_begin;
-
-    /* Possible return values 0, -1, HPE_USER */
+    
     llhttp_data_cb on_url;
     llhttp_data_cb on_status;
     llhttp_data_cb on_header_field;
     llhttp_data_cb on_header_value;
-
-    /* Possible return values:
-     * 0  - Proceed normally
-     * 1  - Assume that request/response has no body, and proceed to parsing the
-     *      next message
-     * 2  - Assume absence of body (as above) and make `llhttp_execute()` return
-     *      `HPE_PAUSED_UPGRADE`
-     * -1 - Error
-     * `HPE_PAUSED`
-     */
+    
     llhttp_cb      on_headers_complete;
-
-    /* Possible return values 0, -1, HPE_USER */
+    
     llhttp_data_cb on_body;
-
-    /* Possible return values 0, -1, `HPE_PAUSED` */
+    
     llhttp_cb      on_message_complete;
-
-    /* When on_chunk_header is called, the current chunk length is stored
-     * in parser->content_length.
-     * Possible return values 0, -1, `HPE_PAUSED`
-     */
+    
     llhttp_cb      on_chunk_header;
     llhttp_cb      on_chunk_complete;
-
-    /* Information-only callbacks, return value is ignored */
+    
     llhttp_cb      on_url_complete;
     llhttp_cb      on_status_complete;
     llhttp_cb      on_header_field_complete;
     llhttp_cb      on_header_value_complete;
   };
-
-  /* Initialize the parser with specific type and user settings.
-   *
-   * NOTE: lifetime of `settings` has to be at least the same as the lifetime of
-   * the `parser` here. In practice, `settings` has to be either a static
-   * variable or be allocated with `malloc`, `new`, etc.
-   */
+  
   void llhttp_init(http_parser* parser,llhttp_type_t type,
                    const http_parser_settings* settings);
-
-  /* Reset an already initialized parser back to the start state, preserving the
-   * existing parser type, callback settings, user data, and lenient flags.
-   */
+  
   void llhttp_reset(http_parser* parser);
-
-  /* Initialize the settings object */
+  
   void llhttp_settings_init(http_parser_settings* settings);
-
-  /* Parse full or partial request/response, invoking user callbacks along the
-   * way.
-   *
-   * If any of `llhttp_data_cb` returns errno not equal to `HPE_OK` - the parsing
-   * interrupts, and such errno is returned from `llhttp_execute()`. If
-   * `HPE_PAUSED` was used as a errno, the execution can be resumed with
-   * `llhttp_resume()` call.
-   *
-   * In a special case of CONNECT/Upgrade request/response `HPE_PAUSED_UPGRADE`
-   * is returned after fully parsing the request/response. If the user wishes to
-   * continue parsing, they need to invoke `llhttp_resume_after_upgrade()`.
-   *
-   * NOTE: if this function ever returns a non-pause type error, it will continue
-   * to return the same error upon each successive call up until `llhttp_init()`
-   * is called.
-   */
+  
   int llhttp_execute(http_parser* parser,const char* data,size_t len);
-
-  /* This method should be called when the other side has no further bytes to
-   * send (e.g. shutdown of readable side of the TCP connection.)
-   *
-   * Requests without `Content-Length` and other messages might require treating
-   * all incoming bytes as the part of the body, up to the last byte of the
-   * connection. This method will invoke `on_message_complete()` callback if the
-   * request was terminated safely. Otherwise a error code would be returned.
-   */
+  
   int llhttp_finish(http_parser* parser);
-
-  /* Returns `1` if the incoming message is parsed until the last byte, and has
-   * to be completed by calling `llhttp_finish()` on EOF
-   */
+  
   int llhttp_message_needs_eof(const http_parser* parser);
-
-  /* Returns `1` if there might be any other messages following the last that was
-   * successfully parsed.
-   */
+  
   int llhttp_should_keep_alive(const http_parser* parser);
-
-  /* Make further calls of `llhttp_execute()` return `HPE_PAUSED` and set
-   * appropriate error reason.
-   *
-   * Important: do not call this from user callbacks! User callbacks must return
-   * `HPE_PAUSED` if pausing is required.
-   */
+  
   void llhttp_pause(http_parser* parser);
-
-  /* Might be called to resume the execution after the pause in user's callback.
-   * See `llhttp_execute()` above for details.
-   *
-   * Call this only if `llhttp_execute()` returns `HPE_PAUSED`.
-   */
+  
   void llhttp_resume(http_parser* parser);
-
-  /* Might be called to resume the execution after the pause in user's callback.
-   * See `llhttp_execute()` above for details.
-   *
-   * Call this only if `llhttp_execute()` returns `HPE_PAUSED_UPGRADE`
-   */
+  
   void llhttp_resume_after_upgrade(http_parser* parser);
-
-  /* Returns the latest return error */
+  
   int llhttp_get_errno(const http_parser* parser);
-
-  /* Returns the verbal explanation of the latest returned error.
-   *
-   * Note: User callback should set error reason when returning the error. See
-   * `llhttp_set_error_reason()` for details.
-   */
+  
   const char* llhttp_get_error_reason(const http_parser* parser);
-
-  /* Assign verbal description to the returned error. Must be called in user
-   * callbacks right before returning the errno.
-   *
-   * Note: `HPE_USER` error code might be useful in user callbacks.
-   */
+  
   void llhttp_set_error_reason(http_parser* parser,const char* reason);
-  /* Returns the pointer to the last parsed byte before the returned error. The
-   * pointer is relative to the `data` argument of `llhttp_execute()`.
-   *
-   * Note: this method might be useful for counting the number of parsed bytes.
-   */
+  
   const char* llhttp_get_error_pos(const http_parser* parser);
-  /* Returns textual name of error code */
+  
   const char* llhttp_errno_name(llhttp_errno_t err);
-  /* Returns textual name of HTTP method */
+  
   const char* llhttp_method_name(llhttp_method_t method);
-  /* Enables/disables lenient header value parsing (disabled by default).
-   *
-   * Lenient parsing disables header value token checks, extending llhttp's
-   * protocol support to highly non-compliant clients/server. No
-   * `HPE_INVALID_HEADER_TOKEN` will be raised for incorrect header values when
-   * lenient parsing is "on".
-   *
-   * **(USE AT YOUR OWN RISK)**
-   */
+  
     void llhttp_set_lenient_headers(http_parser* parser,int enabled);
-  /* Enables/disables lenient handling of conflicting `Transfer-Encoding` and
-   * `Content-Length` headers (disabled by default).
-   *
-   * Normally `llhttp` would error when `Transfer-Encoding` is present in
-   * conjunction with `Content-Length`. This error is important to prevent HTTP
-   * request smuggling, but may be less desirable for small number of cases
-   * involving legacy servers.
-   *
-   * **(USE AT YOUR OWN RISK)**
-   */
+  
     void llhttp_set_lenient_chunked_length(http_parser* parser,int enabled);
-  /* Enables/disables lenient handling of `Connection: close` and HTTP/1.0
-   * requests responses.
-   *
-   * Normally `llhttp` would error on (in strict mode) or discard (in loose mode)
-   * the HTTP request/response after the request/response with `Connection: close`
-   * and `Content-Length`. This is important to prevent cache poisoning attacks,
-   * but might interact badly with outdated and insecure clients. With this flag
-   * the extra request/response will be parsed normally.
-   *
-   * **(USE AT YOUR OWN RISK)**
-   */
+  
   void llhttp_set_lenient_keep_alive(http_parser* parser,int enabled);
-  //asci
-
+  
   typedef int (*llhttp__internal__span_cb)(
     http_parser*,const char*,const  char*);
-
 #ifdef __SSE4_2__
   static const unsigned char ALIGN(16) llparse_blob0[]={
     0x9, 0x9, 0xc, 0xc, '!', '"', '$', '>', '@', '~', 0x80,
     0xff, 0x0, 0x0, 0x0, 0x0
   };
-#endif  /* __SSE4_2__ */
+#endif  
   static const unsigned char llparse_blob1[]={
     'o', 'n'
   };
@@ -559,19 +431,19 @@ extern "C" {
     0x9, 0x9, ' ', '~', 0x80, 0xff, 0x0, 0x0, 0x0, 0x0, 0x0,
     0x0, 0x0, 0x0, 0x0, 0x0
   };
-#endif  /* __SSE4_2__ */
+#endif  
 #ifdef __SSE4_2__
   static const unsigned char ALIGN(16) llparse_blob8[]={
     ' ', '!', '#', '\'', '*', '+', '-', '.', '0', '9', 'A',
     'Z', '^', 'z', '|', '|'
   };
-#endif  /* __SSE4_2__ */
+#endif  
 #ifdef __SSE4_2__
   static const unsigned char ALIGN(16) llparse_blob9[]={
     '~', '~', 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
     0x0, 0x0, 0x0, 0x0, 0x0
   };
-#endif  /* __SSE4_2__ */
+#endif  
   static const unsigned char llparse_blob10[]={
     'e', 'n', 't', '-', 'l', 'e', 'n', 'g', 't', 'h'
   };
@@ -730,31 +602,26 @@ extern "C" {
   static const unsigned char llparse_blob61[]={
     'T', 'P', '/'
   };
-
   enum llparse_match_status_e {
     kMatchComplete,
     kMatchPause,
     kMatchMismatch
   };
   typedef enum llparse_match_status_e llparse_match_status_t;
-
   struct llparse_match_s {
     llparse_match_status_t status;
     const unsigned char* current;
   };
   typedef struct llparse_match_s llparse_match_t;
-
   static llparse_match_t llparse__match_sequence_to_lower(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp,
     const unsigned char* seq,uint32_t seq_len) {
     uint32_t index;
     llparse_match_t res;
-
     index=s->_index;
-    for (; p!=endp; p++) {
+    for (; p!=endp; ++p) {
       unsigned char current;
-
       current=((*p)>='A'&&(*p)<='Z'?(*p|0x20):(*p));
       if (current==seq[index]) {
         if (++index==seq_len) {
@@ -775,18 +642,15 @@ extern "C" {
     res.current=p;
     return res;
   }
-
   static llparse_match_t llparse__match_sequence_to_lower_unsafe(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp,
     const unsigned char* seq,uint32_t seq_len) {
     uint32_t index;
     llparse_match_t res;
-
     index=s->_index;
-    for (; p!=endp; p++) {
+    for (; p!=endp; ++p) {
       unsigned char current;
-
       current=((*p)|0x20);
       if (current==seq[index]) {
         if (++index==seq_len) {
@@ -807,18 +671,15 @@ extern "C" {
     res.current=p;
     return res;
   }
-
   static llparse_match_t llparse__match_sequence_id(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp,
     const unsigned char* seq,uint32_t seq_len) {
     uint32_t index;
     llparse_match_t res;
-
     index=s->_index;
-    for (; p!=endp; p++) {
+    for (; p!=endp; ++p) {
       unsigned char current;
-
       current=*p;
       if (current==seq[index]) {
         if (++index==seq_len) {
@@ -839,7 +700,6 @@ extern "C" {
     res.current=p;
     return res;
   }
-
   enum llparse_state_e {
     s_error,
     s_n_llhttp__internal__n_closed,
@@ -1026,76 +886,57 @@ extern "C" {
     s_n_llhttp__internal__n_start,
   };
   typedef enum llparse_state_e llparse_state_t;
-
   int llhttp__on_url(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_header_field(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_header_value(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_body(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_status(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_url_complete(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_chunk_complete(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_message_complete(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
-
   int llhttp__after_message_complete(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
-
   int llhttp__before_headers_complete(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_headers_complete(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__after_headers_complete(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_chunk_header(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_header_field_complete(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_header_value_complete(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
   int llhttp__on_status_complete(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__on_message_begin(
     http_parser* s,const unsigned char* p,
     const unsigned char* endp);
-
   int llhttp__internal__c_update_finish(
     http_parser* state,
     const unsigned char* p,
@@ -1103,14 +944,12 @@ extern "C" {
     state->finish=2;
     return 0;
   }
-
   int llhttp__internal__c_load_type(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return state->type;
   }
-
   int llhttp__internal__c_store_method(
     http_parser* state,
     const unsigned char* p,
@@ -1119,14 +958,12 @@ extern "C" {
     state->method=match;
     return 0;
   }
-
   int llhttp__internal__c_is_equal_method(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return state->method==5;
   }
-
   int llhttp__internal__c_update_http_major(
     http_parser* state,
     const unsigned char* p,
@@ -1134,7 +971,6 @@ extern "C" {
     state->http_major=0;
     return 0;
   }
-
   int llhttp__internal__c_update_http_minor(
     http_parser* state,
     const unsigned char* p,
@@ -1142,7 +978,6 @@ extern "C" {
     state->http_minor=9;
     return 0;
   }
-
   int llhttp__internal__c_test_flags(
     http_parser* state,
     const unsigned char* p,
@@ -1162,28 +997,24 @@ extern "C" {
     state->finish=0;
     return 0;
   }
-
   int llhttp__internal__c_test_lenient_flags(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return (state->lenient_flags&4)==4;
   }
-
   int llhttp__internal__c_test_flags_1(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return (state->flags&544)==544;
   }
-
   int llhttp__internal__c_test_lenient_flags_1(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return (state->lenient_flags&2)==2;
   }
-
   int llhttp__internal__c_update_content_length(
     http_parser* state,
     const unsigned char* p,
@@ -1191,20 +1022,16 @@ extern "C" {
     state->content_length=0;
     return 0;
   }
-
   int llhttp__internal__c_mul_add_content_length(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp,
     int match) {
-    /* Multiplication overflow */
     if (state->content_length>0xffffffffffffffffULL/16) {
       return 1;
     }
-
     state->content_length*=16;
-
-    /* Addition overflow */
+    
     if (match>=0) {
       if (state->content_length>0xffffffffffffffffULL-match) {
         return 1;
@@ -1217,14 +1044,12 @@ extern "C" {
     state->content_length+=match;
     return 0;
   }
-
   int llhttp__internal__c_is_equal_content_length(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return state->content_length==0;
   }
-
   int llhttp__internal__c_or_flags(
     http_parser* state,
     const unsigned char* p,
@@ -1232,7 +1057,6 @@ extern "C" {
     state->flags|=128;
     return 0;
   }
-
   int llhttp__internal__c_update_finish_3(
     http_parser* state,
     const unsigned char* p,
@@ -1240,7 +1064,6 @@ extern "C" {
     state->finish=1;
     return 0;
   }
-
   int llhttp__internal__c_or_flags_1(
     http_parser* state,
     const unsigned char* p,
@@ -1248,7 +1071,6 @@ extern "C" {
     state->flags|=64;
     return 0;
   }
-
   int llhttp__internal__c_update_upgrade(
     http_parser* state,
     const unsigned char* p,
@@ -1256,7 +1078,6 @@ extern "C" {
     state->upgrade=1;
     return 0;
   }
-
   int llhttp__internal__c_store_header_state(
     http_parser* state,
     const unsigned char* p,
@@ -1265,14 +1086,12 @@ extern "C" {
     state->header_state=match;
     return 0;
   }
-
   int llhttp__internal__c_load_header_state(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return state->header_state;
   }
-
   int llhttp__internal__c_or_flags_3(
     http_parser* state,
     const unsigned char* p,
@@ -1280,7 +1099,6 @@ extern "C" {
     state->flags|=1;
     return 0;
   }
-
   int llhttp__internal__c_update_header_state(
     http_parser* state,
     const unsigned char* p,
@@ -1288,8 +1106,6 @@ extern "C" {
     state->header_state=1;
     return 0;
   }
-
-
   int llhttp__internal__c_or_flags_4(
     http_parser* state,
     const unsigned char* p,
@@ -1297,7 +1113,6 @@ extern "C" {
     state->flags|=2;
     return 0;
   }
-
   int llhttp__internal__c_or_flags_5(
     http_parser* state,
     const unsigned char* p,
@@ -1305,7 +1120,6 @@ extern "C" {
     state->flags|=4;
     return 0;
   }
-
   int llhttp__internal__c_or_flags_6(
     http_parser* state,
     const unsigned char* p,
@@ -1313,7 +1127,6 @@ extern "C" {
     state->flags|=8;
     return 0;
   }
-
   int llhttp__internal__c_update_header_state_2(
     http_parser* state,
     const unsigned char* p,
@@ -1321,14 +1134,12 @@ extern "C" {
     state->header_state=6;
     return 0;
   }
-
   int llhttp__internal__c_test_lenient_flags_2(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return (state->lenient_flags&1)==1;
   }
-
   int llhttp__internal__c_update_header_state_4(
     http_parser* state,
     const unsigned char* p,
@@ -1336,7 +1147,6 @@ extern "C" {
     state->header_state=0;
     return 0;
   }
-
   int llhttp__internal__c_update_header_state_5(
     http_parser* state,
     const unsigned char* p,
@@ -1344,7 +1154,6 @@ extern "C" {
     state->header_state=5;
     return 0;
   }
-
   int llhttp__internal__c_update_header_state_6(
     http_parser* state,
     const unsigned char* p,
@@ -1352,27 +1161,22 @@ extern "C" {
     state->header_state=7;
     return 0;
   }
-
   int llhttp__internal__c_test_flags_2(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return (state->flags&32)==32;
   }
-
   int llhttp__internal__c_mul_add_content_length_1(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp,
     int match) {
-    /* Multiplication overflow */
     if (state->content_length>0xffffffffffffffffULL/10) {
       return 1;
     }
-
     state->content_length*=10;
-
-    /* Addition overflow */
+    
     if (match>=0) {
       if (state->content_length>0xffffffffffffffffULL-match) {
         return 1;
@@ -1385,7 +1189,6 @@ extern "C" {
     state->content_length+=match;
     return 0;
   }
-
   int llhttp__internal__c_or_flags_15(
     http_parser* state,
     const unsigned char* p,
@@ -1393,7 +1196,6 @@ extern "C" {
     state->flags|=32;
     return 0;
   }
-
   int llhttp__internal__c_or_flags_16(
     http_parser* state,
     const unsigned char* p,
@@ -1401,7 +1203,6 @@ extern "C" {
     state->flags|=512;
     return 0;
   }
-
   int llhttp__internal__c_and_flags(
     http_parser* state,
     const unsigned char* p,
@@ -1409,7 +1210,6 @@ extern "C" {
     state->flags&=-9;
     return 0;
   }
-
   int llhttp__internal__c_update_header_state_7(
     http_parser* state,
     const unsigned char* p,
@@ -1417,7 +1217,6 @@ extern "C" {
     state->header_state=8;
     return 0;
   }
-
   int llhttp__internal__c_or_flags_17(
     http_parser* state,
     const unsigned char* p,
@@ -1425,14 +1224,12 @@ extern "C" {
     state->flags|=16;
     return 0;
   }
-
   int llhttp__internal__c_load_method(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp) {
     return state->method;
   }
-
   int llhttp__internal__c_store_http_major(
     http_parser* state,
     const unsigned char* p,
@@ -1441,7 +1238,6 @@ extern "C" {
     state->http_major=match;
     return 0;
   }
-
   int llhttp__internal__c_store_http_minor(
     http_parser* state,
     const unsigned char* p,
@@ -1450,7 +1246,6 @@ extern "C" {
     state->http_minor=match;
     return 0;
   }
-
   int llhttp__internal__c_update_status_code(
     http_parser* state,
     const unsigned char* p,
@@ -1458,20 +1253,16 @@ extern "C" {
     state->status_code=0;
     return 0;
   }
-
   int llhttp__internal__c_mul_add_status_code(
     http_parser* state,
     const unsigned char* p,
     const unsigned char* endp,
     int match) {
-    /* Multiplication overflow */
     if (state->status_code>0xffff/10) {
       return 1;
     }
-
     state->status_code*=10;
-
-    /* Addition overflow */
+    
     if (match>=0) {
       if (state->status_code>0xffff-match) {
         return 1;
@@ -1482,14 +1273,12 @@ extern "C" {
       }
     }
     state->status_code+=match;
-
-    /* Enforce maximum */
+    
     if (state->status_code>999) {
       return 1;
     }
     return 0;
   }
-
   int llhttp__internal__c_update_type(
     http_parser* state,
     const unsigned char* p,
@@ -1497,7 +1286,6 @@ extern "C" {
     state->type=1;
     return 0;
   }
-
   int llhttp__internal__c_update_type_1(
     http_parser* state,
     const unsigned char* p,
@@ -1505,13 +1293,11 @@ extern "C" {
     state->type=2;
     return 0;
   }
-
   int llhttp__internal_init(http_parser* state) {
     memset(state,0,sizeof(*state));
     state->_current=(void*)(intptr_t)s_n_llhttp__internal__n_start;
     return 0;
   }
-
   static llparse_state_t llhttp__internal__run(
     http_parser* state,
     const unsigned char* p,
@@ -1523,7 +1309,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_closed;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_closed;
       /* UNREACHABLE */;
       abort();
@@ -1578,7 +1364,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_chunk_data_almost_done_skip;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_invoke_llhttp__on_chunk_complete;
       /* UNREACHABLE */;
       abort();
@@ -1588,7 +1374,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_chunk_data_almost_done;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_chunk_data_almost_done_skip;
       /* UNREACHABLE */;
       abort();
@@ -1597,7 +1383,6 @@ extern "C" {
     s_n_llhttp__internal__n_consume_content_length: {
       size_t avail;
       uint64_t need;
-
       avail=endp-p;
       need=state->content_length;
       if (avail>=need) {
@@ -1605,7 +1390,6 @@ extern "C" {
         state->content_length=0;
         goto s_n_llhttp__internal__n_span_end_llhttp__on_body;
       }
-
       state->content_length-=avail;
       return s_n_llhttp__internal__n_consume_content_length;
       /* UNREACHABLE */;
@@ -1638,7 +1422,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_chunk_size_almost_done;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_invoke_llhttp__on_chunk_header;
       /* UNREACHABLE */;
       abort();
@@ -1650,11 +1434,11 @@ extern "C" {
       }
       switch (*p) {
         case 13: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_chunk_size_almost_done;
         }
         default: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_chunk_parameters;
         }
       }
@@ -1668,15 +1452,15 @@ extern "C" {
       }
       switch (*p) {
         case 13: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_chunk_size_almost_done;
         }
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_chunk_parameters;
         }
         case ';': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_chunk_parameters;
         }
         default: {
@@ -1693,112 +1477,112 @@ extern "C" {
       }
       switch (*p) {
         case '0': {
-          p++;
+          ++p;
           match=0;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '1': {
-          p++;
+          ++p;
           match=1;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '2': {
-          p++;
+          ++p;
           match=2;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '3': {
-          p++;
+          ++p;
           match=3;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '4': {
-          p++;
+          ++p;
           match=4;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '5': {
-          p++;
+          ++p;
           match=5;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '6': {
-          p++;
+          ++p;
           match=6;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '7': {
-          p++;
+          ++p;
           match=7;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '8': {
-          p++;
+          ++p;
           match=8;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '9': {
-          p++;
+          ++p;
           match=9;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'A': {
-          p++;
+          ++p;
           match=10;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'B': {
-          p++;
+          ++p;
           match=11;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'C': {
-          p++;
+          ++p;
           match=12;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'D': {
-          p++;
+          ++p;
           match=13;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'E': {
-          p++;
+          ++p;
           match=14;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'F': {
-          p++;
+          ++p;
           match=15;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'a': {
-          p++;
+          ++p;
           match=10;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'b': {
-          p++;
+          ++p;
           match=11;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'c': {
-          p++;
+          ++p;
           match=12;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'd': {
-          p++;
+          ++p;
           match=13;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'e': {
-          p++;
+          ++p;
           match=14;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'f': {
-          p++;
+          ++p;
           match=15;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
@@ -1816,112 +1600,112 @@ extern "C" {
       }
       switch (*p) {
         case '0': {
-          p++;
+          ++p;
           match=0;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '1': {
-          p++;
+          ++p;
           match=1;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '2': {
-          p++;
+          ++p;
           match=2;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '3': {
-          p++;
+          ++p;
           match=3;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '4': {
-          p++;
+          ++p;
           match=4;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '5': {
-          p++;
+          ++p;
           match=5;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '6': {
-          p++;
+          ++p;
           match=6;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '7': {
-          p++;
+          ++p;
           match=7;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '8': {
-          p++;
+          ++p;
           match=8;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case '9': {
-          p++;
+          ++p;
           match=9;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'A': {
-          p++;
+          ++p;
           match=10;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'B': {
-          p++;
+          ++p;
           match=11;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'C': {
-          p++;
+          ++p;
           match=12;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'D': {
-          p++;
+          ++p;
           match=13;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'E': {
-          p++;
+          ++p;
           match=14;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'F': {
-          p++;
+          ++p;
           match=15;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'a': {
-          p++;
+          ++p;
           match=10;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'b': {
-          p++;
+          ++p;
           match=11;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'c': {
-          p++;
+          ++p;
           match=12;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'd': {
-          p++;
+          ++p;
           match=13;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'e': {
-          p++;
+          ++p;
           match=14;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
         case 'f': {
-          p++;
+          ++p;
           match=15;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length;
         }
@@ -1945,7 +1729,6 @@ extern "C" {
     s_n_llhttp__internal__n_consume_content_length_1: {
       size_t avail;
       uint64_t need;
-
       avail=endp-p;
       need=state->content_length;
       if (avail>=need) {
@@ -1953,7 +1736,6 @@ extern "C" {
         state->content_length=0;
         goto s_n_llhttp__internal__n_span_end_llhttp__on_body_1;
       }
-
       state->content_length-=avail;
       return s_n_llhttp__internal__n_consume_content_length_1;
       /* UNREACHABLE */;
@@ -1975,7 +1757,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_eof;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_eof;
       /* UNREACHABLE */;
       abort();
@@ -2015,7 +1797,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_headers_almost_done;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_invoke_test_flags;
       /* UNREACHABLE */;
       abort();
@@ -2047,11 +1829,11 @@ extern "C" {
       }
       switch (*p) {
         case 9: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_discard_ws;
         }
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_discard_ws;
         }
         default: {
@@ -2066,7 +1848,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_header_value_discard_ws_almost_done;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_header_value_discard_lws;
       /* UNREACHABLE */;
       abort();
@@ -2097,7 +1879,7 @@ extern "C" {
       }
       switch (*p) {
         case 10: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_lws;
         }
         default: {
@@ -2120,7 +1902,7 @@ extern "C" {
           goto s_n_llhttp__internal__n_span_end_llhttp__on_header_value_3;
         }
         default: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_lenient;
         }
       }
@@ -2171,11 +1953,11 @@ extern "C" {
       }
       switch (lookup_table[(uint8_t)*p]) {
         case 1: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_connection_token;
         }
         case 2: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_connection;
         }
         default: {
@@ -2198,11 +1980,11 @@ extern "C" {
           goto s_n_llhttp__internal__n_header_value_otherwise;
         }
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_connection_ws;
         }
         case ',': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_invoke_load_header_state_4;
         }
         default: {
@@ -2215,7 +1997,6 @@ extern "C" {
       case s_n_llhttp__internal__n_header_value_connection_1:
     s_n_llhttp__internal__n_header_value_connection_1: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_header_value_connection_1;
       }
@@ -2223,7 +2004,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_invoke_update_header_state_2;
         }
         case kMatchPause: {
@@ -2239,7 +2020,6 @@ extern "C" {
       case s_n_llhttp__internal__n_header_value_connection_2:
     s_n_llhttp__internal__n_header_value_connection_2: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_header_value_connection_2;
       }
@@ -2247,7 +2027,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_invoke_update_header_state_5;
         }
         case kMatchPause: {
@@ -2263,7 +2043,6 @@ extern "C" {
       case s_n_llhttp__internal__n_header_value_connection_3:
     s_n_llhttp__internal__n_header_value_connection_3: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_header_value_connection_3;
       }
@@ -2271,7 +2050,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_invoke_update_header_state_6;
         }
         case kMatchPause: {
@@ -2291,23 +2070,23 @@ extern "C" {
       }
       switch (((*p)>='A'&&(*p)<='Z'?(*p|0x20):(*p))) {
         case 9: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_connection;
         }
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_connection;
         }
         case 'c': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_connection_1;
         }
         case 'k': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_connection_2;
         }
         case 'u': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_connection_3;
         }
         default: {
@@ -2350,7 +2129,7 @@ extern "C" {
           goto s_n_llhttp__internal__n_invoke_or_flags_15;
         }
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_content_length_ws;
         }
         default: {
@@ -2367,52 +2146,52 @@ extern "C" {
       }
       switch (*p) {
         case '0': {
-          p++;
+          ++p;
           match=0;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length_1;
         }
         case '1': {
-          p++;
+          ++p;
           match=1;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length_1;
         }
         case '2': {
-          p++;
+          ++p;
           match=2;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length_1;
         }
         case '3': {
-          p++;
+          ++p;
           match=3;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length_1;
         }
         case '4': {
-          p++;
+          ++p;
           match=4;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length_1;
         }
         case '5': {
-          p++;
+          ++p;
           match=5;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length_1;
         }
         case '6': {
-          p++;
+          ++p;
           match=6;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length_1;
         }
         case '7': {
-          p++;
+          ++p;
           match=7;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length_1;
         }
         case '8': {
-          p++;
+          ++p;
           match=8;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length_1;
         }
         case '9': {
-          p++;
+          ++p;
           match=9;
           goto s_n_llhttp__internal__n_invoke_mul_add_content_length_1;
         }
@@ -2436,7 +2215,7 @@ extern "C" {
           goto s_n_llhttp__internal__n_invoke_update_header_state_7;
         }
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_te_chunked_last;
         }
         default: {
@@ -2453,11 +2232,11 @@ extern "C" {
       }
       switch (*p) {
         case 9: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_te_token_ows;
         }
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_te_token_ows;
         }
         default: {
@@ -2496,27 +2275,24 @@ extern "C" {
         __m128i input;
         int avail;
         int match_len;
-
-        /* Load input */
+        
         input=_mm_loadu_si128((__m128i const*) p);
         ranges=_mm_loadu_si128((__m128i const*) llparse_blob7);
-
-        /* Find first character that does not match `ranges` */
+        
         match_len=_mm_cmpestri(ranges,6,
                                input,16,
                                _SIDD_UBYTE_OPS|_SIDD_CMP_RANGES|
                                _SIDD_NEGATIVE_POLARITY);
-
         if (match_len!=0) {
           p+=match_len;
           goto s_n_llhttp__internal__n_header_value;
         }
         goto s_n_llhttp__internal__n_header_value_otherwise;
       }
-#endif  /* __SSE4_2__ */
+#endif  
       switch (lookup_table[(uint8_t)*p]) {
         case 1: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value;
         }
         default: {
@@ -2551,11 +2327,11 @@ extern "C" {
       }
       switch (lookup_table[(uint8_t)*p]) {
         case 1: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_te_token;
         }
         case 2: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_te_token_ows;
         }
         default: {
@@ -2568,7 +2344,6 @@ extern "C" {
       case s_n_llhttp__internal__n_header_value_te_chunked:
     s_n_llhttp__internal__n_header_value_te_chunked: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_header_value_te_chunked;
       }
@@ -2576,7 +2351,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_te_chunked_last;
         }
         case kMatchPause: {
@@ -2607,19 +2382,19 @@ extern "C" {
       }
       switch (*p) {
         case 9: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_discard_ws;
         }
         case 10: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_discard_lws;
         }
         case 13: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_discard_ws_almost_done;
         }
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_value_discard_ws;
         }
         default: {
@@ -2683,39 +2458,34 @@ extern "C" {
         __m128i input;
         int avail;
         int match_len;
-
-        /* Load input */
+        
         input=_mm_loadu_si128((__m128i const*) p);
         ranges=_mm_loadu_si128((__m128i const*) llparse_blob8);
-
-        /* Find first character that does not match `ranges` */
+        
         match_len=_mm_cmpestri(ranges,16,
                                input,16,
                                _SIDD_UBYTE_OPS|_SIDD_CMP_RANGES|
                                _SIDD_NEGATIVE_POLARITY);
-
         if (match_len!=0) {
           p+=match_len;
           goto s_n_llhttp__internal__n_header_field_general;
         }
         ranges=_mm_loadu_si128((__m128i const*) llparse_blob9);
-
-        /* Find first character that does not match `ranges` */
+        
         match_len=_mm_cmpestri(ranges,2,
                                input,16,
                                _SIDD_UBYTE_OPS|_SIDD_CMP_RANGES|
                                _SIDD_NEGATIVE_POLARITY);
-
         if (match_len!=0) {
           p+=match_len;
           goto s_n_llhttp__internal__n_header_field_general;
         }
         goto s_n_llhttp__internal__n_header_field_general_otherwise;
       }
-#endif  /* __SSE4_2__ */
+#endif  
       switch (lookup_table[(uint8_t)*p]) {
         case 1: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_field_general;
         }
         default: {
@@ -2732,7 +2502,7 @@ extern "C" {
       }
       switch (*p) {
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_field_colon;
         }
         case ':': {
@@ -2748,7 +2518,6 @@ extern "C" {
       case s_n_llhttp__internal__n_header_field_3:
     s_n_llhttp__internal__n_header_field_3: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_header_field_3;
       }
@@ -2756,7 +2525,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=1;
           goto s_n_llhttp__internal__n_invoke_store_header_state;
         }
@@ -2773,7 +2542,6 @@ extern "C" {
       case s_n_llhttp__internal__n_header_field_4:
     s_n_llhttp__internal__n_header_field_4: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_header_field_4;
       }
@@ -2781,7 +2549,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=2;
           goto s_n_llhttp__internal__n_invoke_store_header_state;
         }
@@ -2802,11 +2570,11 @@ extern "C" {
       }
       switch (((*p)>='A'&&(*p)<='Z'?(*p|0x20):(*p))) {
         case 'n': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_field_3;
         }
         case 't': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_field_4;
         }
         default: {
@@ -2819,7 +2587,6 @@ extern "C" {
       case s_n_llhttp__internal__n_header_field_1:
     s_n_llhttp__internal__n_header_field_1: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_header_field_1;
       }
@@ -2827,7 +2594,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_field_2;
         }
         case kMatchPause: {
@@ -2843,7 +2610,6 @@ extern "C" {
       case s_n_llhttp__internal__n_header_field_5:
     s_n_llhttp__internal__n_header_field_5: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_header_field_5;
       }
@@ -2851,7 +2617,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=1;
           goto s_n_llhttp__internal__n_invoke_store_header_state;
         }
@@ -2868,7 +2634,6 @@ extern "C" {
       case s_n_llhttp__internal__n_header_field_6:
     s_n_llhttp__internal__n_header_field_6: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_header_field_6;
       }
@@ -2876,7 +2641,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=3;
           goto s_n_llhttp__internal__n_invoke_store_header_state;
         }
@@ -2893,7 +2658,6 @@ extern "C" {
       case s_n_llhttp__internal__n_header_field_7:
     s_n_llhttp__internal__n_header_field_7: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_header_field_7;
       }
@@ -2901,7 +2665,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=4;
           goto s_n_llhttp__internal__n_invoke_store_header_state;
         }
@@ -2922,19 +2686,19 @@ extern "C" {
       }
       switch (((*p)>='A'&&(*p)<='Z'?(*p|0x20):(*p))) {
         case 'c': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_field_1;
         }
         case 'p': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_field_5;
         }
         case 't': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_field_6;
         }
         case 'u': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_field_7;
         }
         default: {
@@ -2965,7 +2729,7 @@ extern "C" {
           goto s_n_llhttp__internal__n_headers_almost_done;
         }
         case 13: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_headers_almost_done;
         }
         default: {
@@ -2980,7 +2744,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_url_skip_to_http09;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_invoke_update_http_major;
       /* UNREACHABLE */;
       abort();
@@ -2988,7 +2752,6 @@ extern "C" {
       case s_n_llhttp__internal__n_url_skip_lf_to_http09:
     s_n_llhttp__internal__n_url_skip_lf_to_http09: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_url_skip_lf_to_http09;
       }
@@ -2996,7 +2759,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_invoke_update_http_major;
         }
         case kMatchPause: {
@@ -3012,7 +2775,6 @@ extern "C" {
       case s_n_llhttp__internal__n_req_pri_upgrade:
     s_n_llhttp__internal__n_req_pri_upgrade: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_req_pri_upgrade;
       }
@@ -3020,7 +2782,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_error_23;
         }
         case kMatchPause: {
@@ -3040,7 +2802,7 @@ extern "C" {
       }
       switch (*p) {
         case 10: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_field_start;
         }
         default: {
@@ -3057,11 +2819,11 @@ extern "C" {
       }
       switch (*p) {
         case 10: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_header_field_start;
         }
         case 13: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_req_http_complete_1;
         }
         default: {
@@ -3078,52 +2840,52 @@ extern "C" {
       }
       switch (*p) {
         case '0': {
-          p++;
+          ++p;
           match=0;
           goto s_n_llhttp__internal__n_invoke_store_http_minor;
         }
         case '1': {
-          p++;
+          ++p;
           match=1;
           goto s_n_llhttp__internal__n_invoke_store_http_minor;
         }
         case '2': {
-          p++;
+          ++p;
           match=2;
           goto s_n_llhttp__internal__n_invoke_store_http_minor;
         }
         case '3': {
-          p++;
+          ++p;
           match=3;
           goto s_n_llhttp__internal__n_invoke_store_http_minor;
         }
         case '4': {
-          p++;
+          ++p;
           match=4;
           goto s_n_llhttp__internal__n_invoke_store_http_minor;
         }
         case '5': {
-          p++;
+          ++p;
           match=5;
           goto s_n_llhttp__internal__n_invoke_store_http_minor;
         }
         case '6': {
-          p++;
+          ++p;
           match=6;
           goto s_n_llhttp__internal__n_invoke_store_http_minor;
         }
         case '7': {
-          p++;
+          ++p;
           match=7;
           goto s_n_llhttp__internal__n_invoke_store_http_minor;
         }
         case '8': {
-          p++;
+          ++p;
           match=8;
           goto s_n_llhttp__internal__n_invoke_store_http_minor;
         }
         case '9': {
-          p++;
+          ++p;
           match=9;
           goto s_n_llhttp__internal__n_invoke_store_http_minor;
         }
@@ -3141,7 +2903,7 @@ extern "C" {
       }
       switch (*p) {
         case '.': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_req_http_minor;
         }
         default: {
@@ -3158,52 +2920,52 @@ extern "C" {
       }
       switch (*p) {
         case '0': {
-          p++;
+          ++p;
           match=0;
           goto s_n_llhttp__internal__n_invoke_store_http_major;
         }
         case '1': {
-          p++;
+          ++p;
           match=1;
           goto s_n_llhttp__internal__n_invoke_store_http_major;
         }
         case '2': {
-          p++;
+          ++p;
           match=2;
           goto s_n_llhttp__internal__n_invoke_store_http_major;
         }
         case '3': {
-          p++;
+          ++p;
           match=3;
           goto s_n_llhttp__internal__n_invoke_store_http_major;
         }
         case '4': {
-          p++;
+          ++p;
           match=4;
           goto s_n_llhttp__internal__n_invoke_store_http_major;
         }
         case '5': {
-          p++;
+          ++p;
           match=5;
           goto s_n_llhttp__internal__n_invoke_store_http_major;
         }
         case '6': {
-          p++;
+          ++p;
           match=6;
           goto s_n_llhttp__internal__n_invoke_store_http_major;
         }
         case '7': {
-          p++;
+          ++p;
           match=7;
           goto s_n_llhttp__internal__n_invoke_store_http_major;
         }
         case '8': {
-          p++;
+          ++p;
           match=8;
           goto s_n_llhttp__internal__n_invoke_store_http_major;
         }
         case '9': {
-          p++;
+          ++p;
           match=9;
           goto s_n_llhttp__internal__n_invoke_store_http_major;
         }
@@ -3217,7 +2979,6 @@ extern "C" {
       case s_n_llhttp__internal__n_req_http_start_1:
     s_n_llhttp__internal__n_req_http_start_1: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_req_http_start_1;
       }
@@ -3225,7 +2986,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_invoke_load_method;
         }
         case kMatchPause: {
@@ -3241,7 +3002,6 @@ extern "C" {
       case s_n_llhttp__internal__n_req_http_start_2:
     s_n_llhttp__internal__n_req_http_start_2: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_req_http_start_2;
       }
@@ -3249,7 +3009,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_invoke_load_method_2;
         }
         case kMatchPause: {
@@ -3265,7 +3025,6 @@ extern "C" {
       case s_n_llhttp__internal__n_req_http_start_3:
     s_n_llhttp__internal__n_req_http_start_3: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_req_http_start_3;
       }
@@ -3273,7 +3032,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_invoke_load_method_3;
         }
         case kMatchPause: {
@@ -3293,19 +3052,19 @@ extern "C" {
       }
       switch (*p) {
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_req_http_start;
         }
         case 'H': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_req_http_start_1;
         }
         case 'I': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_req_http_start_2;
         }
         case 'R': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_req_http_start_3;
         }
         default: {
@@ -3320,7 +3079,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_url_skip_to_http;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_invoke_llhttp__on_url_complete_1;
       /* UNREACHABLE */;
       abort();
@@ -3350,7 +3109,7 @@ extern "C" {
       }
       switch (lookup_table[(uint8_t)*p]) {
         case 1: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_fragment;
         }
         case 2: {
@@ -3374,7 +3133,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_span_end_stub_query_3;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_url_fragment;
       /* UNREACHABLE */;
       abort();
@@ -3404,7 +3163,7 @@ extern "C" {
       }
       switch (lookup_table[(uint8_t)*p]) {
         case 1: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_query;
         }
         case 2: {
@@ -3442,11 +3201,11 @@ extern "C" {
           goto s_n_llhttp__internal__n_span_end_llhttp__on_url_5;
         }
         case '#': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_fragment;
         }
         case '?': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_query;
         }
         default: {
@@ -3485,27 +3244,24 @@ extern "C" {
         __m128i input;
         int avail;
         int match_len;
-
-        /* Load input */
+        
         input=_mm_loadu_si128((__m128i const*) p);
         ranges=_mm_loadu_si128((__m128i const*) llparse_blob0);
-
-        /* Find first character that does not match `ranges` */
+        
         match_len=_mm_cmpestri(ranges,12,
                                input,16,
                                _SIDD_UBYTE_OPS|_SIDD_CMP_RANGES|
                                _SIDD_NEGATIVE_POLARITY);
-
         if (match_len!=0) {
           p+=match_len;
           goto s_n_llhttp__internal__n_url_path;
         }
         goto s_n_llhttp__internal__n_url_query_or_fragment;
       }
-#endif  /* __SSE4_2__ */
+#endif  
       switch (lookup_table[(uint8_t)*p]) {
         case 1: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_path;
         }
         default: {
@@ -3520,7 +3276,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_span_start_stub_path_2;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_url_path;
       /* UNREACHABLE */;
       abort();
@@ -3530,7 +3286,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_span_start_stub_path;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_url_path;
       /* UNREACHABLE */;
       abort();
@@ -3540,7 +3296,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_span_start_stub_path_1;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_url_path;
       /* UNREACHABLE */;
       abort();
@@ -3579,18 +3335,18 @@ extern "C" {
           goto s_n_llhttp__internal__n_span_end_llhttp__on_url_14;
         }
         case 4: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_server;
         }
         case 5: {
           goto s_n_llhttp__internal__n_span_start_stub_path_1;
         }
         case 6: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_query;
         }
         case 7: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_error_34;
         }
         default: {
@@ -3634,18 +3390,18 @@ extern "C" {
           goto s_n_llhttp__internal__n_span_end_llhttp__on_url_2;
         }
         case 4: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_server;
         }
         case 5: {
           goto s_n_llhttp__internal__n_span_start_stub_path;
         }
         case 6: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_query;
         }
         case 7: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_server_with_at;
         }
         default: {
@@ -3662,7 +3418,7 @@ extern "C" {
       }
       switch (*p) {
         case '/': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_server;
         }
         default: {
@@ -3679,19 +3435,19 @@ extern "C" {
       }
       switch (*p) {
         case 10: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_error_37;
         }
         case 13: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_error_37;
         }
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_error_37;
         }
         case '/': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_schema_delim_1;
         }
         default: {
@@ -3706,7 +3462,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_span_end_stub_schema;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_url_schema_delim;
       /* UNREACHABLE */;
       abort();
@@ -3736,14 +3492,14 @@ extern "C" {
       }
       switch (lookup_table[(uint8_t)*p]) {
         case 1: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_error_37;
         }
         case 2: {
           goto s_n_llhttp__internal__n_span_end_stub_schema;
         }
         case 3: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_url_schema;
         }
         default: {
@@ -3778,7 +3534,7 @@ extern "C" {
       }
       switch (lookup_table[(uint8_t)*p]) {
         case 1: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_error_37;
         }
         case 2: {
@@ -3823,7 +3579,7 @@ extern "C" {
       }
       switch (*p) {
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_req_spaces_before_url;
         }
         default: {
@@ -3840,7 +3596,7 @@ extern "C" {
       }
       switch (*p) {
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_req_spaces_before_url;
         }
         default: {
@@ -3857,7 +3613,7 @@ extern "C" {
       }
       switch (*p) {
         case 'L': {
-          p++;
+          ++p;
           match=19;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -3871,7 +3627,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_3:
     s_n_llhttp__internal__n_start_req_3: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_3;
       }
@@ -3879,7 +3634,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=36;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -3900,11 +3655,11 @@ extern "C" {
       }
       switch (*p) {
         case 'C': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_2;
         }
         case 'N': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_3;
         }
         default: {
@@ -3917,7 +3672,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_4:
     s_n_llhttp__internal__n_start_req_4: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_4;
       }
@@ -3925,7 +3679,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=16;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -3942,7 +3696,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_6:
     s_n_llhttp__internal__n_start_req_6: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_6;
       }
@@ -3950,7 +3703,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=22;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -3967,7 +3720,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_8:
     s_n_llhttp__internal__n_start_req_8: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_8;
       }
@@ -3975,7 +3727,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=5;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -3996,7 +3748,7 @@ extern "C" {
       }
       switch (*p) {
         case 'Y': {
-          p++;
+          ++p;
           match=8;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4014,11 +3766,11 @@ extern "C" {
       }
       switch (*p) {
         case 'N': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_8;
         }
         case 'P': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_9;
         }
         default: {
@@ -4035,11 +3787,11 @@ extern "C" {
       }
       switch (*p) {
         case 'H': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_6;
         }
         case 'O': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_7;
         }
         default: {
@@ -4052,7 +3804,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_12:
     s_n_llhttp__internal__n_start_req_12: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_12;
       }
@@ -4060,7 +3811,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=0;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4077,7 +3828,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_13:
     s_n_llhttp__internal__n_start_req_13: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_13;
       }
@@ -4085,7 +3835,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=35;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4106,11 +3856,11 @@ extern "C" {
       }
       switch (*p) {
         case 'L': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_12;
         }
         case 'S': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_13;
         }
         default: {
@@ -4127,7 +3877,7 @@ extern "C" {
       }
       switch (*p) {
         case 'E': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_11;
         }
         default: {
@@ -4140,7 +3890,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_14:
     s_n_llhttp__internal__n_start_req_14: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_14;
       }
@@ -4148,7 +3897,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=45;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4165,7 +3914,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_17:
     s_n_llhttp__internal__n_start_req_17: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_17;
       }
@@ -4173,7 +3921,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=41;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4194,7 +3942,7 @@ extern "C" {
       }
       switch (*p) {
         case '_': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_17;
         }
         default: {
@@ -4208,7 +3956,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_15:
     s_n_llhttp__internal__n_start_req_15: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_15;
       }
@@ -4216,7 +3963,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_16;
         }
         case kMatchPause: {
@@ -4232,7 +3979,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_18:
     s_n_llhttp__internal__n_start_req_18: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_18;
       }
@@ -4240,7 +3986,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=2;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4257,7 +4003,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_20:
     s_n_llhttp__internal__n_start_req_20: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_20;
       }
@@ -4265,7 +4010,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=31;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4282,7 +4027,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_21:
     s_n_llhttp__internal__n_start_req_21: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_21;
       }
@@ -4290,7 +4034,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=9;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4311,11 +4055,11 @@ extern "C" {
       }
       switch (*p) {
         case 'I': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_20;
         }
         case 'O': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_21;
         }
         default: {
@@ -4328,7 +4072,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_23:
     s_n_llhttp__internal__n_start_req_23: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_23;
       }
@@ -4336,7 +4079,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=24;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4353,7 +4096,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_24:
     s_n_llhttp__internal__n_start_req_24: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_24;
       }
@@ -4361,7 +4103,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=23;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4378,7 +4120,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_26:
     s_n_llhttp__internal__n_start_req_26: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_26;
       }
@@ -4386,7 +4127,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=21;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4403,7 +4144,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_28:
     s_n_llhttp__internal__n_start_req_28: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_28;
       }
@@ -4411,7 +4151,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=30;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4432,7 +4172,7 @@ extern "C" {
       }
       switch (*p) {
         case 'L': {
-          p++;
+          ++p;
           match=10;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4450,11 +4190,11 @@ extern "C" {
       }
       switch (*p) {
         case 'A': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_28;
         }
         case 'O': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_29;
         }
         default: {
@@ -4471,11 +4211,11 @@ extern "C" {
       }
       switch (*p) {
         case 'A': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_26;
         }
         case 'C': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_27;
         }
         default: {
@@ -4488,7 +4228,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_30:
     s_n_llhttp__internal__n_start_req_30: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_30;
       }
@@ -4496,7 +4235,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=11;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4517,19 +4256,19 @@ extern "C" {
       }
       switch (*p) {
         case '-': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_23;
         }
         case 'E': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_24;
         }
         case 'K': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_25;
         }
         case 'O': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_30;
         }
         default: {
@@ -4542,7 +4281,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_31:
     s_n_llhttp__internal__n_start_req_31: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_31;
       }
@@ -4550,7 +4288,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=25;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4567,7 +4305,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_32:
     s_n_llhttp__internal__n_start_req_32: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_32;
       }
@@ -4575,7 +4312,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=6;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4592,7 +4329,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_35:
     s_n_llhttp__internal__n_start_req_35: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_35;
       }
@@ -4600,7 +4336,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=28;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4617,7 +4353,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_36:
     s_n_llhttp__internal__n_start_req_36: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_36;
       }
@@ -4625,7 +4360,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=39;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4646,11 +4381,11 @@ extern "C" {
       }
       switch (*p) {
         case 'T': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_35;
         }
         case 'U': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_36;
         }
         default: {
@@ -4663,7 +4398,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_37:
     s_n_llhttp__internal__n_start_req_37: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_37;
       }
@@ -4671,7 +4405,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=38;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4688,7 +4422,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_38:
     s_n_llhttp__internal__n_start_req_38: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_38;
       }
@@ -4696,7 +4429,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=3;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4713,7 +4446,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_42:
     s_n_llhttp__internal__n_start_req_42: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_42;
       }
@@ -4721,7 +4453,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=12;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4738,7 +4470,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_43:
     s_n_llhttp__internal__n_start_req_43: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_43;
       }
@@ -4746,7 +4477,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=13;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4767,11 +4498,11 @@ extern "C" {
       }
       switch (*p) {
         case 'F': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_42;
         }
         case 'P': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_43;
         }
         default: {
@@ -4788,7 +4519,7 @@ extern "C" {
       }
       switch (*p) {
         case 'P': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_41;
         }
         default: {
@@ -4805,12 +4536,12 @@ extern "C" {
       }
       switch (*p) {
         case 'I': {
-          p++;
+          ++p;
           match=34;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
         case 'O': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_40;
         }
         default: {
@@ -4823,7 +4554,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_45:
     s_n_llhttp__internal__n_start_req_45: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_45;
       }
@@ -4831,7 +4561,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=29;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4852,11 +4582,11 @@ extern "C" {
       }
       switch (*p) {
         case 'R': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_45;
         }
         case 'T': {
-          p++;
+          ++p;
           match=4;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4874,23 +4604,23 @@ extern "C" {
       }
       switch (*p) {
         case 'A': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_34;
         }
         case 'L': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_37;
         }
         case 'O': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_38;
         }
         case 'R': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_39;
         }
         case 'U': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_44;
         }
         default: {
@@ -4903,7 +4633,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_48:
     s_n_llhttp__internal__n_start_req_48: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_48;
       }
@@ -4911,7 +4640,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=17;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4928,7 +4657,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_49:
     s_n_llhttp__internal__n_start_req_49: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_49;
       }
@@ -4936,7 +4664,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=44;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4953,7 +4681,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_50:
     s_n_llhttp__internal__n_start_req_50: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_50;
       }
@@ -4961,7 +4688,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=43;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -4978,7 +4705,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_51:
     s_n_llhttp__internal__n_start_req_51: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_51;
       }
@@ -4986,7 +4712,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=20;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5007,19 +4733,19 @@ extern "C" {
       }
       switch (*p) {
         case 'B': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_48;
         }
         case 'C': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_49;
         }
         case 'D': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_50;
         }
         case 'P': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_51;
         }
         default: {
@@ -5036,7 +4762,7 @@ extern "C" {
       }
       switch (*p) {
         case 'E': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_47;
         }
         default: {
@@ -5049,7 +4775,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_54:
     s_n_llhttp__internal__n_start_req_54: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_54;
       }
@@ -5057,7 +4782,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=14;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5078,7 +4803,7 @@ extern "C" {
       }
       switch (*p) {
         case 'P': {
-          p++;
+          ++p;
           match=37;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5092,7 +4817,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_57:
     s_n_llhttp__internal__n_start_req_57: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_57;
       }
@@ -5100,7 +4824,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=42;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5121,11 +4845,11 @@ extern "C" {
       }
       switch (*p) {
         case 'U': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_56;
         }
         case '_': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_57;
         }
         default: {
@@ -5142,11 +4866,11 @@ extern "C" {
       }
       switch (*p) {
         case 'A': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_54;
         }
         case 'T': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_55;
         }
         default: {
@@ -5159,7 +4883,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_58:
     s_n_llhttp__internal__n_start_req_58: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_58;
       }
@@ -5167,7 +4890,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=33;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5184,7 +4907,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_59:
     s_n_llhttp__internal__n_start_req_59: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_59;
       }
@@ -5192,7 +4914,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=26;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5213,15 +4935,15 @@ extern "C" {
       }
       switch (*p) {
         case 'E': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_53;
         }
         case 'O': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_58;
         }
         case 'U': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_59;
         }
         default: {
@@ -5234,7 +4956,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_61:
     s_n_llhttp__internal__n_start_req_61: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_61;
       }
@@ -5242,7 +4963,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=40;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5259,7 +4980,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_62:
     s_n_llhttp__internal__n_start_req_62: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_62;
       }
@@ -5267,7 +4987,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=7;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5288,11 +5008,11 @@ extern "C" {
       }
       switch (*p) {
         case 'E': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_61;
         }
         case 'R': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_62;
         }
         default: {
@@ -5305,7 +5025,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_65:
     s_n_llhttp__internal__n_start_req_65: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_65;
       }
@@ -5313,7 +5032,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=18;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5330,7 +5049,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_67:
     s_n_llhttp__internal__n_start_req_67: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_67;
       }
@@ -5338,7 +5056,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=32;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5355,7 +5073,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_68:
     s_n_llhttp__internal__n_start_req_68: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_68;
       }
@@ -5363,7 +5080,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=15;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5384,11 +5101,11 @@ extern "C" {
       }
       switch (*p) {
         case 'I': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_67;
         }
         case 'O': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_68;
         }
         default: {
@@ -5401,7 +5118,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_req_69:
     s_n_llhttp__internal__n_start_req_69: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_req_69;
       }
@@ -5409,7 +5125,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=27;
           goto s_n_llhttp__internal__n_invoke_store_method_1;
         }
@@ -5430,15 +5146,15 @@ extern "C" {
       }
       switch (*p) {
         case 'B': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_65;
         }
         case 'L': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_66;
         }
         case 'S': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_69;
         }
         default: {
@@ -5455,7 +5171,7 @@ extern "C" {
       }
       switch (*p) {
         case 'N': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_64;
         }
         default: {
@@ -5472,67 +5188,67 @@ extern "C" {
       }
       switch (*p) {
         case 'A': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_1;
         }
         case 'B': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_4;
         }
         case 'C': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_5;
         }
         case 'D': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_10;
         }
         case 'F': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_14;
         }
         case 'G': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_15;
         }
         case 'H': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_18;
         }
         case 'L': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_19;
         }
         case 'M': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_22;
         }
         case 'N': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_31;
         }
         case 'O': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_32;
         }
         case 'P': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_33;
         }
         case 'R': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_46;
         }
         case 'S': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_52;
         }
         case 'T': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_60;
         }
         case 'U': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start_req_63;
         }
         default: {
@@ -5556,7 +5272,7 @@ extern "C" {
       if (p==endp) {
         return s_n_llhttp__internal__n_res_line_almost_done;
       }
-      p++;
+      ++p;
       goto s_n_llhttp__internal__n_invoke_llhttp__on_status_complete;
       /* UNREACHABLE */;
       abort();
@@ -5574,7 +5290,7 @@ extern "C" {
           goto s_n_llhttp__internal__n_span_end_llhttp__on_status_1;
         }
         default: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_res_status;
         }
       }
@@ -5599,11 +5315,11 @@ extern "C" {
       }
       switch (*p) {
         case 10: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_invoke_llhttp__on_status_complete;
         }
         case 13: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_res_line_almost_done;
         }
         default: {
@@ -5626,7 +5342,7 @@ extern "C" {
           goto s_n_llhttp__internal__n_res_status_start;
         }
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_res_status_start;
         }
         default: {
@@ -5643,52 +5359,52 @@ extern "C" {
       }
       switch (*p) {
         case '0': {
-          p++;
+          ++p;
           match=0;
           goto s_n_llhttp__internal__n_invoke_mul_add_status_code;
         }
         case '1': {
-          p++;
+          ++p;
           match=1;
           goto s_n_llhttp__internal__n_invoke_mul_add_status_code;
         }
         case '2': {
-          p++;
+          ++p;
           match=2;
           goto s_n_llhttp__internal__n_invoke_mul_add_status_code;
         }
         case '3': {
-          p++;
+          ++p;
           match=3;
           goto s_n_llhttp__internal__n_invoke_mul_add_status_code;
         }
         case '4': {
-          p++;
+          ++p;
           match=4;
           goto s_n_llhttp__internal__n_invoke_mul_add_status_code;
         }
         case '5': {
-          p++;
+          ++p;
           match=5;
           goto s_n_llhttp__internal__n_invoke_mul_add_status_code;
         }
         case '6': {
-          p++;
+          ++p;
           match=6;
           goto s_n_llhttp__internal__n_invoke_mul_add_status_code;
         }
         case '7': {
-          p++;
+          ++p;
           match=7;
           goto s_n_llhttp__internal__n_invoke_mul_add_status_code;
         }
         case '8': {
-          p++;
+          ++p;
           match=8;
           goto s_n_llhttp__internal__n_invoke_mul_add_status_code;
         }
         case '9': {
-          p++;
+          ++p;
           match=9;
           goto s_n_llhttp__internal__n_invoke_mul_add_status_code;
         }
@@ -5706,7 +5422,7 @@ extern "C" {
       }
       switch (*p) {
         case ' ': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_invoke_update_status_code;
         }
         default: {
@@ -5723,52 +5439,52 @@ extern "C" {
       }
       switch (*p) {
         case '0': {
-          p++;
+          ++p;
           match=0;
           goto s_n_llhttp__internal__n_invoke_store_http_minor_1;
         }
         case '1': {
-          p++;
+          ++p;
           match=1;
           goto s_n_llhttp__internal__n_invoke_store_http_minor_1;
         }
         case '2': {
-          p++;
+          ++p;
           match=2;
           goto s_n_llhttp__internal__n_invoke_store_http_minor_1;
         }
         case '3': {
-          p++;
+          ++p;
           match=3;
           goto s_n_llhttp__internal__n_invoke_store_http_minor_1;
         }
         case '4': {
-          p++;
+          ++p;
           match=4;
           goto s_n_llhttp__internal__n_invoke_store_http_minor_1;
         }
         case '5': {
-          p++;
+          ++p;
           match=5;
           goto s_n_llhttp__internal__n_invoke_store_http_minor_1;
         }
         case '6': {
-          p++;
+          ++p;
           match=6;
           goto s_n_llhttp__internal__n_invoke_store_http_minor_1;
         }
         case '7': {
-          p++;
+          ++p;
           match=7;
           goto s_n_llhttp__internal__n_invoke_store_http_minor_1;
         }
         case '8': {
-          p++;
+          ++p;
           match=8;
           goto s_n_llhttp__internal__n_invoke_store_http_minor_1;
         }
         case '9': {
-          p++;
+          ++p;
           match=9;
           goto s_n_llhttp__internal__n_invoke_store_http_minor_1;
         }
@@ -5786,7 +5502,7 @@ extern "C" {
       }
       switch (*p) {
         case '.': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_res_http_minor;
         }
         default: {
@@ -5803,52 +5519,52 @@ extern "C" {
       }
       switch (*p) {
         case '0': {
-          p++;
+          ++p;
           match=0;
           goto s_n_llhttp__internal__n_invoke_store_http_major_1;
         }
         case '1': {
-          p++;
+          ++p;
           match=1;
           goto s_n_llhttp__internal__n_invoke_store_http_major_1;
         }
         case '2': {
-          p++;
+          ++p;
           match=2;
           goto s_n_llhttp__internal__n_invoke_store_http_major_1;
         }
         case '3': {
-          p++;
+          ++p;
           match=3;
           goto s_n_llhttp__internal__n_invoke_store_http_major_1;
         }
         case '4': {
-          p++;
+          ++p;
           match=4;
           goto s_n_llhttp__internal__n_invoke_store_http_major_1;
         }
         case '5': {
-          p++;
+          ++p;
           match=5;
           goto s_n_llhttp__internal__n_invoke_store_http_major_1;
         }
         case '6': {
-          p++;
+          ++p;
           match=6;
           goto s_n_llhttp__internal__n_invoke_store_http_major_1;
         }
         case '7': {
-          p++;
+          ++p;
           match=7;
           goto s_n_llhttp__internal__n_invoke_store_http_major_1;
         }
         case '8': {
-          p++;
+          ++p;
           match=8;
           goto s_n_llhttp__internal__n_invoke_store_http_major_1;
         }
         case '9': {
-          p++;
+          ++p;
           match=9;
           goto s_n_llhttp__internal__n_invoke_store_http_major_1;
         }
@@ -5862,7 +5578,6 @@ extern "C" {
       case s_n_llhttp__internal__n_start_res:
     s_n_llhttp__internal__n_start_res: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_start_res;
       }
@@ -5870,7 +5585,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_res_http_major;
         }
         case kMatchPause: {
@@ -5886,7 +5601,6 @@ extern "C" {
       case s_n_llhttp__internal__n_req_or_res_method_2:
     s_n_llhttp__internal__n_req_or_res_method_2: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_req_or_res_method_2;
       }
@@ -5894,7 +5608,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           match=2;
           goto s_n_llhttp__internal__n_invoke_store_method;
         }
@@ -5911,7 +5625,6 @@ extern "C" {
       case s_n_llhttp__internal__n_req_or_res_method_3:
     s_n_llhttp__internal__n_req_or_res_method_3: {
       llparse_match_t match_seq;
-
       if (p==endp) {
         return s_n_llhttp__internal__n_req_or_res_method_3;
       }
@@ -5919,7 +5632,7 @@ extern "C" {
       p=match_seq.current;
       switch (match_seq.status) {
         case kMatchComplete: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_invoke_update_type_1;
         }
         case kMatchPause: {
@@ -5939,11 +5652,11 @@ extern "C" {
       }
       switch (*p) {
         case 'E': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_req_or_res_method_2;
         }
         case 'T': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_req_or_res_method_3;
         }
         default: {
@@ -5960,7 +5673,7 @@ extern "C" {
       }
       switch (*p) {
         case 'H': {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_req_or_res_method_1;
         }
         default: {
@@ -6006,11 +5719,11 @@ extern "C" {
       }
       switch (*p) {
         case 10: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start;
         }
         case 13: {
-          p++;
+          ++p;
           goto s_n_llhttp__internal__n_start;
         }
         default: {
@@ -6021,7 +5734,7 @@ extern "C" {
       abort();
       }
       default:
-      /* UNREACHABLE */
+      
       abort();
     }
   s_n_llhttp__internal__n_error_37: {
@@ -6188,7 +5901,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_body: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_body(state,start,p);
@@ -6271,7 +5983,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_body_1: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_body(state,start,p);
@@ -6440,7 +6151,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_header_value: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_header_value(state,start,p);
@@ -6588,7 +6298,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_header_value_1: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_header_value(state,start,p);
@@ -6605,7 +6314,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_header_value_2: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_header_value(state,start,p);
@@ -6615,7 +6323,7 @@ if (err!=0) {
   state->_current=(void*)(intptr_t)s_n_llhttp__internal__n_header_value_almost_done;
   return s_error;
 }
-p++;
+++p;
 goto s_n_llhttp__internal__n_header_value_almost_done;
 /* UNREACHABLE */;
 abort();
@@ -6623,7 +6331,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_header_value_3: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_header_value(state,start,p);
@@ -6633,7 +6340,7 @@ if (err!=0) {
   state->_current=(void*)(intptr_t)s_n_llhttp__internal__n_header_value_almost_done;
   return s_error;
 }
-p++;
+++p;
 goto s_n_llhttp__internal__n_header_value_almost_done;
 /* UNREACHABLE */;
 abort();
@@ -6748,7 +6455,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_header_value_4: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_header_value(state,start,p);
@@ -6783,7 +6489,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_header_value_5: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_header_value(state,start,p);
@@ -6875,7 +6580,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_header_field: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_header_field(state,start,p);
@@ -6885,7 +6589,7 @@ if (err!=0) {
   state->_current=(void*)(intptr_t)s_n_llhttp__internal__n_invoke_llhttp__on_header_field_complete;
   return s_error;
 }
-p++;
+++p;
 goto s_n_llhttp__internal__n_invoke_llhttp__on_header_field_complete;
 /* UNREACHABLE */;
 abort();
@@ -6893,7 +6597,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_header_field_1: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_header_field(state,start,p);
@@ -6903,7 +6606,7 @@ if (err!=0) {
   state->_current=(void*)(intptr_t)s_n_llhttp__internal__n_invoke_llhttp__on_header_field_complete;
   return s_error;
 }
-p++;
+++p;
 goto s_n_llhttp__internal__n_invoke_llhttp__on_header_field_complete;
 /* UNREACHABLE */;
 abort();
@@ -6968,7 +6671,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_3: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -6994,7 +6696,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_4: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7259,7 +6960,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_5: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7276,7 +6976,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_6: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7293,7 +6992,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_7: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7310,7 +7008,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_8: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7336,7 +7033,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_9: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7353,7 +7049,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_10: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7370,7 +7065,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_11: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7405,7 +7099,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7422,7 +7115,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_1: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7439,7 +7131,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_2: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7456,7 +7147,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_12: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7473,7 +7163,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_13: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7490,7 +7179,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_url_14: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_url(state,start,p);
@@ -7616,7 +7304,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_status: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_status(state,start,p);
@@ -7626,7 +7313,7 @@ if (err!=0) {
   state->_current=(void*)(intptr_t)s_n_llhttp__internal__n_invoke_llhttp__on_status_complete;
   return s_error;
 }
-p++;
+++p;
 goto s_n_llhttp__internal__n_invoke_llhttp__on_status_complete;
 /* UNREACHABLE */;
 abort();
@@ -7634,7 +7321,6 @@ abort();
 s_n_llhttp__internal__n_span_end_llhttp__on_status_1: {
 const unsigned char* start;
 int err;
-
 start=state->_span_pos0;
 state->_span_pos0=NULL;
 err=llhttp__on_status(state,start,p);
@@ -7644,7 +7330,7 @@ if (err!=0) {
   state->_current=(void*)(intptr_t)s_n_llhttp__internal__n_res_line_almost_done;
   return s_error;
 }
-p++;
+++p;
 goto s_n_llhttp__internal__n_res_line_almost_done;
 /* UNREACHABLE */;
 abort();
@@ -7807,30 +7493,23 @@ switch (llhttp__internal__c_update_finish(state,p,endp)) {
 abort();
 }
   }
-
   int llhttp__internal_execute(http_parser* state,const char* p,const char* endp) {
     llparse_state_t next;
-
-    /* check lingering errors */
+    
     if (state->error!=0) {
       return state->error;
     }
-
-    /* restart spans */
     if (state->_span_pos0!=NULL) {
       state->_span_pos0=(const char unsigned*)p;
     }
-
     next=llhttp__internal__run(state,(const unsigned char*)p,(const unsigned char*)endp);
     if (next==s_error) {
       return state->error;
     }
     state->_current=(void*)(intptr_t)next;
-
-    /* execute spans */
+    
     if (state->_span_pos0!=NULL) {
       int error;
-
       error=((llhttp__internal__span_cb)state->_span_cb0)(state,(const char*)state->_span_pos0,endp);
       if (error!=0) {
         state->error=error;
@@ -7838,74 +7517,42 @@ abort();
         return error;
       }
     }
-
     return 0;
   }
-
-
   void llhttp_init(http_parser* parser,llhttp_type_t type,
                    const http_parser_settings* settings) {
-    if (parser->p_ready==1) {
-      int type=parser->type;
-      const void* settings=parser->settings;
-      void* data=parser->data;
-      uint8_t lenient_flags=parser->lenient_flags;
-
-      llhttp__internal_init(parser);
-
-      parser->type=type;
-      parser->settings=(void*)settings;
-      parser->data=data;
-      parser->lenient_flags=lenient_flags;
-      parser->p_ready=1;
-    } else {
-      llhttp__internal_init(parser);
-      parser->type=type;
-      parser->settings=(void*)settings;
-      parser->p_ready=1;
-    }
+    llhttp__internal_init(parser);
+    parser->type = type;
+    parser->settings = (void*)settings;
   }
-
-
   void llhttp_reset(http_parser* parser) {
     int type=parser->type;
     const void* settings=parser->settings;
     void* data=parser->data;
     uint8_t lenient_flags=parser->lenient_flags;
-
     llhttp__internal_init(parser);
-
     parser->type=type;
     parser->settings=(void*)settings;
     parser->data=data;
     parser->lenient_flags=lenient_flags;
   }
-
-
   int llhttp_execute(http_parser* parser,const char* data,size_t len) {
     return llhttp__internal_execute(parser,data,data+len);
   }
-
-
   void llhttp_settings_init(http_parser_settings* settings) {
     memset(settings,0,sizeof(*settings));
   }
-
-
   int llhttp_finish(http_parser* parser) {
     int err;
-
-    /* We're in an error state. Don't bother doing anything. */
+    
     if (parser->error!=0) {
       return HPE_OK;
     }
-
     switch (parser->finish) {
       case HTTP_FINISH_SAFE_WITH_CB:
       CALLBACK_MAYBE(parser,on_message_complete);
       if (err!=HPE_OK) return err;
-
-      /* FALLTHROUGH */
+      
       case HTTP_FINISH_SAFE:
       return HPE_OK;
       case HTTP_FINISH_UNSAFE:
@@ -7915,56 +7562,37 @@ abort();
       abort();
     }
   }
-
-
   void llhttp_pause(http_parser* parser) {
     if (parser->error!=HPE_OK) {
       return;
     }
-
     parser->error=HPE_PAUSED;
     parser->reason="Paused";
   }
-
-
   void llhttp_resume(http_parser* parser) {
     if (parser->error!=HPE_PAUSED) {
       return;
     }
-
     parser->error=0;
   }
-
-
   void llhttp_resume_after_upgrade(http_parser* parser) {
     if (parser->error!=HPE_PAUSED_UPGRADE) {
       return;
     }
-
     parser->error=0;
   }
-
-
   int llhttp_get_errno(const http_parser* parser) {
     return parser->error;
   }
-
-
   const char* llhttp_get_error_reason(const http_parser* parser) {
     return parser->reason;
   }
-
-
   void llhttp_set_error_reason(http_parser* parser,const char* reason) {
     parser->reason=reason;
   }
-
-
   const char* llhttp_get_error_pos(const http_parser* parser) {
     return parser->error_pos;
   }
-
-
   const char* llhttp_errno_name(llhttp_errno_t err) {
 #define HTTP_ERRNO_GEN(CODE, NAME, _) case HPE_##NAME: return "HPE_" #NAME;
     switch (err) {
@@ -7973,8 +7601,6 @@ abort();
     }
 #undef HTTP_ERRNO_GEN
   }
-
-
   const char* llhttp_method_name(llhttp_method_t method) {
 #define HTTP_METHOD_GEN(NUM, NAME, STRING) case HTTP_##NAME: return #STRING;
     switch (method) {
@@ -7983,8 +7609,6 @@ abort();
     }
 #undef HTTP_METHOD_GEN
   }
-
-
   void llhttp_set_lenient_headers(http_parser* parser,int enabled) {
     if (enabled) {
       parser->lenient_flags|=LENIENT_HEADERS;
@@ -7992,8 +7616,6 @@ abort();
       parser->lenient_flags&=~LENIENT_HEADERS;
     }
   }
-
-
   void llhttp_set_lenient_chunked_length(http_parser* parser,int enabled) {
     if (enabled) {
       parser->lenient_flags|=LENIENT_CHUNKED_LENGTH;
@@ -8001,8 +7623,6 @@ abort();
       parser->lenient_flags&=~LENIENT_CHUNKED_LENGTH;
     }
   }
-
-
   void llhttp_set_lenient_keep_alive(http_parser* parser,int enabled) {
     if (enabled) {
       parser->lenient_flags|=LENIENT_KEEP_ALIVE;
@@ -8010,117 +7630,80 @@ abort();
       parser->lenient_flags&=~LENIENT_KEEP_ALIVE;
     }
   }
-
-  /* Callbacks */
-
-
   int llhttp__on_message_begin(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_message_begin);
     return err;
   }
-
-
   int llhttp__on_url(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     SPAN_CALLBACK_MAYBE(s,on_url,(const char*)p,endp-p);
     return err;
   }
-
-
   int llhttp__on_url_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_url_complete);
     return err;
   }
-
-
   int llhttp__on_status(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     SPAN_CALLBACK_MAYBE(s,on_status,(const char*)p,endp-p);
     return err;
   }
-
-
   int llhttp__on_status_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_status_complete);
     return err;
   }
-
-
   int llhttp__on_header_field(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     SPAN_CALLBACK_MAYBE(s,on_header_field,(const char*)p,endp-p);
     return err;
   }
-
-
   int llhttp__on_header_field_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_header_field_complete);
     return err;
   }
-
-
   int llhttp__on_header_value(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     SPAN_CALLBACK_MAYBE(s,on_header_value,(const char*)p,endp-p);
     return err;
   }
-
-
   int llhttp__on_header_value_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_header_value_complete);
     return err;
   }
-
-
   int llhttp__on_headers_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_headers_complete);
     return err;
   }
-
-
   int llhttp__on_message_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_message_complete);
     return err;
   }
-
-
   int llhttp__on_body(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     SPAN_CALLBACK_MAYBE(s,on_body,(const char*)p,endp-p);
     return err;
   }
-
-
   int llhttp__on_chunk_header(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_chunk_header);
     return err;
   }
-
-
   int llhttp__on_chunk_complete(http_parser* s,const unsigned char* p,const unsigned char* endp) {
     int err;
     CALLBACK_MAYBE(s,on_chunk_complete);
     return err;
   }
-
-
   int llhttp__before_headers_complete(http_parser* parser,const unsigned char* p,
                                       const unsigned char* endp) {
-    /* Set this here so that on_headers_complete() callbacks can see it */
     if ((parser->flags&F_UPGRADE)&&
         (parser->flags&F_CONNECTION_UPGRADE)) {
-      /* For responses, "Upgrade: foo" and "Connection: upgrade" are
-       * mandatory only when it is a 101 Switching Protocols response,
-       * otherwise it is purely informational, to announce support.
-       */
       parser->upgrade=
         (parser->type==HTTP_REQUEST||parser->status_code==101);
     } else {
@@ -8128,132 +7711,86 @@ abort();
     }
     return 0;
   }
-
-
-  /* Return values:
-   * 0 - No body, `restart`, message_complete
-   * 1 - CONNECT request, `restart`, message_complete, and pause
-   * 2 - chunk_size_start
-   * 3 - body_identity
-   * 4 - body_identity_eof
-   * 5 - invalid transfer-encoding for request
-   */
   int llhttp__after_headers_complete(http_parser* parser,const unsigned char* p,
                                      const unsigned char* endp) {
     int hasBody;
-
     hasBody=parser->flags&F_CHUNKED||parser->content_length>0;
     if (parser->upgrade&&(parser->method==HTTP_CONNECT||
                           (parser->flags&F_SKIPBODY)||!hasBody)) {
-      /* Exit, the rest of the message is in a different protocol. */
       return 1;
     }
-
     if (parser->flags&F_SKIPBODY) {
       return 0;
     } else if (parser->flags&F_CHUNKED) {
-      /* chunked encoding - ignore Content-Length header, prepare for a chunk */
       return 2;
     } else if (parser->flags&F_TRANSFER_ENCODING) {
       if (parser->type==HTTP_REQUEST&&
           (parser->lenient_flags&LENIENT_CHUNKED_LENGTH)==0) {
-        /* RFC 7230 3.3.3 */
 
-        /* If a Transfer-Encoding header field
-         * is present in a request and the chunked transfer coding is not
-         * the final encoding, the message body length cannot be determined
-         * reliably; the server MUST respond with the 400 (Bad Request)
-         * status code and then close the connection.
-         */
+        
         return 5;
       } else {
-        /* RFC 7230 3.3.3 */
 
-        /* If a Transfer-Encoding header field is present in a response and
-         * the chunked transfer coding is not the final encoding, the
-         * message body length is determined by reading the connection until
-         * it is closed by the server.
-         */
+        
         return 4;
       }
     } else {
       if (!(parser->flags&F_CONTENT_LENGTH)) {
         if (!llhttp_message_needs_eof(parser)) {
-          /* Assume content-length 0 - read the next */
           return 0;
         } else {
-          /* Read body until EOF */
           return 4;
         }
       } else if (parser->content_length==0) {
-        /* Content-Length header given but zero: Content-Length: 0\r\n */
         return 0;
       } else {
-        /* Content-Length header given and non-zero */
         return 3;
       }
     }
   }
-
-
   int llhttp__after_message_complete(http_parser* parser,const unsigned char* p,
                                      const unsigned char* endp) {
     int should_keep_alive;
-
     should_keep_alive=llhttp_should_keep_alive(parser);
     parser->finish=HTTP_FINISH_SAFE;
     parser->flags=0;
-
-    /* NOTE: this is ignored in loose parsing mode */
+    
     return should_keep_alive;
   }
-
-
   int llhttp_message_needs_eof(const http_parser* parser) {
     if (parser->type==HTTP_REQUEST) {
       return 0;
     }
-
-    /* See RFC 2616 section 4.4 */
-    if (parser->status_code/100==1|| /* 1xx e.g. Continue */
-        parser->status_code==204||     /* No Content */
-        parser->status_code==304||     /* Not Modified */
-        (parser->flags&F_SKIPBODY)) {     /* response to a HEAD request */
+    if (parser->status_code/100==1|| 
+        parser->status_code==204||     
+        parser->status_code==304||     
+        (parser->flags&F_SKIPBODY)) {     
       return 0;
     }
-
-    /* RFC 7230 3.3.3, see `llhttp__after_headers_complete` */
     if ((parser->flags&F_TRANSFER_ENCODING)&&
         (parser->flags&F_CHUNKED)==0) {
       return 1;
     }
-
     if (parser->flags&(F_CHUNKED|F_CONTENT_LENGTH)) {
       return 0;
     }
-
     return 1;
   }
-
-
   int llhttp_should_keep_alive(const http_parser* parser) {
     if (parser->http_major>0&&parser->http_minor>0) {
-      /* HTTP/1.1 */
       if (parser->flags&F_CONNECTION_CLOSE) {
         return 0;
       }
     } else {
-      /* HTTP/1.0 or earlier */
       if (!(parser->flags&F_CONNECTION_KEEP_ALIVE)) {
         return 0;
       }
     }
-
     return !llhttp_message_needs_eof(parser);
   }
 #ifdef __cplusplus
-}  /* extern "C" */
+}  
 #endif
-#endif  /* INCLUDE_LLHTTP_API_H_ */
+#endif  
 
-#endif  /* INCLUDE_LLHTTP_H_ */
+#endif  

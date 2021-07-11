@@ -16,12 +16,11 @@ namespace crow {
       static int tick;
       using key=std::pair<dumb_timer_queue*,int>;
       void cancel(key& k) {
-        auto self=k.first;
-        k.first=nullptr;
+        auto self=k.first;k.first=nullptr;
         if (!self) return;
-        unsigned int index=static_cast<unsigned>(k.second-self->step_);
+        unsigned int index = static_cast<unsigned>(k.second-self->step_);
         if (index<self->dq_.size())
-          self->dq_[index].second=nullptr;
+          self->dq_[index].second = nullptr;
       }
       /// Add a function to the queue.
       key add(std::function<void()> f) {
