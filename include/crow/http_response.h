@@ -42,7 +42,7 @@ namespace crow {
 	Res(const json&& json_value): body(std::move(json_value).dump()) {
 	  //headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
 	}
-	Res(int code,const json&& json_value): code(code),body(std::move(json_value).dump()) {
+	Res(int code,json&json_value): code(code),body(json_value.dump()) {
 	  //headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
 	}
 	Res(const char* && char_value): body(std::move(char_value)) {}
@@ -87,7 +87,7 @@ namespace crow {
 	  }
 	}
 	void end(const std::string& body_part) { body+=body_part; end(); }
-	bool is_alive() { return is_alive_helper_&&is_alive_helper_();}
+	//bool is_alive() { return is_alive_helper_&&is_alive_helper_();}
 	///Return a static file as the response body
 	void set_static_file_info(std::string path) {
 	  struct stat statbuf_;path_=detail::directory_+path;
@@ -124,16 +124,15 @@ namespace crow {
 	/// Stream the response body (send the body in chunks).
 	template<typename Adaptor>
 	void do_stream_body(Adaptor& adaptor) {
-	  if (body.length()>0) {
+	  //if (body.length()>0)
 		write_streamed_string(body,adaptor);
-	  }
 	}
 	private:
 	std::string path_;
 	int statResult_;
 	bool completed_{};
 	std::function<void()> complete_request_handler_;
-	std::function<bool()> is_alive_helper_;
+	//std::function<bool()> is_alive_helper_;
 	template<typename Stream,typename Adaptor>
 	void write_streamed(Stream& is,Adaptor& adaptor) {
 	  char buf[16384];

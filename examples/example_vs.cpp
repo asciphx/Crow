@@ -4,13 +4,13 @@
 #include <sstream>
 using namespace crow;
 int main() {
-  App<Cors> app;//Global Middleware,and default config
-  app.set_directory("./static").set_home_page("i.htm")
-	.set_types({"html","ico","css","js","json","svg","png","gif","jpg","txt"});
+  App</*Middle*/> app;//Global Middleware,and default config
+  app.directory("./static").home("i.htm").timeout(4)
+	.file_type({"html","ico","css","js","json","svg","png","gif","jpg","txt"});
   //Server rendering and support default route
   app.default_route()([] {
 	char name[64];gethostname(name,64);
-	json j=json{{"servername",name}};
+	json j{{"servername",name}};
 	return mustache::load("404NotFound.html").render(j);
   });
   //Single path access to files
@@ -36,7 +36,7 @@ int main() {
 	json json_output=json(list);
 	return json_output;
   });
-  //json
+  //status code + return json
   app.route("/json")([] {
 	json x;
 	x["message"]="Hello, World!";
@@ -46,9 +46,9 @@ int main() {
 	x["false"]=false;
 	x["null"]=nullptr;
 	x["bignumber"]=2353464586543265455;
-	return x;
+	return Res(203,x);
   });
-  //status code + return
+  //ostringstream
   app.route("/hello/<int>")([](int count) {
 	if (count>100) return Res(400);
 	std::ostringstream os;

@@ -5,18 +5,18 @@
 using namespace crow;
 class ExampleLogHandler : public ILogHandler {
   public:void log(std::string message,LogLevel /*level*/) override {
-	//std::cerr << "ExampleLogHandler -> " <<message;
+	std::cerr << "ExampleLogHandler -> " <<message;
   }
 };
 int main() {
-  App<ExampleMiddleware,Cors> app;//Global Middleware,and default config
-  app.set_directory("./static").set_home_page("i.htm")
-	.set_types({"html","ico","css","js","json","svg","png","jpg","gif","txt"})
+  App<ExampleMiddleware/*,Middle*/> app;//Global Middleware,and default config
+  app.directory("./static").home("i.htm").timeout(4)
+	.file_type({"html","ico","css","js","json","svg","png","jpg","gif","txt"})
 	.get_middleware<ExampleMiddleware>().setMessage("hello");
   //Server rendering and support default route
   app.default_route()([] {
 	char name[64];gethostname(name,64);
-	json j=json{{"servername",name}};
+	json j{{"servername",name}};
 	return mustache::load("404NotFound.html").render(j);
   });
   //json::parse
@@ -34,7 +34,7 @@ int main() {
 	json json_output=json(list);
 	return json_output;
   });
-  //json
+  //status code + return json
   app.route("/json")([] {
 	json x;
 	x["message"]="Hello, World!";
@@ -44,7 +44,7 @@ int main() {
 	x["false"]=false;
 	x["null"]=nullptr;
 	x["bignumber"]=2353464586543265455;
-	return x;
+	return Res(203,x);
   });
   // a request to /path should be forwarded to /path/
   app.route("/path/")([] {

@@ -5,10 +5,6 @@
 #define LLHTTP_VERSION_MINOR 0
 #define LLHTTP_VERSION_PATCH 4
 
-#ifndef LLHTTP_STRICT_MODE
-# define LLHTTP_STRICT_MODE 0
-#endif
-
 #ifndef INCLUDE_LLHTTP_ITSELF_H_
 #define INCLUDE_LLHTTP_ITSELF_H_
 #ifdef __cplusplus
@@ -27,6 +23,7 @@ extern "C" {
 #endif  /* __SSE4_2__ */
 
 #ifdef _MSC_VER
+#include <stddef.h>
 #define ALIGN(n) _declspec(align(n))
 #else  /* !_MSC_VER */
 #define ALIGN(n) __attribute__((aligned(n)))
@@ -348,7 +345,6 @@ extern "C" {
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <stddef.h>
   typedef int (*llhttp_data_cb)(http_parser*,const char *at,size_t length);
   typedef int (*llhttp_cb)(http_parser*);
 
@@ -1621,7 +1617,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_body;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_body;
+      state->_span_cb0=(void*)llhttp__on_body;
       goto s_n_llhttp__internal__n_consume_content_length;
       /* UNREACHABLE */;
       abort();
@@ -1969,7 +1965,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_body_1;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_body;
+      state->_span_cb0=(void*)llhttp__on_body;
       goto s_n_llhttp__internal__n_consume_content_length_1;
       /* UNREACHABLE */;
       abort();
@@ -1990,7 +1986,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_body_2;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_body;
+      state->_span_cb0=(void*)llhttp__on_body;
       goto s_n_llhttp__internal__n_eof;
       /* UNREACHABLE */;
       abort();
@@ -2039,7 +2035,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_header_value;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_header_value;
+      state->_span_cb0=(void*)llhttp__on_header_value;
       goto s_n_llhttp__internal__n_span_end_llhttp__on_header_value;
       /* UNREACHABLE */;
       abort();
@@ -2599,7 +2595,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_header_value_1;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_header_value;
+      state->_span_cb0=(void*)llhttp__on_header_value;
       goto s_n_llhttp__internal__n_invoke_load_header_state_2;
       /* UNREACHABLE */;
       abort();
@@ -2954,7 +2950,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_header_field;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_header_field;
+      state->_span_cb0=(void*)llhttp__on_header_field;
       goto s_n_llhttp__internal__n_header_field;
       /* UNREACHABLE */;
       abort();
@@ -3804,7 +3800,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_url_1;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_url;
+      state->_span_cb0=(void*)llhttp__on_url;
       goto s_n_llhttp__internal__n_url_start;
       /* UNREACHABLE */;
       abort();
@@ -3815,7 +3811,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_url;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_url;
+      state->_span_cb0=(void*)llhttp__on_url;
       goto s_n_llhttp__internal__n_url_server;
       /* UNREACHABLE */;
       abort();
@@ -5591,7 +5587,7 @@ extern "C" {
         return s_n_llhttp__internal__n_span_start_llhttp__on_status;
       }
       state->_span_pos0=p;
-      state->_span_cb0=llhttp__on_status;
+      state->_span_cb0=(void*)llhttp__on_status;
       goto s_n_llhttp__internal__n_res_status;
       /* UNREACHABLE */;
       abort();
@@ -7849,25 +7845,28 @@ abort();
 
   void llhttp_init(http_parser* parser,llhttp_type_t type,
                    const http_parser_settings* settings) {
-    if (parser->p_ready==1) {
-      int type=parser->type;
-      const void* settings=parser->settings;
-      void* data=parser->data;
-      uint8_t lenient_flags=parser->lenient_flags;
+    llhttp__internal_init(parser);
+    parser->type = type;
+    parser->settings = (void*)settings;
+    //if (parser->p_ready==1) {
+    //  int type=parser->type;
+    //  const void* settings=parser->settings;
+    //  void* data=parser->data;
+    //  uint8_t lenient_flags=parser->lenient_flags;
 
-      llhttp__internal_init(parser);
+    //  llhttp__internal_init(parser);
 
-      parser->type=type;
-      parser->settings=(void*)settings;
-      parser->data=data;
-      parser->lenient_flags=lenient_flags;
-      parser->p_ready=1;
-    } else {
-      llhttp__internal_init(parser);
-      parser->type=type;
-      parser->settings=(void*)settings;
-      parser->p_ready=1;
-    }
+    //  parser->type=type;
+    //  parser->settings=(void*)settings;
+    //  parser->data=data;
+    //  parser->lenient_flags=lenient_flags;
+    //  parser->p_ready=1;
+    //} else {
+    //  llhttp__internal_init(parser);
+    //  parser->type=type;
+    //  parser->settings=(void*)settings;
+    //  parser->p_ready=1;
+    //}
   }
 
 

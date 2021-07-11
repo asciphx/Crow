@@ -73,8 +73,8 @@ typedef struct http_parser_settings http_parser_settings;
  *
  * The one exception is on_headers_complete. In a HTTP_RESPONSE parser
  * returning '1' from on_headers_complete will tell the parser that it
- * should not expect a body. This is used when receiving a response to a
- * HEAD request which may contain 'Content-Length' or 'Transfer-Encoding:
+ * should not expect a body. This is used when receiving a Res to a
+ * HEAD Req which may contain 'Content-Length' or 'Transfer-Encoding:
  * chunked' headers that indicate the presence of a body.
  *
  * http_data_cb does not return data chunks. It will be call arbitrarally
@@ -133,7 +133,7 @@ enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE, HTTP_BOTH };
 
 
 /* Flag values for http_parser.flags field */
-enum flags
+enum http_connection_flags
   { F_CHUNKED               = 1 << 0
   , F_CONNECTION_KEEP_ALIVE = 1 << 1
   , F_CONNECTION_CLOSE      = 1 << 2
@@ -221,7 +221,7 @@ struct http_parser {
 
   /* 1 = Upgrade header was present and the parser has exited because of that.
    * 0 = No upgrade header present.
-   * Should be checked when http_parser_execute() returns in addition to
+   * Should be checked when llhttp_execute() returns in addition to
    * error checking.
    */
   unsigned int upgrade : 1;
@@ -285,10 +285,10 @@ struct http_parser_url {
  */
 unsigned long http_parser_version(void);
 
-void http_parser_init(http_parser *parser, enum http_parser_type type);
+void llhttp_init(http_parser *parser, enum http_parser_type type);
 
 
-size_t http_parser_execute(http_parser *parser,
+size_t llhttp_execute(http_parser *parser,
                            const http_parser_settings *settings,
                            const char *data,
                            size_t len);
@@ -628,7 +628,7 @@ int http_message_needs_eof(const http_parser *parser);
 
 /* Our URL parser.
  *
- * This is designed to be shared by http_parser_execute() for URL validation,
+ * This is designed to be shared by llhttp_execute() for URL validation,
  * hence it has a state transition + byte-for-byte interface. In addition, it
  * is meant to be embedded in http_parser_parse_url(), which does the dirty
  * work of turning state transitions URL components for its API.
@@ -828,7 +828,7 @@ static const uint8_t normal_url_char[32] = {
   return s_dead;
 }
 
-inline size_t http_parser_execute (http_parser *parser,
+inline size_t llhttp_execute (http_parser *parser,
                             const http_parser_settings *settings,
                             const char *data,
                             size_t len)
@@ -954,7 +954,7 @@ static const int8_t unhex[256] =
     break;
   }
 
-  for (p=data; p != data + len; ++p) {
+  for (p=data; p != data + len; p++) {
     ch = *p;
 
     if (CROW_PARSING_HEADER(parser->state)) {
@@ -967,7 +967,7 @@ static const int8_t unhex[256] =
        * This check is arguably the responsibility of embedders but we're doing
        * it on the embedder's behalf because most won't bother and this way we
        * make the web a little safer.  CROW_HTTP_MAX_HEADER_SIZE is still far bigger
-       * than any reasonable request or response so this should never affect
+       * than any reasonable Req or Res so this should never affect
        * day-to-day operation.
        */
       if (parser->nread > (CROW_HTTP_MAX_HEADER_SIZE)) {
@@ -1114,7 +1114,7 @@ static const int8_t unhex[256] =
         parser->state = s_res_http_minor;
         break;
 
-      /* minor HTTP version or end of request line */
+      /* minor HTTP version or end of Req line */
       case s_res_http_minor:
       {
         if (ch == ' ') {
@@ -1234,7 +1234,7 @@ static const int8_t unhex[256] =
           goto error;
         }
 
-        parser->method = (enum http_method) 0;
+        parser->method = static_cast<http_method>(0);
         parser->index = 1;
         switch (ch) {
           case 'C': parser->method = HTTP_CONNECT; /* or COPY, CHECKOUT */ break;
@@ -1357,7 +1357,7 @@ static const int8_t unhex[256] =
           parser->state = s_req_server_start;
         }
 
-        parser->state = parse_url_char((enum state)parser->state, ch);
+        parser->state = parse_url_char(static_cast<state>(parser->state), ch);
         if (parser->state == s_dead) {
           CROW_SET_ERRNO(HPE_INVALID_URL);
           goto error;
@@ -1379,7 +1379,7 @@ static const int8_t unhex[256] =
             CROW_SET_ERRNO(HPE_INVALID_URL);
             goto error;
           default:
-            parser->state = parse_url_char((enum state)parser->state, ch);
+            parser->state = parse_url_char(static_cast<state>(parser->state), ch);
             if (parser->state == s_dead) {
               CROW_SET_ERRNO(HPE_INVALID_URL);
               goto error;
@@ -1412,7 +1412,7 @@ static const int8_t unhex[256] =
             CROW_CALLBACK_DATA(url);
             break;
           default:
-            parser->state = parse_url_char((enum state)parser->state, ch);
+            parser->state = parse_url_char(static_cast<state>(parser->state), ch);
             if (parser->state == s_dead) {
               CROW_SET_ERRNO(HPE_INVALID_URL);
               goto error;
@@ -1500,7 +1500,7 @@ static const int8_t unhex[256] =
         parser->state = s_req_http_minor;
         break;
 
-      /* minor HTTP version or end of request line */
+      /* minor HTTP version or end of Req line */
       case s_req_http_minor:
       {
         if (ch == CROW_CR) {
@@ -1531,7 +1531,7 @@ static const int8_t unhex[256] =
         break;
       }
 
-      /* end of request line */
+      /* end of Req line */
       case s_req_line_almost_done:
       {
         if (ch != CROW_LF) {
@@ -1603,17 +1603,17 @@ static const int8_t unhex[256] =
               break;
 
             case h_C:
-            ++parser->index;
+              parser->index++;
               parser->header_state = (c == 'o' ? h_CO : h_general);
               break;
 
             case h_CO:
-            ++parser->index;
+              parser->index++;
               parser->header_state = (c == 'n' ? h_CON : h_general);
               break;
 
             case h_CON:
-            ++parser->index;
+              parser->index++;
               switch (c) {
                 case 'n':
                   parser->header_state = h_matching_connection;
@@ -1630,7 +1630,7 @@ static const int8_t unhex[256] =
             /* connection */
 
             case h_matching_connection:
-            ++parser->index;
+              parser->index++;
               if (parser->index > sizeof(CROW_CONNECTION)-1
                   || c != CROW_CONNECTION[parser->index]) {
                 parser->header_state = h_general;
@@ -1642,7 +1642,7 @@ static const int8_t unhex[256] =
             /* proxy-connection */
 
             case h_matching_proxy_connection:
-            ++parser->index;
+              parser->index++;
               if (parser->index > sizeof(CROW_PROXY_CONNECTION)-1
                   || c != CROW_PROXY_CONNECTION[parser->index]) {
                 parser->header_state = h_general;
@@ -1654,7 +1654,7 @@ static const int8_t unhex[256] =
             /* content-length */
 
             case h_matching_content_length:
-            ++parser->index;
+              parser->index++;
               if (parser->index > sizeof(CROW_CONTENT_LENGTH)-1
                   || c != CROW_CONTENT_LENGTH[parser->index]) {
                 parser->header_state = h_general;
@@ -1666,7 +1666,7 @@ static const int8_t unhex[256] =
             /* transfer-encoding */
 
             case h_matching_transfer_encoding:
-            ++parser->index;
+              parser->index++;
               if (parser->index > sizeof(CROW_TRANSFER_ENCODING)-1
                   || c != CROW_TRANSFER_ENCODING[parser->index]) {
                 parser->header_state = h_general;
@@ -1678,7 +1678,7 @@ static const int8_t unhex[256] =
             /* upgrade */
 
             case h_matching_upgrade:
-            ++parser->index;
+              parser->index++;
               if (parser->index > sizeof(CROW_UPGRADE)-1
                   || c != CROW_UPGRADE[parser->index]) {
                 parser->header_state = h_general;
@@ -1843,7 +1843,7 @@ static const int8_t unhex[256] =
 
           /* Transfer-Encoding: chunked */
           case h_matching_transfer_encoding_chunked:
-          ++parser->index;
+            parser->index++;
             if (parser->index > sizeof(CROW_CHUNKED)-1
                 || c != CROW_CHUNKED[parser->index]) {
               parser->header_state = h_general;
@@ -1854,7 +1854,7 @@ static const int8_t unhex[256] =
 
           /* looking for 'Connection: keep-alive' */
           case h_matching_connection_keep_alive:
-          ++parser->index;
+            parser->index++;
             if (parser->index > sizeof(CROW_KEEP_ALIVE)-1
                 || c != CROW_KEEP_ALIVE[parser->index]) {
               parser->header_state = h_general;
@@ -1865,7 +1865,7 @@ static const int8_t unhex[256] =
 
           /* looking for 'Connection: close' */
           case h_matching_connection_close:
-          ++parser->index;
+            parser->index++;
             if (parser->index > sizeof(CROW_CLOSE)-1 || c != CROW_CLOSE[parser->index]) {
               parser->header_state = h_general;
             } else if (parser->index == sizeof(CROW_CLOSE)-2) {
@@ -1947,7 +1947,7 @@ static const int8_t unhex[256] =
         CROW_STRICT_CHECK(ch != CROW_LF);
 
         if (parser->flags & F_TRAILING) {
-          /* End of a chunked request */
+          /* End of a chunked Req */
           parser->state = CROW_NEW_MESSAGE();
           CROW_CALLBACK_NOTIFY(message_complete);
           break;
@@ -1962,8 +1962,8 @@ static const int8_t unhex[256] =
         /* Here we call the headers_complete callback. This is somewhat
          * different than other callbacks because if the user returns 1, we
          * will interpret that as saying that this message has no body. This
-         * is needed for the annoying case of recieving a response to a HEAD
-         * request.
+         * is needed for the annoying case of recieving a Res to a HEAD
+         * Req.
          *
          * We'd like to use CROW_CALLBACK_NOTIFY_NOADVANCE() here but we cannot, so
          * we have to simulate it by handling a change in errno below.
@@ -2086,7 +2086,7 @@ static const int8_t unhex[256] =
         assert(parser->nread == 1);
         assert(parser->flags & F_CHUNKED);
 
-        unhex_val = unhex[(unsigned char)ch];
+        unhex_val = unhex[static_cast<unsigned char>(ch)];
         if (unhex_val == -1) {
           CROW_SET_ERRNO(HPE_INVALID_CHUNK_SIZE);
           goto error;
@@ -2108,7 +2108,7 @@ static const int8_t unhex[256] =
           break;
         }
 
-        unhex_val = unhex[(unsigned char)ch];
+        unhex_val = unhex[static_cast<unsigned char>(ch)];
 
         if (unhex_val == -1) {
           if (ch == ';' || ch == ' ') {
@@ -2251,7 +2251,7 @@ http_message_needs_eof (const http_parser *parser)
   if (parser->status_code / 100 == 1 || /* 1xx e.g. Continue */
       parser->status_code == 204 ||     /* No Content */
       parser->status_code == 304 ||     /* Not Modified */
-      parser->flags & F_SKIPBODY) {     /* response to a HEAD request */
+      parser->flags & F_SKIPBODY) {     /* Res to a HEAD Req */
     return 0;
   }
 
@@ -2296,7 +2296,7 @@ static const char *method_strings[] =
 
 
 inline void
-http_parser_init (http_parser *parser, enum http_parser_type t)
+llhttp_init (http_parser *parser, enum http_parser_type t)
 {
   void *data = parser->data; /* preserve application data */
   memset(parser, 0, sizeof(*parser));
@@ -2412,7 +2412,7 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
 
   s = found_at ? s_http_userinfo_start : s_http_host_start;
 
-  for (p = buf + u->field_data[UF_HOST].off; p < buf + buflen; ++p) {
+  for (p = buf + u->field_data[UF_HOST].off; p < buf + buflen; p++) {
     enum http_host_state new_s = http_parse_host_char(s, *p);
 
     if (new_s == s_http_host_dead) {
@@ -2424,14 +2424,14 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
         if (s != s_http_host) {
           u->field_data[UF_HOST].off = p - buf;
         }
-        ++u->field_data[UF_HOST].len;
+        u->field_data[UF_HOST].len++;
         break;
 
       case s_http_host_v6:
         if (s != s_http_host_v6) {
           u->field_data[UF_HOST].off = p - buf;
         }
-        ++u->field_data[UF_HOST].len;
+        u->field_data[UF_HOST].len++;
         break;
 
       case s_http_host_port:
@@ -2440,7 +2440,7 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
           u->field_data[UF_PORT].len = 0;
           u->field_set |= (1 << UF_PORT);
         }
-        ++u->field_data[UF_PORT].len;
+        u->field_data[UF_PORT].len++;
         break;
 
       case s_http_userinfo:
@@ -2449,7 +2449,7 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
           u->field_data[UF_USERINFO].len = 0;
           u->field_set |= (1 << UF_USERINFO);
         }
-        ++u->field_data[UF_USERINFO].len;
+        u->field_data[UF_USERINFO].len++;
         break;
 
       default:
@@ -2487,7 +2487,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   s = is_connect ? s_req_server_start : s_req_spaces_before_url;
   old_uf = UF_MAX;
 
-  for (p = buf; p < buf + buflen; ++p) {
+  for (p = buf; p < buf + buflen; p++) {
     s = parse_url_char(s, *p);
 
     /* Figure out the next field that we're operating on */
@@ -2534,7 +2534,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
     /* Nothing's changed; soldier on */
     if (uf == old_uf) {
-      ++u->field_data[uf].len;
+      u->field_data[uf].len++;
       continue;
     }
 
@@ -2567,7 +2567,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
       return 1;
     }
 
-    u->port = (uint16_t) v;
+    u->port = static_cast<uint16_t>(v);
   }
 
   return 0;
