@@ -15,10 +15,7 @@ namespace crow {
   ///A wrapper for the asio::ip::tcp::socket and asio::ssl::stream
   struct SocketAdaptor {
     using Ctx=void;
-    SocketAdaptor(asio::io_service& io_service,Ctx*): socket_(io_service) {}
-
-    asio::io_service& get_io_service() {
-      return GET_IO_SERVICE(socket_);
+    SocketAdaptor(asio::io_service& io_service,Ctx*): socket_(io_service) {
       //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDBUF,(const char*)&crow::nSendBuf,sizeof(int));
       //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVBUF,(const char*)&crow::nRecvBuf,sizeof(int));
 //#if defined __linux__ || defined __APPLE__// platform-specific switch
@@ -32,21 +29,20 @@ namespace crow {
 //	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDTIMEO,(const char*)&timeout,sizeof(timeout));
 //#endif
     }
-
+    asio::io_service& get_io_service() {
+      return GET_IO_SERVICE(socket_);
+    }
     /// Get the TCP socket handling data trasfers, regardless of what layer is handling transfers on top of the socket.
     tcp::socket& raw_socket() {
       return socket_;
     }
-
     /// Get the object handling data transfers, this can be either a TCP socket or an SSL stream (if SSL is enabled).
     tcp::socket& socket() {
       return socket_;
     }
-
     tcp::endpoint remote_endpoint() {
       return socket_.remote_endpoint();
     }
-
     bool is_open() {
       return socket_.is_open();
     }
@@ -57,27 +53,22 @@ namespace crow {
       system::error_code ec;
       socket_.close(ec);
     }
-
     void shutdown_readwrite() {
       system::error_code ec;
       socket_.shutdown(asio::socket_base::shutdown_type::shutdown_both,ec);
     }
-
     void shutdown_write() {
       system::error_code ec;
       socket_.shutdown(asio::socket_base::shutdown_type::shutdown_send,ec);
     }
-
     void shutdown_read() {
       system::error_code ec;
       socket_.shutdown(asio::socket_base::shutdown_type::shutdown_receive,ec);
     }
-
     template <typename F>
     void start(F f) {
       f(system::error_code());
     }
-
     tcp::socket socket_;
   };
 

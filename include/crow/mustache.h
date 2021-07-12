@@ -29,9 +29,9 @@ namespace crow {
 		: start(start),end(end),pos(pos),t(t) {}
 	};
 
-	inline std::string default_loader(const std::string& filename) {
-	  std::string path=detail::directory_+filename;
-	  std::ifstream inf(path);
+	inline std::string default_loader(std::string& filename) {
+	  filename =detail::directory_+filename;
+	  std::ifstream inf(filename);filename.~basic_string();
 	  if (!inf) return {};
 	  return {std::istreambuf_iterator<char>(inf), std::istreambuf_iterator<char>()};
 	}
