@@ -67,26 +67,6 @@ SOFTWARE.
 #include <string> // string
 namespace nlohmann {
   namespace detail {
-	// JSON type enumeration //
-	/*!
-	@brief the JSON type enumeration
-	This enumeration collects the different JSON types. It is internally used to
-	distinguish the stored values, and the functions @ref basic_json::is_null(),
-	@ref basic_json::is_object(), @ref basic_json::is_array(),
-	@ref basic_json::is_string(), @ref basic_json::is_boolean(),
-	@ref basic_json::is_number() (with @ref basic_json::is_number_integer(),
-	@ref basic_json::is_number_unsigned(), and @ref basic_json::is_number_float()),
-	@ref basic_json::is_discarded(), @ref basic_json::is_primitive(), and
-	@ref basic_json::is_structured() rely on it.
-	@note There are three enumeration entries (number_integer, number_unsigned, and
-	number_float), because the library distinguishes these three types for numbers:
-	@ref basic_json::number_unsigned_t is used for unsigned integers,
-	@ref basic_json::number_integer_t is used for signed integers, and
-	@ref basic_json::number_float_t is used for floating-point numbers or to
-	approximate integers which do not fit in the limits of their respective type.
-	@sa see @ref basic_json::basic_json(const value_t value_type) -- create a JSON
-	value with the default value for a given type
-	*/
 	enum class value_t : std::uint8_t {
 	  null,             ///< null value
 	  object,           ///< object (unordered set of name/value pairs)
@@ -139,6 +119,8 @@ namespace nlohmann {
  * For details, see <http://creativecommons.org/publicdomain/zero/1.0/>.
  * SPDX-License-Identifier: CC0-1.0
  */
+//asciphx
+#define JSON_NOEXCEPTION
 #if !defined(JSON_HEDLEY_VERSION) || (JSON_HEDLEY_VERSION < 15)
 #if defined(JSON_HEDLEY_VERSION)
 #undef JSON_HEDLEY_VERSION
@@ -16810,32 +16792,6 @@ namespace nlohmann {
 	Returns the maximum number of elements a JSON value is able to hold due to
 	system or library implementation limitations, i.e. `std::distance(begin(),
 	end())` for the JSON value.
-	@return The return value depends on the different types and is
-			defined as follows:
-			Value type  | return value
-			----------- | -------------
-			null        | `0` (same as `size()`)
-			boolean     | `1` (same as `size()`)
-			string      | `1` (same as `size()`)
-			number      | `1` (same as `size()`)
-			binary      | `1` (same as `size()`)
-			object      | result of function `object_t::max_size()`
-			array       | result of function `array_t::max_size()`
-	@liveexample{The following code calls `max_size()` on the different value
-	types. Note the output is implementation specific.,max_size}
-	@complexity Constant, as long as @ref array_t and @ref object_t satisfy
-	the Container concept; that is, their `max_size()` functions have constant
-	complexity.
-	@iterators No changes.
-	@exceptionsafety No-throw guarantee: this function never throws exceptions.
-	@requirement This function helps `basic_json` satisfying the
-	[Container](https://en.cppreference.com/w/cpp/named_req/Container)
-	requirements:
-	- The complexity is constant.
-	- Has the semantics of returning `b.size()` where `b` is the largest
-	  possible JSON value.
-	@sa see @ref size() -- returns the number of elements
-	@since version 1.0.0
 	*/
 	size_type max_size() const noexcept {
 	  switch (m_type) {
@@ -17859,28 +17815,6 @@ namespace nlohmann {
 	/// @name serialization
 	/// @{
 #ifndef JSON_NO_IO
-	/*!
-	@brief serialize to stream
-	Serialize the given JSON value @a j to the output stream @a o. The JSON
-	value will be serialized using the @ref dump member function.
-	- The indentation of the output can be controlled with the member variable
-	  `width` of the output stream @a o. For instance, using the manipulator
-	  `std::setw(4)` on @a o sets the indentation level to `4` and the
-	  serialization result is the same as calling `dump(4)`.
-	- The indentation character can be controlled with the member variable
-	  `fill` of the output stream @a o. For instance, the manipulator
-	  `std::setfill('\\t')` sets indentation to use a tab character rather than
-	  the default space character.
-	@param[in,out] o  stream to serialize to
-	@param[in] j  JSON value to serialize
-	@return the stream @a o
-	@throw type_error.316 if a string stored inside the JSON value is not
-						  UTF-8 encoded
-	@complexity Linear.
-	@liveexample{The example below shows the serialization with different
-	parameters to `width` to adjust the indentation level.,operator_serialize}
-	@since version 1.0.0; indentation character added in version 3.0.0
-	*/
 	friend std::ostream& operator<<(std::ostream& o,const basic_json& j) {
 	  // read width member and use it as indentation parameter if nonzero
 	  const bool pretty_print=o.width()>0;
@@ -19200,17 +19134,14 @@ namespace nlohmann {
 	  };
 	  // wrapper for "add" operation; add value at ptr
 	  const auto operation_add=[&result](json_pointer & ptr,basic_json val) {
-		// adding to the root of the target document means replacing it
 		if (ptr.empty()) {
 		  result=val;
 		  return;
 		}
-		// make sure the top element of the pointer exists
 		json_pointer top_pointer=ptr.top();
 		if (top_pointer!=ptr) {
 		  result.at(top_pointer);
 		}
-		// get reference to parent of JSON pointer ptr
 		const auto last_path=ptr.back();
 		ptr.pop_back();
 		basic_json& parent=result[ptr];
@@ -19228,7 +19159,6 @@ namespace nlohmann {
 			} else {
 			  const auto idx=json_pointer::array_index(last_path);
 			  if (JSON_HEDLEY_UNLIKELY(idx>parent.size())) {
-				// avoid undefined behavior
 				JSON_THROW(out_of_range::create(401,"array index "+std::to_string(idx)+" is out of range",parent));
 			  }
 			  // default case: insert add offset
@@ -19236,20 +19166,16 @@ namespace nlohmann {
 			}
 			break;
 		  }
-		  // if there exists a parent it cannot be primitive
 		  default:            // LCOV_EXCL_LINE
 		  JSON_ASSERT(false); // NOLINT(cert-dcl03-c,hicpp-static-assert,misc-static-assert) LCOV_EXCL_LINE
 		}
 	  };
 	  // wrapper for "remove" operation; remove value at ptr
 	  const auto operation_remove=[this,&result](json_pointer & ptr) {
-		// get reference to parent of JSON pointer ptr
 		const auto last_path=ptr.back();
 		ptr.pop_back();
 		basic_json& parent=result.at(ptr);
-		// remove child
 		if (parent.is_object()) {
-		  // perform range check
 		  auto it=parent.find(last_path);
 		  if (JSON_HEDLEY_LIKELY(it!=parent.end())) {
 			parent.erase(it);
@@ -19257,7 +19183,6 @@ namespace nlohmann {
 			JSON_THROW(out_of_range::create(403,"key '"+last_path+"' not found",*this));
 		  }
 		} else if (parent.is_array()) {
-		  // note erase performs range check
 		  parent.erase(json_pointer::array_index(last_path));
 		}
 	  };
@@ -19265,13 +19190,10 @@ namespace nlohmann {
 	  if (JSON_HEDLEY_UNLIKELY(!json_patch.is_array())) {
 		JSON_THROW(parse_error::create(104,0,"JSON patch must be an array of objects",json_patch));
 	  }
-	  // iterate and apply the operations
 	  for (const auto& val:json_patch) {
-		// wrapper to get a value for an operation
 		const auto get_value=[&val](const std::string & op,
 									const std::string & member,
 									bool string_type) -> basic_json & {
-		  // find value
 		  auto it=val.m_value.object->find(member);
 		  // context-sensitive error message
 		  const auto error_msg=(op=="op")?"operation":"operation '"+op+"'";
@@ -19338,22 +19260,16 @@ namespace nlohmann {
 			bool success=false;
 			JSON_TRY
 			{
-			  // check if "value" matches the one at "path"
-			  // the "path" location must exist - use at()
 			  success=(result.at(ptr)==get_value("test", "value", false));
 			}
 			  JSON_INTERNAL_CATCH(out_of_range&) {
-			  // ignore out of range errors: success remains false
 			}
-			// throw an exception if test fails
 			if (JSON_HEDLEY_UNLIKELY(!success)) {
 			  JSON_THROW(other_error::create(501,"unsuccessful: "+val.dump(),val));
 			}
 			break;
 		  }
 		  default: {
-			// op must be "add", "remove", "replace", "move", "copy", or
-			// "test"
 			JSON_THROW(parse_error::create(105,0,"operation value '"+op+"' is invalid",val));
 		  }
 		}
@@ -19424,8 +19340,7 @@ namespace nlohmann {
 			  }));
 			++i;
 		  }
-		  // add other remaining elements
-		  while (i<target.size()) {
+		  		  while (i<target.size()) {
 			result.push_back(
 			  {
 				  {"op", "add"},
@@ -19439,11 +19354,9 @@ namespace nlohmann {
 		case value_t::object: {
 		  // first pass: traverse this object's elements
 		  for (auto it=source.cbegin(); it!=source.cend(); ++it) {
-			// escape the key name to be used in a JSON patch
-			const auto path_key=path+"/"+detail::escape(it.key());
+						const auto path_key=path+"/"+detail::escape(it.key());
 			if (target.find(it.key())!=target.end()) {
-			  // recursive call to compare object values at key it
-			  auto temp_diff=diff(it.value(),target[it.key()],path_key);
+			  			  auto temp_diff=diff(it.value(),target[it.key()],path_key);
 			  result.insert(result.end(),temp_diff.begin(),temp_diff.end());
 			} else {
 			  // found a key that is not in o -> remove it
