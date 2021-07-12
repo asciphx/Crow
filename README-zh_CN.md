@@ -49,7 +49,7 @@ int main(){
 ```c++
   app.default_route()([] {
 	char name[64];gethostname(name,64);
-	json j=json{{"servername",name}};
+	json j{{"servername",name}};
 	return mustache::load("404NotFound.html").render(j);
   });
 ```
@@ -146,7 +146,7 @@ set(Boost_USE_STATIC_LIBS ON) #Support anything else
 ### 归属
 Crow使用以下库。  
 http解析器 https://github.com/nodejs/llhttp
-这个软件是根据麻省理工学院的许可证授权的。
+
 版权所有Fedor Indutny，2018。
 特此免费准许任何获得本软件和相关文档文件的副本
 “软件”），不受限制地处理软件，包括
@@ -161,8 +161,8 @@ http解析器 https://github.com/nodejs/llhttp
 否则，由软件或在软件中使用或进行其他交易。
 
 qs_parse https://github.com/bartgrantham/qs_parse  
-版权所有（c）2010 Bart Grantham
 
+版权所有（c）2010 Bart Grantham
 在这里，任何获得副本的人都可以免费获得许可
 本软件及相关文档文件（“软件”），以处理
 在软件中不受限制，包括但不限于权利

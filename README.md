@@ -53,7 +53,7 @@ int main(){
 ```c++
   app.default_route()([] {
 	char name[64];gethostname(name,64);
-	json j=json{{"servername",name}};
+	json j{{"servername",name}};
 	return mustache::load("404NotFound.html").render(j);
   });
 ```
@@ -147,10 +147,8 @@ Crow uses the following libraries.
     llhttp
 
     https://github.com/nodejs/llhttp
-    This software is licensed under the MIT License.
 
     Copyright Fedor Indutny, 2018.
-
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the
     "Software"), to deal in the Software without restriction, including
