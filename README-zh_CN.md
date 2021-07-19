@@ -144,15 +144,9 @@ ctest
 #### windows
 
 >首次安装boost
-
 >第二次修改CmakeLists.txt
 
-##### CmakeLists.txt[示例]
-
-```cmake
-SET(BOOST_ROOT "E:/Code/boost_1_75_0") #Installation address of decompressed version
-set(Boost_USE_STATIC_LIBS ON) #Support anything else
-```
+##### 讨论群号[1082037157]
 
 ### 归属
 Crow使用以下库。  
