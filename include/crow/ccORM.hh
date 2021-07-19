@@ -1152,7 +1152,7 @@ namespace crow {
 		  delete data;
 		}
 		});
-	  return impl.scoped_connection(std::shared_ptr<connection_data_type>(sptr));
+	  return impl.scoped_connection(sptr);
 	}
   };
   using sql_type = crow::mysql_database_impl;
