@@ -1083,7 +1083,7 @@ namespace crow {
 	return mysql_get_socket(data->connection_);
   }
   inline mysql_connection_data* mysql_database_impl::new_connection() {
-	MYSQL* mysql; int mysql_fd = -1; MYSQL* connection;
+	MYSQL* mysql; MYSQL* connection;
 	mysql = mysql_init(nullptr); connection = mysql;
 	connection = mysql_real_connect(connection, host_.c_str(), user_.c_str(), passwd_.c_str(), database_.c_str(), port_, NULL, 0);
 	if (!connection) return nullptr;
