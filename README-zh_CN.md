@@ -114,7 +114,7 @@ CROW_ROUTE(app, "/add_json").methods("POST"_mt)
 如果您只想使用crow，请复制amalgamate/crow_all.h 并包含它。
 
 ### 要求
-- C++ 编译器，支持C++14（用G++测试>6.0）
+- C++ 编译器，支持C++17（用G++测试>8.0）
 - 任何版本的boost库
 - 构建示例的CMake
 - 建议与tcmalloc/jemalloc链接以提高速度。

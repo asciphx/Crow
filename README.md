@@ -119,7 +119,7 @@ CROW_ROUTE(app, "/add_json").methods("POST"_mt)
 If you just want to use crow, copy amalgamate/crow_all.h and include it.
 
 ### Requirements
- - C++ compiler with good C++14 support (tested with g++>6.0)
+ - C++ compiler with good C++17 support (tested with g++>8.0)
  - Any version of boost library
  - CMake for build examples
  - Linking with tcmalloc/jemalloc is recommended for speed.
