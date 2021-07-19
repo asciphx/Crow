@@ -1103,8 +1103,6 @@ namespace crow {
 	uint16_t max_sync_connections_ = 0;
 	sql_database(unsigned int port, const char* host, const char* database, const char* user, const char* password, unsigned int max_sync_connections = MaxSyncConnections)
 	  : impl(host, database, user, password, port), max_sync_connections_(max_sync_connections) {};
-	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int max_sync_connections = MaxSyncConnections)
-	  : impl(host, database, user, password), max_sync_connections_(max_sync_connections) {};
 	sql_database(const char* host, const char* database, const char* user, const char* password, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
 	  : impl(host, database, user, password, 3306, charset), max_sync_connections_(max_sync_connections) {};
 	sql_database(const char* host, const char* database, const char* user, const char* password, unsigned int port, const char* charset, unsigned int max_sync_connections = MaxSyncConnections)
