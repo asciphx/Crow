@@ -1155,8 +1155,4 @@ namespace crow {
 	  return impl.scoped_connection(sptr);
 	}
   };
-  using sql_type = crow::mysql_database_impl;
-  typedef sql_database<sql_type> D;
-#define D__(a, b, c, d,...) D(a,b,c,d,##__VA_ARGS__)
-#define D_() D("127.0.0.1","mysql_test","root","",3306,"utf8")
 }

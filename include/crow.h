@@ -1,4 +1,5 @@
 #pragma once
+#include "crow/ccORM.hh"
 #include "config.h"
 #include "crow/query_string.h"
 #include "crow/llhttp.h"
@@ -24,4 +25,3 @@
 #include "crow/http_connection.h"
 #include "crow/http_server.h"
 #include "crow/app.h"
-#include "crow/ccORM.hh"
