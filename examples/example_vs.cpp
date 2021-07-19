@@ -1,11 +1,10 @@
 #include "crow.h"
 #include "middleware.h"
 #include "module.h"
-#include <sstream>
-using namespace crow;
+using namespace crow;auto d = D_();
 int main() {
   App</*Middle*/> app;//Global Middleware,and default config
-  app.directory("./static").home("i.htm").timeout(4)
+  app.directory("./static").home("i.htm").timeout(2)
 	.file_type({"html","ico","css","js","json","svg","png","gif","jpg","txt"});
   //Server rendering and support default route
   app.default_route()([] {
@@ -13,9 +12,14 @@ int main() {
 	json j{{"servername",name}};
 	return mustache::load("404NotFound.html").render(j);
   });
-  //Single path access to files
-  app.route("/cat")([](const Req&,Res& res) {
-	res.set_static_file_info("1.jpg");res.end();
+  //sql
+  app.route("/sql")([] {
+	auto q = d.conn();
+	//std::tuple<int, std::string> ds=q("select id,name from users_test where id = 1").template r__<int,std::string>();
+	//std::cout<<std::get<0>(ds)<<std::get<1>(ds);
+	int i = 0; q("SELECT 200+2").r__(i);
+	std::string s; q("SELECT 'hello world'").r__(s);
+	return Res(i,s);
   });
   // a request to /path should be forwarded to /path/
   app.route("/path/")([]() {
@@ -23,29 +27,29 @@ int main() {
   });
   //json::parse
   app.route("/list")([]() {
-	json v=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
+	json v = json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
 	return v;
   });
   //static reflect
   app.route("/lists")([]() {
-	List list=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
+	List list = json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})").get<List>();
-	json json_output=json(list);
+	json json_output = json(list);
 	return json_output;
   });
   //status code + return json
   app.route("/json")([] {
 	json x;
-	x["message"]="Hello, World!";
-	x["double"]=3.1415926;
-	x["int"]=2352352;
-	x["true"]=true;
-	x["false"]=false;
-	x["null"]=nullptr;
-	x["bignumber"]=2353464586543265455;
+	x["message"] = "Hello, World!";
+	x["double"] = 3.1415926;
+	x["int"] = 2352352;
+	x["true"] = true;
+	x["false"] = false;
+	x["null"] = nullptr;
+	x["bignumber"] = 2353464586543265455;
 	return Res(203,x);
   });
   //ostringstream
@@ -68,9 +72,9 @@ int main() {
   //});
   // more json example
   app.route("/add_json").methods("POST"_mt)([](const Req& req) {
-	auto x=json::parse(req.body);
+	auto x = json::parse(req.body);
 	if (!x) return Res(400);
-	int sum=x["a"].get<int>()+x["b"].get<int>();
+	int sum = x["a"].get<int>()+x["b"].get<int>();
 	std::ostringstream os; os<<sum;
 	return Res{os.str()};
   });
@@ -79,10 +83,10 @@ int main() {
 	os<<"Params: "<<req.url_params<<"\n\n";
 	os<<"The key 'foo' was "<<(req.url_params.get("foo")==nullptr?"not ":"")<<"found.\n";
 	if (req.url_params.get("pew")!=nullptr) {
-	  double countD=boost::lexical_cast<double>(req.url_params.get("pew"));
+	  double countD = boost::lexical_cast<double>(req.url_params.get("pew"));
 	  os<<"The value of 'pew' is "<<countD<<'\n';
 	}
-	auto count=req.url_params.get_list("count");
+	auto count = req.url_params.get_list("count");
 	os<<"The key 'count' contains "<<count.size()<<" value(s).\n";
 	for (const auto& countVal:count) os<<" - "<<countVal<<'\n';
 	return Res{os.str()};

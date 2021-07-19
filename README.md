@@ -1,11 +1,11 @@
 ﻿﻿![Crow logo](http://i.imgur.com/wqivvjK.jpg)
-Crow is C++ microframework for web. Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to support database and ORM. At present, the performance of the framework should be ranked in the top five in the Techempower, and the self-test data may not be accurate enough.
+Crow is C++ microframework for web. Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to support sqlite,postgres and ORM. At present, the performance of the framework should be ranked in the top five in the Techempower, and the self-test data may not be accurate enough.
 
 ### [Demo site(example_vs)](http://8.129.58.72:8080/)🚀
 (inspired by Python Flask)[fork by Asciphx]
 
 [![Travis Build](https://travis-ci.org/ipkn/crow.svg?branch=master)](https://travis-ci.org/ipkn/crow)
-[![Coverage Status](https://coveralls.io/repos/ipkn/crow/badge.svg?branch=master)](https://coveralls.io/r/ipkn/crow?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/asciphx/Crow/badge.svg?branch=master)](https://coveralls.io/github/asciphx/Crow?branch=master)
 
 ```c++
 #include "crow.h"
@@ -37,8 +37,19 @@ int main(){
 ## Still in development
  - ~~Built-in ORM~~
    - Check [sqlpp11](https://github.com/rbock/sqlpp11) if you want one.
- - CORS is now allowed to be specially configured in 'crow / settings'
+ - CORS is now allowed to be specially configured in 'config.h'
 ## Examples
+#### sql query
+```c++
+  app.route("/sql")([] {
+	auto q = d.conn();
+	//std::tuple<int, std::string> ds=q("select id,name from users_test where id = 1").template r__<int,std::string>();
+	//std::cout<<std::get<0>(ds)<<std::get<1>(ds);
+	int i = 0; q("SELECT 200+2").r__(i);
+	std::string s; q("SELECT 'hello world'").r__(s);
+	return Res(i,s);
+  });
+```
 #### Static reflection
 ```c++
   app.route("/list")([]() {

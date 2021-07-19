@@ -2,7 +2,7 @@
 #include "middleware.h"
 #include "module.h"
 #include <sstream>
-using namespace crow;
+using namespace crow; auto d = D_();
 class ExampleLogHandler : public ILogHandler {
   public:void log(std::string message,LogLevel /*level*/) override {
 	std::cerr << "ExampleLogHandler -> " <<message;
@@ -10,7 +10,7 @@ class ExampleLogHandler : public ILogHandler {
 };
 int main() {
   App<ExampleMiddleware/*,Middle*/> app;//Global Middleware,and default config
-  app.directory("./static").home("i.htm").timeout(4)
+  app.directory("./static").home("i.htm").timeout(2)
 	.file_type({"html","ico","css","js","json","svg","png","jpg","gif","txt"})
 	.get_middleware<ExampleMiddleware>().setMessage("hello");
   //Server rendering and support default route
@@ -18,6 +18,15 @@ int main() {
 	char name[64];gethostname(name,64);
 	json j{{"servername",name}};
 	return mustache::load("404NotFound.html").render(j);
+  });
+  //sql
+  app.route("/sql")([] {
+	auto q = d.conn();
+	//std::tuple<int, std::string> ds=q("select id,name from users_test where id = 1").template r__<int,std::string>();
+	//std::cout<<std::get<0>(ds)<<std::get<1>(ds);
+	int i = 0; q("SELECT 200+2").r__(i);
+	std::string s; q("SELECT 'hello world'").r__(s);
+	return Res(i, s);
   });
   //json::parse
   app.route("/list")([] {

@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <thread>
 #include <condition_variable>
+
 #include "crow/settings.h"
 #include "crow/logging.h"
 #include "crow/utility.h"
@@ -241,7 +242,7 @@ namespace crow {
     }
 
     private:
-    uint16_t port_=CROW_DEFAULT_PORT;
+    uint16_t port_=DEFAULT_PORT;
     uint16_t concurrency_=1;
     std::string server_name_=CROW_SERVER_NAME;
     std::string bindaddr_="0.0.0.0";

@@ -1,5 +1,5 @@
-//#define CROW_ENABLE_LOGGING
-#define CROW_LOG_LEVEL 0
+//#define DEFAULT_ENABLE_LOGGING
+#define DEFAULT_LOG_LEVEL 0
 #define CROW_ENABLE_DEBUG
 #include <iostream>
 #include <sstream>

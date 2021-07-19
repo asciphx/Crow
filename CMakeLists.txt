@@ -1,14 +1,11 @@
 cmake_minimum_required(VERSION 2.8)
 project (crow_all)
-IF (WIN32)
-	SET(BOOST_ROOT "E:/Code/boost_1_75_0")
-	set(Boost_USE_STATIC_LIBS ON)
-ENDIF ()
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompilerOptions.cmake)
 if(EXISTS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake")
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 endif()
+set(CMAKE_VERBOSE_MAKEFILE ON)
 include(CheckIncludeFileCXX)
 check_include_file_cxx(any HAS_ANY)
 check_include_file_cxx(string_view HAS_STRING_VIEW)
@@ -25,13 +22,24 @@ else()
     add_definitions(-std=c++14)
   endif()
 endif()
+if (MSVC)
+	SET(BOOST_ROOT "E:/Code/boost_1_75_0")
+	set(Boost_USE_STATIC_LIBS "On")
+	find_package( Boost 1.55 COMPONENTS system thread regex REQUIRED )
+else()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++1y -pedantic -Wextra")
+	find_package( Boost 1.55 COMPONENTS system thread REQUIRED )
+	add_definitions(-Wno-ignored-attributes) # to skip postgresql warnings.
+endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
+find_package(MYSQL REQUIRED)
 find_package(ZLIB)
 find_package(Tcmalloc)
 find_package(Threads)
 find_package(OpenSSL)
 
+include_directories(${MYSQL_INCLUDE_DIR})
 if(OPENSSL_FOUND)
 	include_directories(${OPENSSL_INCLUDE_DIR})
 endif()
@@ -50,22 +58,17 @@ if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-if (MSVC)
-	set(Boost_USE_STATIC_LIBS "On")
-	find_package( Boost 1.52 COMPONENTS system thread regex REQUIRED )
-else()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++1y -pedantic -Wextra")
-	find_package( Boost 1.52 COMPONENTS system thread REQUIRED )
-endif()
 
 include_directories( ${Boost_INCLUDE_DIR} )
 
+#install(DIRECTORY include/sql/ DESTINATION include FILES_MATCHING PATTERN "*.hh")
 set(PROJECT_INCLUDE_DIR
     ${PROJECT_SOURCE_DIR}/include
 )
-
 include_directories("${PROJECT_INCLUDE_DIR}")
+
 include_directories("${PROJECT_SOURCE_DIR}")
+#link_directories(${MYSQL_LIBRARY})
 
 #add_subdirectory(src)
 add_subdirectory(examples)
@@ -84,7 +87,7 @@ else()
 		COMMAND python ${PROJECT_SOURCE_DIR}/amalgamate/merge_all.py ${PROJECT_SOURCE_DIR}/include
 		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/crow_all.h ${PROJECT_SOURCE_DIR}/amalgamate
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/amalgamate
-		DEPENDS ${PROJECT_SOURCE_DIR}/include/*.h ${PROJECT_SOURCE_DIR}/include/crow/*.h
+		DEPENDS ${PROJECT_SOURCE_DIR}/include/*.h ${PROJECT_SOURCE_DIR}/include/crow/*.h ${PROJECT_SOURCE_DIR}/include/sql/*.hh
 	)
 
 	add_custom_target(amalgamation ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/crow_all.h)

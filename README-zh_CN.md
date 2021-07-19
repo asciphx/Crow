@@ -1,12 +1,12 @@
 ﻿﻿![乌鸦标志](http://i.imgur.com/wqivvjK.jpg)
 
-乌鸦是Web的C++微服务框架，支持mac,linux,windows,三大平台，开发速度最快最迅速最猛烈，下一步正打算支持数据库，以及ORM。目前估测能在techempower应该可以排到世界前五。
+乌鸦是Web的C++微服务框架，支持mac,linux,windows,三大平台，开发速度最快最迅速最猛烈，下一步即将支持sqlite,postgres和ORM。目前估测能在techempower应该可以排到世界前五。
 
 ### [示例(example_vs)](http://8.129.58.72:8080/)🚀
 （灵感来自 Python Flask）[由Asciphx提供的分支]
 
 [![Travis Build](https://travis-ci.org/ipkn/crow.svg?branch=master)](https://travis-ci.org/ipkn/crow)
-[![Coverage Status](https://coveralls.io/repos/ipkn/crow/badge.svg?branch=master)](https://coveralls.io/r/ipkn/crow?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/asciphx/Crow/badge.svg?branch=master)](https://coveralls.io/github/asciphx/Crow?branch=master)
 
 ```c++
 #include "crow.h"
@@ -33,8 +33,19 @@ int main(){
 ## 仍在开发中
 -~~内置ORM~~
 -检查[sqlpp11](https://github.com/rbock/sqlpp11)如果你想要的话。
-- 现在允许在'crow/settings'专门配置CORS
+- 现在允许在'config.h'专门配置CORS
 ## 示例
+#### sql查询
+```c++
+  app.route("/sql")([] {
+	auto q = d.conn();
+	//std::tuple<int, std::string> ds=q("select id,name from users_test where id = 1").template r__<int,std::string>();
+	//std::cout<<std::get<0>(ds)<<std::get<1>(ds);
+	int i = 0; q("SELECT 200+2").r__(i);
+	std::string s; q("SELECT 'hello world'").r__(s);
+	return Res(i,s);
+  });
+```
 #### 静态反射
 ```c++
   app.route("/list")([]() {
