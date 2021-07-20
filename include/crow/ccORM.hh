@@ -1123,21 +1123,17 @@ namespace crow {
 		sync_connections_.pop_back();
 	  }
 	  else {
-		if (n_sync_connections_ >= max_sync_connections_) {
+		if (n_sync_connections_ > max_sync_connections_) {
 		  n_sync_connections_ = 0;
 		  std::this_thread::sleep_for(std::chrono::milliseconds(200));
-		  //throw std::runtime_error("Maximum number of sql connection exeeded.");
 		}
 		try { data = impl.new_connection(); }
 		catch (std::runtime_error& e) {
 		  --n_sync_connections_;
 		  throw std::move(e);
 		}
-		if (!data)
-		  --n_sync_connections_;
 	  }
-	  assert(data);
-	  assert(data->error_ == 0);
+	  assert(data);assert(data->error_ == 0);
 	  auto sptr = std::shared_ptr<connection_data_type>(data, [this](connection_data_type* data) {
 		if (!data->error_ && sync_connections_.size() < max_sync_connections_) {
 		  std::lock_guard<std::mutex> lock(this->sync_connections_mutex_);
