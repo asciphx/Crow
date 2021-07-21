@@ -16,10 +16,10 @@
 namespace boost {
   namespace posix_time {
     class BOOST_SYMBOL_VISIBLE millseconds : public time_duration {
-      public:template <typename T>
-        BOOST_CXX14_CONSTEXPR explicit millseconds(T const& s,
-             typename boost::enable_if<boost::is_integral<T>,void>::type* =BOOST_DATE_TIME_NULLPTR):
-        time_duration(0,0,0,numeric_cast<fractional_seconds_type>(s)) {}
+    public:template <typename T>
+      BOOST_CXX14_CONSTEXPR explicit millseconds(T const& s,
+        typename boost::enable_if<boost::is_integral<T>, void>::type* = BOOST_DATE_TIME_NULLPTR) :
+      time_duration(0, 0, 0, numeric_cast<fractional_seconds_type>(s)) {}
     };
   }
 }

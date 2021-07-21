@@ -1124,8 +1124,8 @@ namespace crow {
 	  }
 	  else {
 		if (n_sync_connections_ > max_sync_connections_) {
-		  n_sync_connections_ = 0;
-		  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		  n_sync_connections_ = 0;std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		  throw std::runtime_error("Maximum number of sql connection exeeded.");
 		}
 		try { data = impl.new_connection(); }
 		catch (std::runtime_error& e) {

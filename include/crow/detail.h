@@ -13,7 +13,7 @@ namespace crow {
     /// Fast timer queue for fixed tick value.
     class dumb_timer_queue {
       public:
-      static int tick;
+      //static int tick;
       using key=std::pair<dumb_timer_queue*,int>;
       void cancel(key& k) {
         auto self=k.first;k.first=nullptr;
@@ -35,7 +35,7 @@ namespace crow {
         auto now=std::chrono::steady_clock::now();
         while (!dq_.empty()) {
           auto& x=dq_.front();
-          if (now-x.first<std::chrono::seconds(tick))
+          if (now-x.first<std::chrono::milliseconds(tick))
             break;
           if (x.second) {
             CROW_LOG_DEBUG<<"timer call: "<<this<<' '<<step_;
@@ -52,7 +52,7 @@ namespace crow {
       }
       dumb_timer_queue() noexcept {}
       private:
-      //int tick{4};
+      int tick{99};//Generally, it is the largest milliseconds latency distribution
       boost::asio::io_service* io_service_{};
       std::deque<std::pair<decltype(std::chrono::steady_clock::now()),std::function<void()>>> dq_;
       int step_{};
