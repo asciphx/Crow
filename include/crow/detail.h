@@ -52,7 +52,7 @@ namespace crow {
       }
       dumb_timer_queue() noexcept {}
       private:
-      int tick{99};//Generally, it is the largest milliseconds latency distribution
+      int tick{300};//Generally, it is the largest milliseconds latency distribution
       boost::asio::io_service* io_service_{};
       std::deque<std::pair<decltype(std::chrono::steady_clock::now()),std::function<void()>>> dq_;
       int step_{};
