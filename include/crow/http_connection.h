@@ -186,8 +186,11 @@ namespace crow {
 	void start() {
 	  adaptor_.start([this](const boost::system::error_code& ec) {
 		if (!ec) {
-		  start_deadline();do_read();
-		} else delete this;
+		  cancel_deadline_timer();do_read();
+		}
+		else {
+		  adaptor_.close(); delete this;
+		}
 	  });
 	}
 
@@ -237,10 +240,10 @@ namespace crow {
 	}
 	/// Call the after handle middleware and send the write the Res to the connection.
 	void complete_request() {
-	  if (!adaptor_.is_open()) {
-		delete this;
-		return;
-	  }
+	 // if (!adaptor_.is_open()) {
+		//delete this;
+		//return;
+	 // }
 	  CROW_LOG_INFO<<"Response: "<<this<<' '<<req_.raw_url<<' '<<res.code<<' '<<close_connection_;
 	  if (need_to_call_after_handlers_) {
 		need_to_call_after_handlers_ = false;
@@ -402,7 +405,7 @@ namespace crow {
 		buffers_.emplace_back(res.body.data(),res.body.size());
 		do_write();
 		if (need_to_start_read_after_complete_) {
-		  need_to_start_read_after_complete_ = false;start_deadline();do_read();
+		  need_to_start_read_after_complete_ = false; cancel_deadline_timer();do_read();
 		}
 	  } else {
 		is_writing = true;
@@ -429,7 +432,7 @@ namespace crow {
 			  check_destroy();
 			  // adaptor will close after write
 			} else if (!need_to_call_after_handlers_) {
-			  start_deadline();
+			  cancel_deadline_timer();
 			  do_read();
 			} else { need_to_start_read_after_complete_ = true; }// res will be completed later by user
 		  } else {
@@ -441,9 +444,11 @@ namespace crow {
 		  }
 		} else {
 		  cancel_deadline_timer();
-		  is_reading = false;
+		  adaptor_.shutdown_read();
 		  adaptor_.close();
 		  delete this;
+		  //CROW_LOG_DEBUG << this << " from read(1)";
+		  //check_destroy();
 		}
 	  });
 	}
@@ -462,7 +467,10 @@ namespace crow {
 			check_destroy();
 		  }
 		} else {
+		  adaptor_.close();
 		  delete this;
+		  //CROW_LOG_DEBUG << this << " from write(2)";
+		  //check_destroy();
 		}
 	  });
 	}
@@ -478,16 +486,7 @@ namespace crow {
 	  CROW_LOG_DEBUG<<this<<" timer cancelled: "<<timer_cancel_key_.first<<' '<<timer_cancel_key_.second;
 	  timer_queue_.cancel(timer_cancel_key_);
 	}
-	void start_deadline(/*int timeout = 4*/) {
-	  timer_queue_.cancel(timer_cancel_key_);
-	  timer_cancel_key_ = timer_queue_.add([this] {
-		if (adaptor_.is_open()) {
-		  adaptor_.shutdown_readwrite();
-		  adaptor_.close();
-		}
-	  });
-	  CROW_LOG_DEBUG<<this<<" timer added: "<<timer_cancel_key_.first<<' '<<timer_cancel_key_.second;
-	}
+
 	private:
 	Adaptor adaptor_;
 	Handler* handler_;

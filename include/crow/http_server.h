@@ -74,8 +74,8 @@ namespace crow {
         boost::asio::deadline_timer timer(*io_service_pool_[i]);
         std::function<void(const boost::system::error_code&)> handler;
         timer.expires_from_now(boost::posix_time::millseconds(1));
-        timer.async_wait(handler=[&timer_queue,&timer,&handler](const boost::system::error_code& /*ec*/) {
-          //if (ec)return;//asciphx
+        timer.async_wait(handler=[&timer_queue,&timer,&handler](const boost::system::error_code& ec) {
+          if (ec)return;
           timer_queue.process();
           timer.expires_from_now(boost::posix_time::millseconds(1));
           timer.async_wait(handler);

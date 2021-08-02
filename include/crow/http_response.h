@@ -60,7 +60,7 @@ namespace crow {
 	}
 	bool is_completed() const noexcept { return completed_; }
 	void clear() {
-	  completed_=false;//body.clear();headers.clear();
+	  completed_=false;body.clear();headers.clear();
 	}
 	/// Return a "Temporary Redirect" Res.
 	/// Location can either be a route or a full URL.
@@ -102,7 +102,7 @@ namespace crow {
 		std::string types="";types=content_types[extension];
 		if (types!="") {
 		  this->add_header_t(RES_CT,types),is_file=1;
-		  if (extension!="ico")
+		  //if (extension!="ico")
 			this->add_header_s(Res_Ca,CROW_FILE_TIME),
 			this->add_header_s(RES_Xc,RES_No);
 		} else {
@@ -155,8 +155,9 @@ namespace crow {
 	  }
 	  //Collect whatever is left (less than 16KB) and send it down the socket
 	  //buf.reserve(is.length());
-	  //buf.clear();
-	  push_and_write(buffers,is,adaptor);
+	  buf = is;
+	  is.clear();
+	  push_and_write(buffers,buf,adaptor);
 	}
 
 	template<typename Adaptor>
@@ -172,7 +173,7 @@ namespace crow {
 		if (!ec) {
 		  return false;
 		} else {
-		  //CROW_LOG_ERROR<<ec<<" - happened while sending buffers";
+		  CROW_LOG_ERROR<<ec<<" - happened while sending buffers";
 		  this->end();
 		  return true;
 		}
