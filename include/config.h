@@ -19,4 +19,5 @@ namespace crow {
   typedef sql_database<sql_type> D;
   #define D__(a, b, c, d,...) D(a,b,c,d,##__VA_ARGS__)
   #define D_() D("127.0.0.1","test","root","",3306,"utf8")
+  #define D_sqlite(...) crow::sqlite(##__VA_ARGS__)
 }

@@ -3,6 +3,7 @@
 #include "module.h"
 #include <sstream>
 using namespace crow; auto d = D_();
+//auto d = D_sqlite("test.db");
 class ExampleLogHandler : public ILogHandler {
   public:void log(std::string message,LogLevel /*level*/) override {
 	std::cerr << "ExampleLogHandler -> " <<message;

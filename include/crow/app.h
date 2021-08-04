@@ -89,7 +89,7 @@ namespace crow {
     self_t& multithreaded() { return concurrency(std::thread::hardware_concurrency()); }
     ///Run the server on multiple threads using a specific number
     self_t& concurrency(std::uint16_t concurrency) {
-      if (concurrency<1) concurrency=1; concurrency_=concurrency; return *this;
+      if (concurrency<1) concurrency=1; concurrency_= 1+concurrency; return *this;
     }
     ///Set the server's log level
     /// crow::LogLevel::Debug       (0)<br>

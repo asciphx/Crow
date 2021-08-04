@@ -193,7 +193,7 @@ namespace crow {
 		}
 	  });
 	}
-
+	
 	void handle() {
 	  cancel_deadline_timer();
 	  buffers_.clear();
@@ -402,7 +402,8 @@ namespace crow {
 
 	void do_write_general() {
 	  if (res.body.length()<res_stream_threshold_) {
-		buffers_.emplace_back(res.body.data(),res.body.size());
+		res_body_copy_.swap(res.body);
+		buffers_.emplace_back(res_body_copy_.data(), res_body_copy_.size());
 		do_write();
 		if (need_to_start_read_after_complete_) {
 		  need_to_start_read_after_complete_ = false; cancel_deadline_timer();do_read();
@@ -460,6 +461,7 @@ namespace crow {
 							   [this](const boost::system::error_code& ec,std::size_t /*bytes_transferred*/) {
 		is_writing = false;
 		res.clear();
+		res_body_copy_.clear();
 		if (!ec) {
 		  if (close_connection_) {
 			adaptor_.shutdown_write();
@@ -497,7 +499,7 @@ namespace crow {
 	const unsigned res_stream_threshold_ = 1048576;
 
 	//std::unique_ptr<http_parser> parser_;
-	const http_parser_settings settings_ = {
+	inline const static http_parser_settings settings_ = {
 			nullptr,
 			on_url,
 			nullptr,
@@ -514,7 +516,7 @@ namespace crow {
 	std::string header_value;
 	ci_map headers;
 	query_string url_params;
-	std::string body;
+	std::string body, res_body_copy_;
 	detail::dumb_timer_queue& timer_queue_;
 	detail::dumb_timer_queue::key timer_cancel_key_;
 
