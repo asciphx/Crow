@@ -1,5 +1,5 @@
 ﻿﻿![Crow logo](http://i.imgur.com/wqivvjK.jpg)
-Crow is C++ microframework for web. Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to support sqlite,postgres and ORM. At present, the performance of the framework should be ranked in the top five in the Techempower, and the self-test data may not be accurate enough.
+Crow is C++ microframework for web. Support Mac, Linux, windows, three platforms, the fastest development speed, the quickest and the strongest, the next step is to support ORM. At present, the performance of the framework should be ranked in the top five in the Techempower, and the self-test data may not be accurate enough.
 
 ### [Demo site(example_vs)](http://8.129.58.72:8080/)🚀
 (inspired by Python Flask)[fork by Asciphx]

@@ -15,9 +15,13 @@
 #define ACAM 32
 //#define AccessControlAllowMethods "GET,POST,DELETE,PUT,OPTIONS,HEAD"
 namespace crow {
-  using sql_type = mysql_database_impl;
-  typedef sql_database<sql_type> D;
-  #define D__(a, b, c, d,...) D(a,b,c,d,##__VA_ARGS__)
-  #define D_() D("127.0.0.1","test","root","",3306,"utf8")
-  #define D_sqlite(...) crow::sqlite(##__VA_ARGS__)
+  //typedef sql_database<mysql> D;
+  typedef sql_database<mysql> Mysql;
+  typedef sql_database<pgsql> Pgsql;
+//#define D_(a, b, c, d,...) crow::D(a,b,c,d,##__VA_ARGS__)
+#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,"utf8")
+#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,"utf8")
+#define D_sqlite(...) crow::Sqlite(##__VA_ARGS__)
+
+#define D_() crow::Mysql("127.0.0.1","test","root","",3306,"utf8")
 }
