@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project (crow_examples)
-set(LIBS ${Boost_LIBRARIES} ${MYSQL_LIBRARY})
+set(LIBS ${Boost_LIBRARIES} ${MYSQL_LIBRARY} ${SQLite3_LIBRARIES} ${PostgreSQL_LIBRARIES} )
 if (MSVC)
 	add_executable(example_vs example_vs.cpp)
 	target_link_libraries(example_vs ${LIBS})
