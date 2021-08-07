@@ -1916,9 +1916,4 @@ namespace crow {
     return impl.scoped_connection(sptr);
     }
   };
-  typedef sql_database<mysql> Mysql;
-  typedef sql_database<pgsql> Pgsql;
-#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,"utf8")
-#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,"utf8")
-#define D_sqlite(...) crow::Sqlite(##__VA_ARGS__)
 }

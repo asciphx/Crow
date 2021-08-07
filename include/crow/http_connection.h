@@ -222,7 +222,7 @@ namespace crow {
 	  need_to_call_after_handlers_ = false;
 	  if (req_.method==HTTPMethod::OPTIONS) { res.code = 204;res.end();complete_request(); } else if (!is_invalid_request) {
 		res.complete_request_handler_ = [] {};
-		//res.is_alive_helper_=[this]()->bool { return adaptor_.is_open(); };
+		res.is_alive_helper_=[this]()->bool { return adaptor_.is_open(); };
 
 		ctx_ = detail::Ctx<Middlewares...>();
 		req_.middleware_context = static_cast<void*>(&ctx_);
@@ -499,7 +499,7 @@ namespace crow {
 	const unsigned res_stream_threshold_ = 1048576;
 
 	//std::unique_ptr<http_parser> parser_;
-	inline const static http_parser_settings settings_ = {
+	inline constexpr static http_parser_settings settings_ = {
 			nullptr,
 			on_url,
 			nullptr,
