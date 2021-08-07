@@ -1109,15 +1109,15 @@ namespace crow {
       mysql_close(mysql);
       return nullptr;
     }
-    try {
-      while (status) {
+    while (status) {
+      try {
         std::this_thread::sleep_for(std::chrono::microseconds(314));
         status = mysql_real_connect_cont(&connection, mysql, status);
       }
-    }
-    catch (std::runtime_error& e) {
-      mysql_close(mysql);
-      throw std::move(e);
+      catch (std::runtime_error& e) {
+        mysql_close(mysql);
+        throw std::move(e);
+      }
     }
     if (!connection) { return nullptr; }
     char on = 1; mysql_options(mysql, MYSQL_REPORT_DATA_TRUNCATION, &on);
