@@ -7,7 +7,7 @@
 #include "crow/ci_map.h"
 //response
 static char RES_CT[13]="Content-Type",RES_AJ[17]="application/json",RES_CL[15]="Content-Length",RES_TP[11]="text/plain",
-  RES_Loc[9]="Location";
+  RES_Loc[9]="Location", Res_Ca[14] = "Cache-Control", RES_Xc[23] = "X-Content-Type-Options", RES_No[8] = "nosniff";
 namespace crow {
   using json=nlohmann::json;
   template <typename Adaptor,typename Handler,typename ... Middlewares>
@@ -24,7 +24,6 @@ namespace crow {
 	bool compressed=true; //< If compression is enabled and this is false, the individual response will not be compressed.
 #endif
 	bool is_head_response=false; //< Whether this is a response to a HEAD request.
-	bool manual_length_header=false; //< Whether Crow should automatically add a "Content-Length" header.
 
 	void set_header(std::string key,std::string value) {
 	  headers.erase(key); headers.emplace(std::move(key),std::move(value));
@@ -58,6 +57,7 @@ namespace crow {
 	  json_value=std::move(r.json_value);
 	  code=r.code;
 	  headers=std::move(r.headers);
+	  path_ = std::move(r.path_);
 	  completed_=r.completed_;
 	  return *this;
 	}
@@ -83,9 +83,8 @@ namespace crow {
 	  if (!completed_) {
 		completed_=true;
 		if (is_head_response) {
-		  headers.erase(RES_CL);headers.emplace(RES_CL,std::move(std::to_string(body.size())));
+		  headers.erase(RES_CL); add_header_t(RES_CL, std::to_string(body.size()));
 		  body="";
-		  manual_length_header=true;
 		}
 		if (complete_request_handler_) {
 		  complete_request_handler_();
@@ -96,23 +95,29 @@ namespace crow {
 	bool is_alive() { return is_alive_helper_&&is_alive_helper_();}
 	///Return a static file as the response body
 	void set_static_file_info(std::string path) {
-	  path_=detail::directory_+path;
-	  statResult_=stat(path_.c_str(),&statbuf_);
+	  struct stat statbuf_; path_ = detail::directory_ + path;
+	  statResult_ = stat(path_.c_str(), &statbuf_);
 #ifdef CROW_ENABLE_COMPRESSION
-	  compressed=false;
+	  compressed = false;
 #endif
-	  if (statResult_==0) {
-		std::size_t last_dot=path.find_last_of(".");
-		std::string extension=path.substr(last_dot+1);
-		this->add_header_t(RES_CL,std::to_string(statbuf_.st_size));
-		std::string types="";types=content_types[extension];
-		if (types!="")
-		  this->add_header_t(RES_CT,types),is_file=1;
-		else {
-		  code=404;this->headers.clear();this->end();
+	  if (statResult_ == 0) {
+		std::size_t last_dot = path.find_last_of(".");
+		std::string extension = path.substr(last_dot + 1);
+		this->add_header_t(RES_CL, std::to_string(statbuf_.st_size));
+		std::string types = ""; types = content_types[extension];
+		if (types != "") {
+		  this->add_header_t(RES_CT, types), is_file = 1;
+		  //if (extension!="ico")
+		  this->add_header_s(Res_Ca, CROW_FILE_TIME),
+			this->add_header_s(RES_Xc, RES_No);
 		}
-	  } else {
-		code=404;this->end();
+		else {
+		  code = 404; this->headers.clear(); this->end();
+		  //this->add_header_s(RES_CT,"text/plain");
+		}
+	  }
+	  else {
+		code = 404;
 	  }
 	}
 	/// Stream a static file.
@@ -133,7 +138,6 @@ namespace crow {
 	private:
 	std::string path_;
 	int statResult_;
-	struct stat statbuf_;
 	bool completed_{};
 	std::function<void()> complete_request_handler_;
 	std::function<bool()> is_alive_helper_;
@@ -160,7 +164,8 @@ namespace crow {
 	  }
 	  //Collect whatever is left (less than 16KB) and send it down the socket
 	  //buf.reserve(is.length());
-	  //buf.clear();
+	  buf = is;
+	  is.clear();
 	  push_and_write(buffers,is,adaptor);
 	}
 

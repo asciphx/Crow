@@ -25,21 +25,21 @@ namespace crow {
 	  time_t t=time(0);
 	  tm my_tm;
 #if defined(_MSC_VER) || defined(__MINGW32__)
-	  gmtime_s(&my_tm,&t);
+	  localtime_s(&my_tm,&t);
 #else
-	  gmtime_r(&t,&my_tm);
+	  localtime_r(&t,&my_tm);
 #endif
 	  size_t sz=strftime(date,sizeof(date),"%Y-%m-%d %H:%M:%S",&my_tm);
 	  return std::string(date,date+sz);
 	}
 	public:
 	logger(std::string prefix,LogLevel level): level_(level) {
-#ifdef CROW_ENABLE_LOGGING
+#ifdef DEFAULT_ENABLE_LOGGING
 	  stringstream_<<"("<<timestamp()<<") ["<<prefix<<"] ";
 #endif
 	}
 	~logger() {
-#ifdef CROW_ENABLE_LOGGING
+#ifdef DEFAULT_ENABLE_LOGGING
 	  if (level_>=get_current_log_level()) {
 		stringstream_<<std::endl;
 		get_handler_ref()->log(stringstream_.str(),level_);
@@ -49,7 +49,7 @@ namespace crow {
 	template <typename T>
 	logger& operator<<(T const &value) {
 
-#ifdef CROW_ENABLE_LOGGING
+#ifdef DEFAULT_ENABLE_LOGGING
 	  if (level_>=get_current_log_level()) {
 		stringstream_<<value;
 	  }
@@ -67,7 +67,7 @@ namespace crow {
 	}
 	private:
 	static LogLevel& get_log_level_ref() {
-	  static LogLevel current_level=(LogLevel)CROW_LOG_LEVEL;
+	  static LogLevel current_level=(LogLevel)DEFAULT_LOG_LEVEL;
 	  return current_level;
 	}
 	static ILogHandler*& get_handler_ref() {

@@ -5,7 +5,7 @@
 #include <boost/algorithm/string.hpp>
 #include <algorithm>
 
-#include "crow/http_parser_merged.h"
+#include "crow/llhttp.h"
 #include "crow/http_request.h"
 
 namespace crow {
@@ -75,30 +75,15 @@ namespace crow {
 	}
 	HTTPParser(Handler* handler):
 	  handler_(handler) {
-	  http_parser_init(this,HTTP_REQUEST);
+	  llhttp_init(this, HTTP_REQUEST, &settings_);
 	}
-
 	// return false on error
 	bool feed(const char* buffer,int length) {
-	  const static http_parser_settings settings_{
-		  on_message_begin,
-		  on_url,
-		  nullptr,
-		  on_header_field,
-		  on_header_value,
-		  on_headers_complete,
-		  on_body,
-		  on_message_complete,
-	  };
-
-	  int nparsed=http_parser_execute(this,&settings_,buffer,length);
-	  return nparsed==length;
+	  return llhttp_execute(this, buffer, length) == 0;
 	}
-
 	bool done() {
 	  return feed(nullptr,0);
 	}
-
 	void clear() {
 	  url.clear();
 	  raw_url.clear();
@@ -109,27 +94,21 @@ namespace crow {
 	  url_params.clear();
 	  body.clear();
 	}
-
 	void process_header() {
 	  handler_->handle_header();
 	}
-
 	void process_message() {
 	  handler_->handle();
 	}
-
 	Req to_request() const {
 	  return Req{(HTTPMethod)method, std::move(raw_url), std::move(url), std::move(url_params), std::move(headers), std::move(body)};
 	}
-
 	bool is_upgrade() const {
 	  return upgrade;
 	}
-
 	bool check_version(int major,int minor) const {
 	  return http_major==major&&http_minor==minor;
 	}
-
 	std::string raw_url;
 	std::string url;
 
@@ -141,5 +120,15 @@ namespace crow {
 	std::string body;
 
 	Handler* handler_;
+	inline constexpr static http_parser_settings settings_ = {
+		on_message_begin,
+		on_url,
+		nullptr,
+		on_header_field,
+		on_header_value,
+		on_headers_complete,
+		on_body,
+		on_message_complete,
+	};
   };
 }

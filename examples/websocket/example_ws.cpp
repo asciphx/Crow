@@ -1,11 +1,16 @@
+#define CROW_DISABLE_HOME
 #include "crow.h"
-#include "mustache.h"
 #include <unordered_set>
 #include <mutex>
 int main() {
   crow::SimpleApp app;
-  std::mutex mtx;;
+  std::mutex mtx;
   std::unordered_set<crow::websocket::connection*> users;
+  CROW_ROUTE(app,"/")([] {
+	char name[64];gethostname(name,64);
+	crow::json j{{"servername",name}};
+	return crow::mustache::load("ws.html").render(j);
+  });
   CROW_ROUTE(app,"/ws")
 	.websocket()
 	.onopen([&](crow::websocket::connection& conn) {
@@ -27,18 +32,7 @@ int main() {
 		u->send_text(data);
   });
 
-  CROW_ROUTE(app,"/")
-	([] {
-	char name[256];
-	gethostname(name,256);
-	crow::mustache::Ctx x;
-	x["servername"]=name;
-
-	auto page=crow::mustache::load("ws.html");
-	return page.render(x);
-  });
-
-  app.port(8080)
+  app.port(8080).loglevel(crow::LogLevel::WARNING)
 	.multithreaded()
 	.run();
 }

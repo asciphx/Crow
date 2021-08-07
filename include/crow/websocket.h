@@ -175,7 +175,7 @@ namespace crow {
         char buf[2+8]="\x80\x00";
         buf[0]+=opcode;
         if (size<126) {
-          buf[1]+=size;
+          buf[1]+=(char)size;
           return {buf, buf+2};
         } else if (size<0x10000) {
           buf[1]+=126;
@@ -355,10 +355,10 @@ namespace crow {
           break;
           case WebSocketReadState::Payload:
           {
-            size_t to_read=buffer_.size();
+            auto to_read = static_cast<std::uint64_t>(buffer_.size());
             if (remaining_length_<to_read)
               to_read=remaining_length_;
-            adaptor_.socket().async_read_some(boost::asio::buffer(buffer_,to_read),
+            adaptor_.socket().async_read_some(boost::asio::buffer(buffer_, static_cast<std::size_t>(to_read)),
                                               [this](const boost::system::error_code& ec,std::size_t bytes_transferred) {
               is_reading=false;
 
@@ -399,7 +399,7 @@ namespace crow {
       /// Unmasks the fragment, checks the opcode, merges fragments into 1 message body, and calls the appropriate handler.
       void handle_fragment() {
         if (has_mask_) {
-          for (decltype(fragment_.length()) i=0; i<fragment_.length(); i++) {
+          for (decltype(fragment_.length()) i=0; i<fragment_.length(); ++i) {
             fragment_[i]^=((char*)&mask_)[i%4];
           }
         }

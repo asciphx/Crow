@@ -10,60 +10,68 @@
 #define GET_IO_SERVICE(s) ((s).get_io_service())
 #endif
 namespace crow {
-  using namespace boost;
+  using namespace boost;unsigned int utimeout_milli = 3500;//int nSendBuf = 20*1024,nRecvBuf = 20*1024;
   using tcp=asio::ip::tcp;
   ///A wrapper for the asio::ip::tcp::socket and asio::ssl::stream
+#if defined __linux__ || defined __APPLE__// platform-specific switch
+  struct timeval tv;// assume everything else is posix
+#else
+  int32_t timeout = crow::utimeout_milli; // use windows-specific time
+#endif
   struct SocketAdaptor {
     using Ctx=void;
-    SocketAdaptor(asio::io_service& io_service,Ctx*): socket_(io_service) {}
-
+    SocketAdaptor(asio::io_service& io_service,Ctx*): socket_(io_service) {
+      //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDBUF,(const char*)&crow::nSendBuf,sizeof(int));
+      //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVBUF,(const char*)&crow::nRecvBuf,sizeof(int));
+#if defined __linux__ || defined __APPLE__// platform-specific switch
+	  tv.tv_sec = utimeout_milli/1000;tv.tv_usec = utimeout_milli;
+	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVTIMEO,&tv,sizeof(tv));//Receiving time limit
+	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDTIMEO,&tv,sizeof(tv));//Sending time limit
+#else
+	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVTIMEO,(const char*)&timeout,sizeof(timeout));
+	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDTIMEO,(const char*)&timeout,sizeof(timeout));
+#endif
+    }
     asio::io_service& get_io_service() {
       return GET_IO_SERVICE(socket_);
     }
-
     /// Get the TCP socket handling data trasfers, regardless of what layer is handling transfers on top of the socket.
     tcp::socket& raw_socket() {
       return socket_;
     }
-
     /// Get the object handling data transfers, this can be either a TCP socket or an SSL stream (if SSL is enabled).
     tcp::socket& socket() {
       return socket_;
     }
-
     tcp::endpoint remote_endpoint() {
       return socket_.remote_endpoint();
     }
-
     bool is_open() {
       return socket_.is_open();
     }
-
+    void cancel() {
+      socket_.cancel();
+    }
     void close() {
       system::error_code ec;
       socket_.close(ec);
     }
-
     void shutdown_readwrite() {
       system::error_code ec;
       socket_.shutdown(asio::socket_base::shutdown_type::shutdown_both,ec);
     }
-
     void shutdown_write() {
       system::error_code ec;
       socket_.shutdown(asio::socket_base::shutdown_type::shutdown_send,ec);
     }
-
     void shutdown_read() {
       system::error_code ec;
       socket_.shutdown(asio::socket_base::shutdown_type::shutdown_receive,ec);
     }
-
     template <typename F>
     void start(F f) {
       f(system::error_code());
     }
-
     tcp::socket socket_;
   };
 

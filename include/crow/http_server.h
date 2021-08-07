@@ -13,8 +13,19 @@
 #include "crow/http_connection.h"
 #include "crow/logging.h"
 #include "crow/detail.h"
+namespace boost {
+  namespace posix_time {
+    class BOOST_SYMBOL_VISIBLE millseconds : public time_duration {
+    public:template <typename T>
+      BOOST_CXX14_CONSTEXPR explicit millseconds(T const& s,
+        typename boost::enable_if<boost::is_integral<T>, void>::type* = BOOST_DATE_TIME_NULLPTR) :
+      time_duration(0, 0, 0, numeric_cast<fractional_seconds_type>(s)) {}
+    };
+  }
+}
 
 namespace crow {
+  static constexpr char RES_GMT[26] = "%a, %d %b %Y %H:%M:%S GMT";
   using namespace boost;
   using tcp=asio::ip::tcp;
 
@@ -27,9 +38,9 @@ namespace crow {
       tick_timer_(io_service_),
       handler_(handler),
       concurrency_(concurrency==0?1:concurrency),
-      server_name_(server_name),
+      server_name_(std::move(server_name)),
       port_(port),
-      bindaddr_(bindaddr),
+      bindaddr_(std::move(bindaddr)),
       middlewares_(middlewares),
       adaptor_ctx_(adaptor_ctx) {}
 
@@ -59,28 +70,21 @@ namespace crow {
         v.push_back(
           std::async(std::launch::async,[this,i,&init_count] {
         // thread local date string get function
-        auto last=std::chrono::steady_clock::now();
-        std::string date_str;
-        auto last_time_t=time(0);
-//        tm my_tm;
-//#if defined(_MSC_VER) || defined(__MINGW32__)
-//          gmtime_s(&my_tm,&last_time_t);
-//          localtime_s(&my_tm,&last_time_t);
-//#else
-//        gmtime_r(&last_time_t,&my_tm);
-//        localtime_r(&last_time_t,&my_tm);
-//#endif
-        date_str.resize(0x20);
-        date_str.resize(strftime(&date_str[0],0x1f,"%a, %d %b %Y %H:%M:%S GMT",localtime(&last_time_t)));
-        get_cached_date_str_pool_[i]=[&]()->std::string {
-          if (std::chrono::steady_clock::now()-last>=std::chrono::seconds(1)) {
-            last=std::chrono::steady_clock::now();
-            //update_date_str();
-            date_str.resize(0x20);
-            date_str.resize(strftime(&date_str[0],0x1f,"%a, %d %b %Y %H:%M:%S GMT",localtime(&last_time_t)));
-          }
-          return date_str;
-        };
+          auto last = std::chrono::steady_clock::now();
+          std::string date_str; date_str.resize(0x20);
+          get_cached_date_str_pool_[i] = [&date_str, &last]()->std::string {
+            if (std::chrono::steady_clock::now() - last > std::chrono::seconds(2)) {
+              time_t last_time_t = time(0); tm my_tm;
+              last = std::chrono::steady_clock::now();
+#if defined(_MSC_VER) || defined(__MINGW32__)
+              localtime_s(&my_tm, &last_time_t);
+#else
+              localtime_r(&last_time_t, &my_tm);
+#endif
+              date_str.resize(strftime(&date_str[0], 0x1f, RES_GMT, &my_tm));
+            }
+            return date_str;
+          };
         // initializing timer queue
         detail::dumb_timer_queue timer_queue;
         timer_queue_pool_[i]=&timer_queue;
@@ -100,26 +104,17 @@ namespace crow {
         timer.async_wait(handler);
 
         init_count++;
-        while (1) {
-          try {
-            if (io_service_pool_[i]->run()==0) {
-              // when io_service.run returns 0, there are no more works to do.
-              break;
-            }
-          } catch (std::exception& e) {
-            CROW_LOG_ERROR<<"Worker Crash: An uncaught exception occurred: "<<e.what();
-          }
-        }
+        io_service_pool_[i]->run();
       }));
 
-      if (tick_function_&&tick_interval_.count()>0) {
-        tick_timer_.expires_from_now(boost::posix_time::milliseconds(tick_interval_.count()));
-        tick_timer_.async_wait([this](const boost::system::error_code& ec) {
-          if (ec)
-            return;
-          on_tick();
-        });
-      }
+      //if (tick_function_&&tick_interval_.count()>0) {
+      //  tick_timer_.expires_from_now(boost::posix_time::milliseconds(tick_interval_.count()));
+      //  tick_timer_.async_wait([this](const boost::system::error_code& ec) {
+      //    if (ec)
+      //      return;
+      //    on_tick();
+      //  });
+      //}
 
       CROW_LOG_INFO<<server_name_<<" server is running at "<<bindaddr_<<":"<<acceptor_.local_endpoint().port()
         <<" using "<<concurrency_<<" threads";
@@ -129,31 +124,18 @@ namespace crow {
         [&](const boost::system::error_code& /*error*/,int /*signal_number*/) {
         stop();
       });
-
-      while (concurrency_!=init_count)
-        std::this_thread::yield();
-
+      while (concurrency_!=init_count) std::this_thread::yield();
       do_accept();
-
       std::thread([this] {
         io_service_.run();
         CROW_LOG_INFO<<"Exiting.";
       }).join();
     }
-
     void stop() {
-      io_service_.stop();
-      for (auto& io_service:io_service_pool_)
-        io_service->stop();
+      io_service_.stop(); for (auto& io_service : io_service_pool_) io_service->stop();
     }
-
-    void signal_clear() {
-      signals_.clear();
-    }
-
-    void signal_add(int signal_number) {
-      signals_.add(signal_number);
-    }
+    void signal_clear() { signals_.clear(); }
+    void signal_add(int signal_number) { signals_.add(signal_number); }
 
     private:
     asio::io_service& pick_io_service() {
