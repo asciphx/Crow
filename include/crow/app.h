@@ -21,7 +21,7 @@
 #include "crow/compression.h"
 #endif
 
-#ifdef CROW_MSVC_WORKAROUND
+#ifdef _WIN32
 #define CROW_ROUTE(app, url) app.route(url)
 #else
 #define CROW_ROUTE(app, url) app.route_url<crow::spell::get_parameter_tag(url)>(url)
@@ -30,7 +30,7 @@
 
 namespace crow {
   static std::string RES_home = CROW_HOME_PAGE;
-  int detail::dumb_timer_queue::tick=2;//Prevent being stuck by long connection
+  //int detail::dumb_timer_queue::tick=2;//Prevent being stuck by long connection
 #ifdef CROW_ENABLE_SSL
   using ssl_context_t = boost::asio::ssl::context;
 #endif

@@ -6,93 +6,89 @@
 #include "crow/any_types.h"
 #include "crow/ci_map.h"
 //response
-static char RES_CT[13]="Content-Type",RES_AJ[17]="application/json",RES_CL[15]="Content-Length",RES_TP[11]="text/plain",
-  RES_Loc[9]="Location", Res_Ca[14] = "Cache-Control", RES_Xc[23] = "X-Content-Type-Options", RES_No[8] = "nosniff";
+static char RES_CT[13] = "Content-Type", RES_AJ[17] = "application/json", RES_CL[15] = "Content-Length", RES_TP[11] = "text/plain",
+RES_Loc[9] = "Location", Res_Ca[14] = "Cache-Control", RES_Xc[23] = "X-Content-Type-Options", RES_No[8] = "nosniff";
 namespace crow {
-  using json=nlohmann::json;
-  template <typename Adaptor,typename Handler,typename ... Middlewares>
+  using json = nlohmann::json;
+  template <typename Adaptor, typename Handler, typename ... Middlewares>
   class Connection;
   struct Res {
-	template <typename Adaptor,typename Handler,typename ... Middlewares>
+	template <typename Adaptor, typename Handler, typename ... Middlewares>
 	friend class crow::Connection;
-	int code{200},is_file{0};// Check whether the response has a static file defined.
+	int code{ 200 }, is_file{ 0 };// Check whether the response has a static file defined.
 	std::string body;
 	json json_value;
 	// `headers' stores HTTP headers.
 	ci_map headers;
 #ifdef CROW_ENABLE_COMPRESSION
-	bool compressed=true; //< If compression is enabled and this is false, the individual response will not be compressed.
+	bool compressed = true; //< If compression is enabled and this is false, the individual response will not be compressed.
 #endif
-	bool is_head_response=false; //< Whether this is a response to a HEAD request.
+	bool is_head_response = false; //< Whether this is a response to a HEAD request.
 
-	void set_header(std::string key,std::string value) {
-	  headers.erase(key); headers.emplace(std::move(key),std::move(value));
+	void set_header(std::string key, std::string value) {
+	  headers.erase(key); headers.emplace(std::move(key), std::move(value));
 	}
-	void add_header(std::string key,std::string value) { headers.emplace(std::move(key),std::move(value)); }
-	void add_header_s(std::string&&key,std::string&&value) { headers.emplace(key,value); }
-	void add_header_t(std::string&&key,std::string value) { headers.emplace(key,std::move(value)); }
+	void add_header(std::string key, std::string value) { headers.emplace(std::move(key), std::move(value)); }
+	void add_header_s(std::string&& key, std::string&& value) { headers.emplace(key, value); }
+	void add_header_t(std::string&& key, std::string value) { headers.emplace(key, std::move(value)); }
 	const std::string& get_header_value(const std::string& key) {
-	  return crow::get_header_value(headers,key);
+	  return crow::get_header_value(headers, key);
 	}
 	Res() {}
-	explicit Res(int code): code(code) {}
-	Res(std::string body): body(std::move(body)) {}
-	Res(int code,std::string body): code(code),body(std::move(body)) {}
-	Res(json&& json_value): body(json_value.dump()) {
-	  headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
+	explicit Res(int code) : code(code) {}
+	Res(std::string body) : body(std::move(body)) {}
+	Res(int code, std::string body) : code(code), body(std::move(body)) {}
+	Res(const json&& json_value) : body(std::move(json_value).dump()) {
+	  //headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
 	}
-	Res(const char* && char_value): body(char_value) {
-	  headers.erase(RES_CT);headers.emplace(RES_CT,RES_TP);
+	Res(int code, json& json_value) : code(code), body(json_value.dump()) {
+	  //headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
 	}
-	Res(const json& json_value): body(json_value.dump()) {
-	  headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
-	}
-	Res(int code,const json& json_value): code(code),body(json_value.dump()) {
-	  headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
-	}
-	Res(Res&& r) { *this=std::move(r); }
-	Res& operator = (const Res& r)=delete;
+	Res(const char*&& char_value) : body(std::move(char_value)) {}
+	Res(int code, const char*&& char_value) : code(code), body(std::move(char_value)) {}
+	Res(Res&& r) { *this = std::move(r); }
+	Res& operator = (const Res& r) = delete;
 	Res& operator = (Res&& r) noexcept {
-	  body=std::move(r.body);
-	  json_value=std::move(r.json_value);
-	  code=r.code;
-	  headers=std::move(r.headers);
+	  body = std::move(r.body);
+	  json_value = std::move(r.json_value);
+	  code = r.code;
+	  headers = std::move(r.headers);
 	  path_ = std::move(r.path_);
-	  completed_=r.completed_;
+	  completed_ = r.completed_;
 	  return *this;
 	}
 	bool is_completed() const noexcept { return completed_; }
 	void clear() {
 	  //body.clear();json_value.clear();code=200;headers.clear();
-	  completed_=false;
+	  completed_ = false;
 	}
 
 	/// Return a "Temporary Redirect" Res.
 	/// Location can either be a route or a full URL.
 	void redirect(const std::string& location) {
-	  code=301;headers.erase(RES_Loc);
-	  headers.emplace(RES_Loc,std::move(location));
+	  code = 301; headers.erase(RES_Loc);
+	  headers.emplace(RES_Loc, std::move(location));
 	}
 	/// Return a "See Other" Res.
 	void redirect_perm(const std::string& location) {
-	  code=303;headers.erase(RES_Loc);
-	  headers.emplace(RES_Loc,std::move(location));
+	  code = 303; headers.erase(RES_Loc);
+	  headers.emplace(RES_Loc, std::move(location));
 	}
-	void write(const std::string& body_part) { body+=body_part; }
+	void write(const std::string& body_part) { body += body_part; }
 	void end() {
 	  if (!completed_) {
-		completed_=true;
+		completed_ = true;
 		if (is_head_response) {
 		  headers.erase(RES_CL); add_header_t(RES_CL, std::to_string(body.size()));
-		  body="";
+		  body = "";
 		}
 		if (complete_request_handler_) {
 		  complete_request_handler_();
 		}
 	  }
 	}
-	void end(const std::string& body_part) { body+=body_part; end(); }
-	bool is_alive() { return is_alive_helper_&&is_alive_helper_();}
+	void end(const std::string& body_part) { body += body_part; end(); }
+	bool is_alive() { return is_alive_helper_ && is_alive_helper_(); }
 	///Return a static file as the response body
 	void set_static_file_info(std::string path) {
 	  struct stat statbuf_; path_ = detail::directory_ + path;
@@ -123,70 +119,71 @@ namespace crow {
 	/// Stream a static file.
 	template<typename Adaptor>
 	void do_stream_file(Adaptor& adaptor) {
-	  if (statResult_==0) {
-		std::ifstream is(path_.c_str(),std::ios::in|std::ios::binary);
-		write_streamed(is,adaptor);
+	  if (statResult_ == 0) {
+		std::ifstream is(path_.c_str(), std::ios::in | std::ios::binary);
+		write_streamed(is, adaptor);
 	  }
 	}
 	/// Stream the response body (send the body in chunks).
 	template<typename Adaptor>
 	void do_stream_body(Adaptor& adaptor) {
-	  if (body.length()>0) {
-		write_streamed_string(body,adaptor);
+	  if (body.length() > 0) {
+		write_streamed_string(body, adaptor);
 	  }
 	}
-	private:
+  private:
 	std::string path_;
 	int statResult_;
 	bool completed_{};
 	std::function<void()> complete_request_handler_;
 	std::function<bool()> is_alive_helper_;
-	template<typename Stream,typename Adaptor>
-	void write_streamed(Stream& is,Adaptor& adaptor) {
+	template<typename Stream, typename Adaptor>
+	void write_streamed(Stream& is, Adaptor& adaptor) {
 	  char buf[16384];
-	  while (is.read(buf,sizeof(buf)).gcount()>0) {
+	  while (is.read(buf, sizeof(buf)).gcount() > 0) {
 		std::vector<asio::const_buffer> buffers;
 		buffers.push_back(boost::asio::buffer(buf));
-		write_buffer_list(buffers,adaptor);
+		write_buffer_list(buffers, adaptor);
 	  }
 	}
 
 	//THIS METHOD DOES MODIFY THE BODY, AS IN IT EMPTIES IT
 	template<typename Adaptor>
-	void write_streamed_string(std::string& is,Adaptor& adaptor) {
+	void write_streamed_string(std::string& is, Adaptor& adaptor) {
 	  std::string buf;
 	  std::vector<asio::const_buffer> buffers;
-	  while (is.length()>16384) {
+	  while (is.length() > 16384) {
 		//buf.reserve(16385);
-		buf=is.substr(0,16384);
-		is=is.substr(16384);
-		push_and_write(buffers,buf,adaptor);
+		buf = is.substr(0, 16384);
+		is = is.substr(16384);
+		push_and_write(buffers, buf, adaptor);
 	  }
 	  //Collect whatever is left (less than 16KB) and send it down the socket
 	  //buf.reserve(is.length());
 	  buf = is;
 	  is.clear();
-	  push_and_write(buffers,is,adaptor);
+	  push_and_write(buffers, is, adaptor);
 	}
 
 	template<typename Adaptor>
-	inline void push_and_write(std::vector<asio::const_buffer>& buffers,std::string& buf,Adaptor& adaptor) {
+	inline void push_and_write(std::vector<asio::const_buffer>& buffers, std::string& buf, Adaptor& adaptor) {
 	  buffers.clear();
 	  buffers.push_back(boost::asio::buffer(buf));
-	  write_buffer_list(buffers,adaptor);
+	  write_buffer_list(buffers, adaptor);
 	}
 
 	template<typename Adaptor>
-	inline void write_buffer_list(std::vector<asio::const_buffer>& buffers,Adaptor& adaptor) {
-	  boost::asio::write(adaptor.socket(),buffers,[this](std::error_code ec,std::size_t) {
+	inline void write_buffer_list(std::vector<asio::const_buffer>& buffers, Adaptor& adaptor) {
+	  boost::asio::write(adaptor.socket(), buffers, [this](std::error_code ec, std::size_t) {
 		if (!ec) {
 		  return false;
-		} else {
+		}
+		else {
 		  //CROW_LOG_ERROR<<ec<<" - happened while sending buffers";
 		  this->end();
 		  return true;
 		}
-	  });
+		});
 	}
   };
 }

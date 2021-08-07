@@ -1,6 +1,5 @@
 #pragma once
 #include <chrono>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio.hpp>
 #ifdef CROW_ENABLE_SSL
 #include <boost/asio/ssl.hpp>
@@ -13,16 +12,6 @@
 #include "crow/http_connection.h"
 #include "crow/logging.h"
 #include "crow/detail.h"
-namespace boost {
-  namespace posix_time {
-    class BOOST_SYMBOL_VISIBLE millseconds : public time_duration {
-    public:template <typename T>
-      BOOST_CXX14_CONSTEXPR explicit millseconds(T const& s,
-        typename boost::enable_if<boost::is_integral<T>, void>::type* = BOOST_DATE_TIME_NULLPTR) :
-      time_duration(0, 0, 0, numeric_cast<fractional_seconds_type>(s)) {}
-    };
-  }
-}
 
 namespace crow {
   static constexpr char RES_GMT[26] = "%a, %d %b %Y %H:%M:%S GMT";
@@ -37,36 +26,22 @@ namespace crow {
       signals_(io_service_,SIGINT,SIGTERM),
       tick_timer_(io_service_),
       handler_(handler),
-      concurrency_(concurrency==0?1:concurrency),
+      concurrency_(concurrency<1?1:concurrency),
       server_name_(std::move(server_name)),
       port_(port),
       bindaddr_(std::move(bindaddr)),
       middlewares_(middlewares),
       adaptor_ctx_(adaptor_ctx) {}
 
-    void set_tick_function(std::chrono::milliseconds d,std::function<void()> f) {
-      tick_interval_=d;
-      tick_function_=f;
-    }
-
-    void on_tick() {
-      tick_function_();
-      tick_timer_.expires_from_now(boost::posix_time::milliseconds(tick_interval_.count()));
-      tick_timer_.async_wait([this](const boost::system::error_code& ec) {
-        if (ec) return;
-        on_tick();
-      });
-    }
-
     void run() {
-      for (int i=0; i<concurrency_; i++)
+      for (int i=0; i<concurrency_; ++i)
         io_service_pool_.emplace_back(new boost::asio::io_service());
       get_cached_date_str_pool_.resize(concurrency_);
       timer_queue_pool_.resize(concurrency_);
 
       std::vector<std::future<void>> v;
       std::atomic<int> init_count(0);
-      for (uint16_t i=0; i<concurrency_; i++)
+      for (uint16_t i=0; i<concurrency_; ++i)
         v.push_back(
           std::async(std::launch::async,[this,i,&init_count] {
         // thread local date string get function
@@ -91,7 +66,7 @@ namespace crow {
 
         timer_queue.set_io_service(*io_service_pool_[i]);
         boost::asio::deadline_timer timer(*io_service_pool_[i]);
-        timer.expires_from_now(boost::posix_time::seconds(1));
+        timer.expires_from_now(boost::posix_time::millseconds(1));
 
         std::function<void(const boost::system::error_code& ec)> handler;
         handler=[&](const boost::system::error_code& ec) {
@@ -103,18 +78,9 @@ namespace crow {
         };
         timer.async_wait(handler);
 
-        init_count++;
+        ++init_count;
         io_service_pool_[i]->run();
       }));
-
-      //if (tick_function_&&tick_interval_.count()>0) {
-      //  tick_timer_.expires_from_now(boost::posix_time::milliseconds(tick_interval_.count()));
-      //  tick_timer_.async_wait([this](const boost::system::error_code& ec) {
-      //    if (ec)
-      //      return;
-      //    on_tick();
-      //  });
-      //}
 
       CROW_LOG_INFO<<server_name_<<" server is running at "<<bindaddr_<<":"<<acceptor_.local_endpoint().port()
         <<" using "<<concurrency_<<" threads";
@@ -140,8 +106,7 @@ namespace crow {
     private:
     asio::io_service& pick_io_service() {
       // TODO load balancing
-      roundrobin_index_++;
-      if (roundrobin_index_>=io_service_pool_.size())
+      if (++roundrobin_index_>=io_service_pool_.size())
         roundrobin_index_=0;
       return *io_service_pool_[roundrobin_index_];
     }
@@ -180,9 +145,6 @@ namespace crow {
     uint16_t port_;
     std::string bindaddr_;
     unsigned int roundrobin_index_{};
-
-    std::chrono::milliseconds tick_interval_;
-    std::function<void()> tick_function_;
 
     std::tuple<Middlewares...>* middlewares_;
 

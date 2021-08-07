@@ -81,9 +81,6 @@ namespace crow {
 	bool feed(const char* buffer,int length) {
 	  return llhttp_execute(this, buffer, length) == 0;
 	}
-	bool done() {
-	  return feed(nullptr,0);
-	}
 	void clear() {
 	  url.clear();
 	  raw_url.clear();

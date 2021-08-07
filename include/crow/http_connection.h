@@ -15,9 +15,13 @@
 #include "crow/middleware_context.h"
 #include "crow/socket_adaptors.h"
 #include "crow/compression.h"
+static char Res_server_tag[9] = "Server: ", Res_content_length_tag[17] = "Content-Length: ", Res_http_status[10] = "HTTP/1.1 ",
+RES_AcC[35] = "Access-Control-Allow-Credentials: ", RES_t[5] = "true", RES_AcM[] = "Access-Control-Allow-Methods: ",
+RES_AcH[31] = "Access-Control-Allow-Headers: ", RES_AcO[30] = "Access-Control-Allow-Origin: ",
+Res_date_tag[7] = "Date: ", Res_content_length[15] = "content-length", Res_seperator[3] = ": ", Res_crlf[3] = "\r\n", Res_loc[9] = "location";
 namespace crow {
   using namespace boost;
-  using tcp=asio::ip::tcp;
+  using tcp = asio::ip::tcp;
 
   namespace detail {
 	template <typename MW>struct check_before_handle_arity_3_const {
@@ -111,10 +115,10 @@ namespace crow {
 	}
   }
   /// An HTTP connection.
-  template <typename Adaptor,typename Handler,typename ... Middlewares>
+  template <typename Adaptor, typename Handler, typename ... Middlewares>
   class Connection {
 	friend struct crow::Res;
-	public:
+  public:
 	Connection(
 	  boost::asio::io_service& io_service,
 	  Handler* handler,
@@ -124,7 +128,7 @@ namespace crow {
 	  detail::dumb_timer_queue& timer_queue,
 	  typename Adaptor::Ctx* adaptor_ctx_
 	)
-	  : adaptor_(io_service,adaptor_ctx_),
+	  : adaptor_(io_service, adaptor_ctx_),
 	  handler_(handler),
 	  parser_(this),
 	  server_name_(server_name),
@@ -134,7 +138,7 @@ namespace crow {
 	}
 
 	~Connection() {
-	  res.complete_request_handler_=nullptr;
+	  res.complete_request_handler_ = nullptr;
 	  cancel_deadline_timer();
 	}
 
@@ -146,231 +150,230 @@ namespace crow {
 	void start() {
 	  adaptor_.start([this](const boost::system::error_code& ec) {
 		if (!ec) {
-		  start_deadline();
+		  cancel_deadline_timer();
 		  do_read();
-		} else {
+		}
+		else {
 		  delete this;
 		}
-	  });
+		});
 	}
 
 	void handle_header() {
 	  // HTTP 1.1 Expect: 100-continue
-	  if (parser_.check_version(1,1)&&parser_.headers.count("expect")&&get_header_value(parser_.headers,"expect")=="100-continue") {
+	  if (parser_.check_version(1, 1) && parser_.headers.count("expect") && get_header_value(parser_.headers, "expect") == "100-continue") {
 		buffers_.clear();
-		static std::string expect_100_continue="HTTP/1.1 100 Continue\r\n\r\n";
-		buffers_.emplace_back(expect_100_continue.data(),expect_100_continue.size());
+		static std::string expect_100_continue = "HTTP/1.1 100 Continue\r\n\r\n";
+		buffers_.emplace_back(expect_100_continue.data(), expect_100_continue.size());
 		do_write();
 	  }
 	}
-
 	void handle() {
 	  cancel_deadline_timer();
-	  bool is_invalid_request=false;
-	  add_keep_alive_=false;
-
-	  req_=std::move(parser_.to_request());
-	  Req& req=req_;
-
-	  req.remoteIpAddress=adaptor_.remote_endpoint().address().to_string();
-
-	  if (parser_.check_version(1,0)) {
-		// HTTP/1.0
-		if (req.headers.count("connection")) {
-		  if (boost::iequals(req.get_header_value("connection"),"Keep-Alive"))
-			add_keep_alive_=true;
-		} else
-		  close_connection_=true;
-	  } else if (parser_.check_version(1,1)) {
-		// HTTP/1.1
-		if (req.headers.count("connection")) {
-		  if (req.get_header_value("connection")=="close")
-			close_connection_=true;
-		  else if (boost::iequals(req.get_header_value("connection"),"Keep-Alive"))
-			add_keep_alive_=true;
-		}
-		if (!req.headers.count("host")) {
-		  is_invalid_request=true;
-		  res=Res(400);
+	  buffers_.clear();
+	  bool is_invalid_request = false;
+	  req_ = std::move(parser_.to_request());
+	  req_.remoteIpAddress = adaptor_.remote_endpoint().address().to_string();
+	  if (parser_.http_major == 1 && parser_.http_minor == 0) {// HTTP/1.0
+		close_connection_ = true;
+	  }
+	  else if (parser_.http_major == 1 && parser_.http_minor == 1) {// HTTP/1.1
+		if (req_.headers.count("Connection") && req_.get_header_value("Connection") == "close") close_connection_ = true;
+		if (!req_.headers.count("host")) {
+		  is_invalid_request = true; res = Res(400);
 		}
 		if (parser_.is_upgrade()) {
-		  if (req.get_header_value("upgrade")=="h2c") {
-			// TODO HTTP/2
-			// currently, ignore upgrade header
-		  } else {
-			close_connection_=true;
-			handler_->handle_upgrade(req,res,std::move(adaptor_));
+		  if (req_.get_header_value("upgrade") == "h2c") {
+			// TODO HTTP/2 currently, ignore upgrade header
+		  }
+		  else {
+			close_connection_ = true;
+			handler_->handle_upgrade(req_, res, std::move(adaptor_));
 			return;
 		  }
 		}
 	  }
+	  CROW_LOG_INFO << "Request: " << boost::lexical_cast<std::string>(adaptor_.remote_endpoint()) << " " << this << " HTTP/" << parser_.http_major << "." << parser_.http_minor << ' '
+		<< m2s(req_.method) << " " << req_.url;
+	  need_to_call_after_handlers_ = false;
+	  if (req_.method == HTTPMethod::OPTIONS) { res.code = 204; res.end(); complete_request(); }
+	  else if (!is_invalid_request) {
+		res.complete_request_handler_ = [] {};
+		res.is_alive_helper_ = [this]()->bool { return adaptor_.is_open(); };
 
-	  CROW_LOG_INFO<<"Request: "<<boost::lexical_cast<std::string>(adaptor_.remote_endpoint())<<" "<<this<<" HTTP/"<<parser_.http_major<<"."<<parser_.http_minor<<' '
-		<<m2s(req.method)<<" "<<req.url;
-
-
-	  need_to_call_after_handlers_=false;
-	  if (!is_invalid_request) {
-		res.complete_request_handler_=[] {};
-		res.is_alive_helper_=[this]()->bool { return adaptor_.is_open(); };
-
-		ctx_=detail::Ctx<Middlewares...>();
-		req.middleware_context=static_cast<void*>(&ctx_);
-		req.io_service=&adaptor_.get_io_service();
-		detail::middleware_call_helper<0,decltype(ctx_),decltype(*middlewares_),Middlewares...>(*middlewares_,req,res,ctx_);
-
+		ctx_ = detail::Ctx<Middlewares...>();
+		req_.middleware_context = static_cast<void*>(&ctx_);
+		req_.io_service = &adaptor_.get_io_service();
 		if (!res.completed_) {
-		  res.complete_request_handler_=[this] { this->complete_request(); };
-		  need_to_call_after_handlers_=true;
-		  handler_->handle(req,res);
-		  if (add_keep_alive_)res.set_header("connection","Keep-Alive");
-		} else {
+		  res.complete_request_handler_ = [this] { this->complete_request(); };
+		  need_to_call_after_handlers_ = true;
+		  handler_->handle(req_, res);
+		}
+		else {
 		  complete_request();
 		}
-	  } else {
+	  }
+	  else {
 		complete_request();
 	  }
 	}
 	/// Call the after handle middleware and send the write the Res to the connection.
 	void complete_request() {
-	  CROW_LOG_INFO<<"Response: "<<this<<' '<<req_.raw_url<<' '<<res.code<<' '<<close_connection_;
+	  // if (!adaptor_.is_open()) {
+		 //delete this;
+		 //return;
+	  // }
+	  CROW_LOG_INFO << "Response: " << this << ' ' << req_.raw_url << ' ' << res.code << ' ' << close_connection_;
 	  if (need_to_call_after_handlers_) {
-		need_to_call_after_handlers_=false;
-
+		need_to_call_after_handlers_ = false;
 		// call all after_handler of middlewares
 		detail::after_handlers_call_helper<
-		  (static_cast<int>(sizeof...(Middlewares))-1),
+		  (static_cast<int>(sizeof...(Middlewares)) - 1),
 		  decltype(ctx_),
 		  decltype(*middlewares_)>
-		  (*middlewares_,ctx_,req_,res);
-	  }
-#ifdef CROW_ENABLE_COMPRESSION
-	  std::string accept_encoding=req_.get_header_value("Accept-Encoding");
-	  if (!accept_encoding.empty()&&res.compressed) {
-		switch (handler_->compression_algorithm()) {
-		  case compression::DEFLATE:
-		  if (accept_encoding.find("deflate")!=std::string::npos) {
-			res.body=compression::compress_string(res.body,compression::algorithm::DEFLATE);
-			res.set_header("Content-Encoding","deflate");
-		  }
-		  break;
-		  case compression::GZIP:
-		  if (accept_encoding.find("gzip")!=std::string::npos) {
-			res.body=compression::compress_string(res.body,compression::algorithm::GZIP);
-			res.set_header("Content-Encoding","gzip");
-		  }
-		  break;
-		  default:
-		  break;
-		}
-	  }
+		  (*middlewares_, ctx_, req_, res);
+	  }//res.complete_request_handler_=nullptr;
+	  uint8_t num_headers_ = 1;
+#ifdef AccessControlAllowCredentials
+	  ++num_headers_;
 #endif
-	  //if there is a redirection with a partial URL, treat the URL as a route.
-	  std::string location=res.get_header_value("Location");
-	  if (!location.empty()&&location.find("://",0)==std::string::npos) {
-#ifdef CROW_ENABLE_SSL
-		location.insert(0,"https://"+req_.get_header_value("Host"));
-#else
-		location.insert(0,"http://"+req_.get_header_value("Host"));
+#ifdef AccessControlAllowHeaders
+	  ++num_headers_;
 #endif
-		res.set_header("location",location);
+#ifdef AccessControlAllowMethods
+	  ++num_headers_;
+#endif
+#ifdef AccessControlAllowOrigin
+	  ++num_headers_;
+#endif
+	  set_status(res.code);
+	  if (res.is_file) {
+		buffers_.reserve(4 * (res.headers.size() + num_headers_) + 3);
+		prepare_buffers();
+		buffers_.emplace_back(Res_crlf, 2);
+		do_write_static();
 	  }
+	  else {
+		buffers_.reserve(4 * (res.headers.size() + num_headers_) + 15);
+		prepare_buffers();
+		detail::middleware_call_helper<0, decltype(ctx_), decltype(*middlewares_), Middlewares...>(*middlewares_, req_, res, ctx_);
+		hack_ = std::to_string(res.body.size());
+		buffers_.emplace_back(Res_content_length_tag, 16);
+		buffers_.emplace_back(hack_.data(), hack_.size());
+		buffers_.emplace_back(Res_crlf, 2);
 
-	  prepare_buffers();
-	  if (res.is_file) do_write_static();else do_write_general();
+		buffers_.emplace_back(Res_server_tag, 8);
+		buffers_.emplace_back(server_name_.data(), server_name_.size());
+		buffers_.emplace_back(Res_crlf, 2);
+
+		date_str_ = get_cached_date_str();
+		buffers_.emplace_back(Res_date_tag, 6);
+		buffers_.emplace_back(date_str_.data(), date_str_.size());
+		buffers_.emplace_back(Res_crlf, 2);
+		buffers_.emplace_back(Res_crlf, 2);
+#ifdef CROW_ENABLE_COMPRESSION
+		std::string accept_encoding = req_.get_header_value("Accept-Encoding");
+		if (!accept_encoding.empty() && res.compressed) {
+		  switch (handler_->compression_algorithm()) {
+		  case compression::DEFLATE:
+			if (accept_encoding.find("deflate") != std::string::npos) {
+			  res.body = compression::compress_string(res.body, compression::algorithm::DEFLATE);
+			  res.set_header("Content-Encoding", "deflate");
+			}
+			break;
+		  case compression::GZIP:
+			if (accept_encoding.find("gzip") != std::string::npos) {
+			  res.body = compression::compress_string(res.body, compression::algorithm::GZIP);
+			  res.set_header("Content-Encoding", "gzip");
+			}
+			break;
+		  default:
+			break;
+		  }
+		}
+#endif
+		do_write_general();
+	  }
+	  //if there is a redirection with a partial URL, treat the URL as a route.
+	  std::string location = res.get_header_value("Location");
+	  if (!location.empty() && location.find("://", 0) == std::string::npos) {
+#ifdef CROW_ENABLE_SSL
+		location.insert(0, "https://" + req_.get_header_value("Host"));
+#else
+		location.insert(0, "http://" + req_.get_header_value("Host"));
+#endif
+		res.add_header_t(Res_loc, location);
+	  }
 	}
 
-	private:
-	inline static char server_tag[9]="Server: ",keep_alive_tag[23]="Connection: Keep-Alive",content_length_tag[17]="Content-Length: ";
-	inline static char date_tag[7]="Date: ",content_length[15]="content-length",RES_Ser[7]="server",RES_Dat[5]="date";
-	inline static char seperator[3]=": ",crlf[3]="\r\n";
+  private:
+	void set_status(int status) {
+	  res.code = status;
+	  switch (status) {
+	  case 200:status_ = "200 OK\r\n", status_len_ = 8; break;
+	  case 201:status_ = "201 Created\r\n", status_len_ = 13; break;
+	  case 202:status_ = "202 Accepted\r\n", status_len_ = 14; break;
+	  case 203:status_ = "203 Non-Authoritative Information\r\n", status_len_ = 35; break;
+	  case 204:status_ = "204 No Content\r\n", status_len_ = 16; break;
+
+	  case 301:status_ = "301 Moved Permanently\r\n", status_len_ = 23; break;
+	  case 302:status_ = "302 Found\r\n", status_len_ = 11; break;
+	  case 303:status_ = "303 See Other\r\n", status_len_ = 15; break;
+	  case 304:status_ = "304 Not Modified\r\n", status_len_ = 18; break;
+	  case 307:status_ = "307 Temporary redirect\r\n", status_len_ = 24; break;
+
+	  case 400:status_ = "400 Bad Request\r\n", status_len_ = 17; break;
+	  case 401:status_ = "401 Unauthorized\r\n", status_len_ = 19; break;
+	  case 402:status_ = "402 Payment Required\r\n", status_len_ = 22; break;
+	  case 403:status_ = "403 Forbidden\r\n", status_len_ = 15; break;
+	  case 405:status_ = "405 HTTP verb used to access this page is not allowed (method not allowed)\r\n", status_len_ = 76; break;
+	  case 406:status_ = "406 Client browser does not accept the MIME type of the requested page\r\n", status_len_ = 72; break;
+	  case 409:status_ = "409 Conflict\r\n", status_len_ = 14; break;
+
+	  case 500:status_ = "500 Internal Server Error\r\n", status_len_ = 27; break;
+	  case 501:status_ = "501 Not Implemented\r\n", status_len_ = 21; break;
+	  case 502:status_ = "502 Bad Gateway\r\n", status_len_ = 17; break;
+	  case 503:status_ = "503 Service Unavailable\r\n", status_len_ = 25; break;
+
+	  default:status_ = "404 Not Found\r\n", status_len_ = 15; break;
+	  }
+	}
 	void prepare_buffers() {
-	  //auto self = this->shared_from_this();
-	  res.complete_request_handler_=nullptr;
-
-	  if (!adaptor_.is_open()) {
-		//CROW_LOG_DEBUG << this << " delete (socket is closed) " << is_reading << ' ' << is_writing;
-		//delete this;
-		return;
-	  }
-
-	  static std::unordered_map<int,std::string> statusCodes={
-		  {200, "HTTP/1.1 200 OK\r\n"},
-		  {201, "HTTP/1.1 201 Created\r\n"},
-		  {202, "HTTP/1.1 202 Accepted\r\n"},
-		  {204, "HTTP/1.1 204 No Content\r\n"},
-
-		  {300, "HTTP/1.1 300 Multiple Choices\r\n"},
-		  {301, "HTTP/1.1 301 Moved Permanently\r\n"},
-		  {302, "HTTP/1.1 302 Found\r\n"},
-		  {303, "HTTP/1.1 303 See Other\r\n"},
-		  {304, "HTTP/1.1 304 Not Modified\r\n"},
-
-		  {400, "HTTP/1.1 400 Bad Request\r\n"},
-		  {401, "HTTP/1.1 401 Unauthorized\r\n"},
-		  {403, "HTTP/1.1 403 Forbidden\r\n"},
-		  {404, "HTTP/1.1 404 Not Found\r\n"},
-		  {405, "HTTP/1.1 405 Method Not Allowed\r\n"},
-		  {413, "HTTP/1.1 413 Payload Too Large\r\n"},
-		  {422, "HTTP/1.1 422 Unprocessable Entity\r\n"},
-		  {429, "HTTP/1.1 429 Too Many Requests\r\n"},
-
-		  {500, "HTTP/1.1 500 Internal Server Error\r\n"},
-		  {501, "HTTP/1.1 501 Not Implemented\r\n"},
-		  {502, "HTTP/1.1 502 Bad Gateway\r\n"},
-		  {503, "HTTP/1.1 503 Service Unavailable\r\n"},
-	  };
-
 	  //if (res.body.empty()) {}//res.body
-	  buffers_.clear();
-	  buffers_.reserve(4*(res.headers.size()+5)+3);
-
-	  if (!statusCodes.count(res.code))
-		res.code=500;
-	  {
-		auto& status=statusCodes.find(res.code)->second;
-		buffers_.emplace_back(status.data(),status.size());
+	  //res.complete_request_handler_=nullptr;
+	  buffers_.emplace_back(Res_http_status, 9);
+	  buffers_.emplace_back(status_, status_len_);
+	  if (res.code > 399) res.body = status_;
+	  for (auto& kv : res.headers) {
+		buffers_.emplace_back(kv.first.data(), kv.first.size());
+		buffers_.emplace_back(Res_seperator, 2);
+		buffers_.emplace_back(kv.second.data(), kv.second.size());
+		buffers_.emplace_back(Res_crlf, 2);
 	  }
-
-	  if (res.code>399&&res.body.empty())
-		res.body=statusCodes[res.code].substr(9);
-
-	  for (auto& kv:res.headers) {
-		buffers_.emplace_back(kv.first.data(),kv.first.size());
-		buffers_.emplace_back(seperator,2);
-		buffers_.emplace_back(kv.second.data(),kv.second.size());
-		buffers_.emplace_back(crlf,2);
-
-	  }
-
-	  if (!res.headers.count(content_length)) {
-		content_length_=std::to_string(res.body.size());
-		buffers_.emplace_back(content_length_tag,16);
-		buffers_.emplace_back(content_length_.data(),content_length_.size());
-		buffers_.emplace_back(crlf,2);
-	  }
-	  if (!res.headers.count(RES_Ser)) {
-		buffers_.emplace_back(server_tag,8);
-		buffers_.emplace_back(server_name_.data(),server_name_.size());
-		buffers_.emplace_back(crlf,2);
-	  }
-	  if (!res.headers.count(RES_Dat)) {
-		date_str_=get_cached_date_str();
-		buffers_.emplace_back(date_tag,6);
-		buffers_.emplace_back(date_str_.data(),date_str_.size());
-		buffers_.emplace_back(crlf,2);
-	  }
-	  if (add_keep_alive_) {
-		buffers_.emplace_back(keep_alive_tag,22);
-		buffers_.emplace_back(crlf,2);
-	  }
-
-	  buffers_.emplace_back(crlf,2);
-
+#ifdef AccessControlAllowCredentials
+	  buffers_.emplace_back(RES_AcC, 34);
+	  buffers_.emplace_back(AccessControlAllowCredentials, ACAC);
+	  buffers_.emplace_back(Res_crlf, 2);
+#endif
+#ifdef AccessControlAllowHeaders
+	  buffers_.emplace_back(RES_AcH, 30);
+	  buffers_.emplace_back(AccessControlAllowHeaders, ACAH);
+	  buffers_.emplace_back(Res_crlf, 2);
+#endif
+#ifdef AccessControlAllowMethods
+	  buffers_.emplace_back(RES_AcM, 30);
+	  buffers_.emplace_back(AccessControlAllowMethods, ACAM);
+	  buffers_.emplace_back(Res_crlf, 2);
+#endif
+#ifdef AccessControlAllowOrigin
+	  buffers_.emplace_back(RES_AcO, 29);
+	  buffers_.emplace_back(AccessControlAllowOrigin, ACAO);
+	  buffers_.emplace_back(Res_crlf, 2);
+#endif
 	}
 
 	void do_write_static() {
-	  boost::asio::write(adaptor_.socket(),buffers_);
+	  boost::asio::write(adaptor_.socket(), buffers_);
 	  res.do_stream_file(adaptor_);
 	  res.end();
 	  res.clear();
@@ -378,18 +381,17 @@ namespace crow {
 	}
 
 	void do_write_general() {
-	  if (res.body.length()<res_stream_threshold_) {
+	  if (res.body.length() < res_stream_threshold_) {
 		res_body_copy_.swap(res.body);
-		buffers_.emplace_back(res_body_copy_.data(),res_body_copy_.size());
+		buffers_.emplace_back(res_body_copy_.data(), res_body_copy_.size());
 		do_write();
 		if (need_to_start_read_after_complete_) {
-		  need_to_start_read_after_complete_=false;
-		  start_deadline();
-		  do_read();
+		  need_to_start_read_after_complete_ = false; cancel_deadline_timer(); do_read();
 		}
-	  } else {
-		is_writing=true;
-		boost::asio::write(adaptor_.socket(),buffers_);
+	  }
+	  else {
+		is_writing = true;
+		boost::asio::write(adaptor_.socket(), buffers_);
 		res.do_stream_body(adaptor_);
 		res.end();
 		res.clear();
@@ -399,107 +401,100 @@ namespace crow {
 
 	void do_read() {
 	  //auto self = this->shared_from_this();
-	  is_reading=true;
+	  is_reading = true;
 	  adaptor_.socket().async_read_some(boost::asio::buffer(buffer_),
-										[this](const boost::system::error_code& ec,std::size_t bytes_transferred) {
-		bool error_while_reading=true;
-		if (!ec) {
-		  bool ret=parser_.feed(buffer_.data(),bytes_transferred);
-		  if (ret&&adaptor_.is_open()) {
-			error_while_reading=false;
+		[this](const boost::system::error_code& ec, std::size_t bytes_transferred) {
+		  if (!ec) {
+			bool ret = parser_.feed(buffer_.data(), bytes_transferred);
+			//std::cout<<adaptor_.is_open()<<"  |  "<<ret<<std::endl;
+			if (ret && adaptor_.is_open()) {
+			  if (close_connection_) {
+				cancel_deadline_timer();
+				is_reading = false;
+				check_destroy();
+				// adaptor will close after write
+			  }
+			  else if (!need_to_call_after_handlers_) {
+				cancel_deadline_timer();
+				do_read();
+			  }
+			  else { need_to_start_read_after_complete_ = true; }// res will be completed later by user
+			}
+			else {
+			  cancel_deadline_timer();
+			  is_reading = false;
+			  adaptor_.shutdown_read();
+			  adaptor_.close();
+			  delete this;
+			}
 		  }
-		}
-
-		if (error_while_reading) {
-		  cancel_deadline_timer();
-		  parser_.done();
-		  adaptor_.shutdown_read();
-		  adaptor_.close();
-		  delete this;
-		} else if (close_connection_) {
-		  cancel_deadline_timer();
-		  parser_.done();
-		  is_reading=false;
-		  check_destroy();
-		  // adaptor will close after write
-		} else if (!need_to_call_after_handlers_) {
-		  start_deadline();
-		  do_read();
-		} else {
-		  // res will be completed later by user
-		  need_to_start_read_after_complete_=true;
-		}
-	  });
+		  else {
+			cancel_deadline_timer();
+			adaptor_.shutdown_read();
+			adaptor_.close();
+			delete this;
+			//CROW_LOG_DEBUG << this << " from read(1)";
+			//check_destroy();
+		  }
+		});
 	}
 
 	void do_write() {
 	  //auto self = this->shared_from_this();
-	  is_writing=true;
-	  boost::asio::async_write(adaptor_.socket(),buffers_,
-							   [&](const boost::system::error_code& ec,std::size_t /*bytes_transferred*/) {
-		is_writing=false;
-		res.clear();
-		res_body_copy_.clear();
-		if (!ec) {
-		  if (close_connection_) {
-			adaptor_.shutdown_write();
-			adaptor_.close();
-			CROW_LOG_DEBUG<<this<<" from write(1)";
-			check_destroy();
+	  is_writing = true;
+	  boost::asio::async_write(adaptor_.socket(), buffers_,
+		[this](const boost::system::error_code& ec, std::size_t /*bytes_transferred*/) {
+		  is_writing = false;
+		  res.clear();
+		  res_body_copy_.clear();
+		  if (!ec) {
+			if (close_connection_) {
+			  adaptor_.shutdown_write();
+			  adaptor_.close();
+			  check_destroy();
+			}
 		  }
-		} else {
-		  delete this;
-		}
-	  });
+		  else {
+			adaptor_.close();
+			delete this;
+			//CROW_LOG_DEBUG << this << " from write(2)";
+			//check_destroy();
+		  }
+		});
 	}
 
 	void check_destroy() {
-	  CROW_LOG_DEBUG<<this<<" is_reading "<<is_reading<<" is_writing "<<is_writing;
-	  if (!is_reading&&!is_writing) {
-		CROW_LOG_DEBUG<<this<<" delete (idle) ";
+	  CROW_LOG_DEBUG << this << " is_reading " << is_reading << " is_writing " << is_writing;
+	  if (!is_reading && !is_writing) {
+		CROW_LOG_DEBUG << this << " delete (idle) ";
 		delete this;
 	  }
-	  //delete this;
 	}
-
 	void cancel_deadline_timer() {
-	  CROW_LOG_DEBUG<<this<<" timer cancelled: "<<timer_cancel_key_.first<<' '<<timer_cancel_key_.second;
+	  CROW_LOG_DEBUG << this << " timer cancelled: " << timer_cancel_key_.first << ' ' << timer_cancel_key_.second;
 	  timer_queue.cancel(timer_cancel_key_);
 	}
 
-	void start_deadline(/*int timeout = 5*/) {
-	  cancel_deadline_timer();
-
-	  timer_cancel_key_=timer_queue.add([this] {
-		if (!adaptor_.is_open()) {
-		  return;
-		}
-		adaptor_.shutdown_readwrite();
-		adaptor_.close();
-	  });
-	  CROW_LOG_DEBUG<<this<<" timer added: "<<timer_cancel_key_.first<<' '<<timer_cancel_key_.second;
-	}
-
-	private:
-
+  private:
 	Adaptor adaptor_;
 	Handler* handler_;
 
-	boost::array<char,4096> buffer_;
-
-	const unsigned res_stream_threshold_=1048576;
+	boost::array<char, 4096> buffer_;
+	const char* status_ = "404 Not Found\r\n";
+	int status_len_ = 15;
+	const unsigned res_stream_threshold_ = 1048576;
 
 	HTTPParser<Connection> parser_;
 	Req req_;
 	Res res;
 
-	bool close_connection_=false;
+	bool close_connection_ = false;
 
 	const std::string& server_name_;
 	std::vector<boost::asio::const_buffer> buffers_;
 
 	std::string content_length_;
-	std::string date_str_;
+	std::string hack_, date_str_;
 	std::string res_body_copy_;
 
 	//boost::asio::deadline_timer deadline_;
@@ -509,13 +504,11 @@ namespace crow {
 	bool is_writing{};
 	bool need_to_call_after_handlers_{};
 	bool need_to_start_read_after_complete_{};
-	bool add_keep_alive_{};
 
 	std::tuple<Middlewares...>* middlewares_;
 	detail::Ctx<Middlewares...> ctx_;
 
 	std::function<std::string()>& get_cached_date_str;
 	detail::dumb_timer_queue& timer_queue;
-	};
-
-  }
+  };
+}
