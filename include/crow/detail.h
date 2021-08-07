@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio.hpp>
 #include <deque>
 #include <functional>
@@ -7,6 +8,16 @@
 #include <fstream>
 #include <iterator>
 #include "crow/logging.h"
+namespace boost {
+  namespace posix_time {
+    class BOOST_SYMBOL_VISIBLE millseconds : public time_duration {
+    public:template <typename T>
+      BOOST_CXX14_CONSTEXPR explicit millseconds(T const& s,
+        typename boost::enable_if<boost::is_integral<T>, void>::type* = BOOST_DATE_TIME_NULLPTR) :
+      time_duration(0, 0, 0, numeric_cast<fractional_seconds_type>(s)) {}
+    };
+  }
+}
 namespace crow {
   namespace detail {
     static std::string directory_=CROW_STATIC_DIRECTORY;

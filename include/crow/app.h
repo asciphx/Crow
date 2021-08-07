@@ -21,7 +21,7 @@
 #include "crow/compression.h"
 #endif
 
-#ifdef CROW_MSVC_WORKAROUND
+#ifdef _WIN32
 #define CROW_ROUTE(app, url) app.route(url)
 #else
 #define CROW_ROUTE(app, url) app.route_url<crow::spell::get_parameter_tag(url)>(url)

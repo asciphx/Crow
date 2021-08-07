@@ -14,6 +14,7 @@
 #include <sstream>
 #include <thread>
 #include <unordered_map>
+
 #include <boost/lexical_cast.hpp>
 #include <string_view>
 
@@ -616,7 +617,7 @@ namespace crow {
       bool error = false;
       while (status) {
         try {
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          std::this_thread::yield();
         }
         catch (std::runtime_error& e) {
           connection_status = 1;
@@ -1062,7 +1063,7 @@ namespace crow {
     return mysql_statement<B>{mysql_wrapper_, * pair.first->second, data_};
   }
 }
-#define MaxSyncConnections 32
+#define MaxSyncConnections 256
 #define EXPECT_THROW(STM)\
 try {STM;std::cerr << "This must have thrown an exception: " << #STM << std::endl; } catch (...) {}
 #define EXPECT_EQUAL(A, B)\
@@ -1110,7 +1111,7 @@ namespace crow {
     }
     while (status)
       try {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
       status = mysql_real_connect_cont(&connection, mysql, status);
     }
     catch (std::runtime_error& e) {
@@ -1341,7 +1342,7 @@ namespace crow {
           std::cerr << "PQflush error" << std::endl;
         }
         if (ret == 1)
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          std::this_thread::yield();
       }
     }
 
@@ -1396,7 +1397,7 @@ namespace crow {
 
       if (PQisBusy(connection)) {
         try {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          std::this_thread::yield();
         }
         catch (std::runtime_error& e) {
           while (true)
@@ -1895,7 +1896,7 @@ namespace crow {
     }
     else {
       if (n_sync_connections_ > max_sync_connections_) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::yield();
         goto _;
       }
       ++n_sync_connections_;

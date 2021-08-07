@@ -1,6 +1,5 @@
 #pragma once
 #include <chrono>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio.hpp>
 #ifdef CROW_ENABLE_SSL
 #include <boost/asio/ssl.hpp>
@@ -13,16 +12,6 @@
 #include "crow/http_connection.h"
 #include "crow/logging.h"
 #include "crow/detail.h"
-namespace boost {
-  namespace posix_time {
-    class BOOST_SYMBOL_VISIBLE millseconds : public time_duration {
-    public:template <typename T>
-      BOOST_CXX14_CONSTEXPR explicit millseconds(T const& s,
-        typename boost::enable_if<boost::is_integral<T>, void>::type* = BOOST_DATE_TIME_NULLPTR) :
-      time_duration(0, 0, 0, numeric_cast<fractional_seconds_type>(s)) {}
-    };
-  }
-}
 namespace crow {
   static const char RES_GMT[26]="%a, %d %b %Y %H:%M:%S GMT";
   using namespace boost;
@@ -77,7 +66,7 @@ namespace crow {
         timer.async_wait(handler=[&timer_queue,&timer,&handler](const boost::system::error_code& ec) {
           if (ec)return;
           timer_queue.process();
-          timer.expires_from_now(boost::posix_time::millseconds(1));
+          timer.expires_from_now(boost::posix_time::seconds(1));
           timer.async_wait(handler);
         });
         ++init_count;
