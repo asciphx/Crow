@@ -12,7 +12,7 @@ Crow is C++ microframework for web. Support Mac, Linux, windows, three platforms
 int main(){
     crow::SimpleApp app;
     CROW_ROUTE(app, "/")([](){
-        return "Hello world";
+        return "Hello world!";
     });
     app.port(18080).multithreaded().run();
 }

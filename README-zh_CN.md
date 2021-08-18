@@ -13,7 +13,7 @@
 int main(){
     crow::SimpleApp app;
     CROW_ROUTE(app, "/")([](){
-        return "Hello world";
+        return "你好 世界！";
     });
     app.port(18080).multithreaded().run();
 }
@@ -42,7 +42,7 @@ int main(){
 	//std::tuple<int, std::string> ds=q("select id,name from users_test where id = 1").template r__<int,std::string>();
 	//std::cout<<std::get<0>(ds)<<std::get<1>(ds);
 	int i = 0; q("SELECT 200+2").r__(i);
-	std::string s; q("SELECT 'hello world'").r__(s);
+	std::string s; q("SELECT '你好 世界！'").r__(s);
 	return Res(i,s);
   });
 ```
