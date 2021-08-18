@@ -1,6 +1,6 @@
 ﻿﻿![乌鸦标志](http://i.imgur.com/wqivvjK.jpg)
 
-乌鸦是Web的C++微服务框架，支持mac,linux,windows,三大平台，开发速度最快最迅速最猛烈，下一步即将支持ORM。目前估测能在techempower应该可以排到世界前五。
+乌鸦是Web的C++微服务框架，支持mac,linux,windows,三大平台，开发速度最快最迅速最猛烈，下一步即将支持ORM。目前估测能在techempower应该可以排到世界前五。请使用GBK编码打开具有乱码的文件，这样才能显示出正确的中文。
 
 ### [示例(example_vs)](http://8.129.58.72:8080/)🚀
 （灵感来自 Python Flask）[由Asciphx提供的分支]
