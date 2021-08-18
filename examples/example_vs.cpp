@@ -1,4 +1,4 @@
-#include "crow.h"
+Ôªø#include "crow.h"
 #include "middleware.h"
 #include "module.h"
 using namespace crow;auto d = D_();//auto d = D_pgsql();
@@ -19,7 +19,7 @@ int main() {
 	//std::tuple<int, std::string> ds=q("select id,name from users_test where id = 1").template r__<int,std::string>();
 	//std::cout<<std::get<0>(ds)<<std::get<1>(ds);
 	int i = 0; q("SELECT 200+2").r__(i);
-	std::string s; q("SELECT 'ƒ„∫√  ¿ΩÁ£°'").r__(s);
+	std::string s; q("SELECT '‰Ω†Â•Ω ‰∏ñÁïåÔºÅ'").r__(s);
 	return Res(i,s);
   });
   // a request to /path should be forwarded to /path/
