@@ -15,9 +15,11 @@
 #define ACAM 32
 //#define AccessControlAllowMethods "GET,POST,DELETE,PUT,OPTIONS,HEAD"
 namespace crow {
-  //typedef sql_database<mysql> D;
-  typedef sql_database<mysql> Mysql;
-  typedef sql_database<pgsql> Pgsql;
+  //MySQL will automatically shut down after 8 hours (28800 seconds) of
+  // inactivity by default (determined by the mechanism provided by the server)
+  //typedef sql_database<sqlType,time_wait> D;time_wait default 28800
+  typedef sql_database<mysql, 99> Mysql;
+  typedef sql_database<pgsql, 99> Pgsql;
 //-------------- utf8 / GB2312 / GBK --------------
 #define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,"GBK")
 #define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,"GBK")
