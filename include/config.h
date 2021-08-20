@@ -15,7 +15,7 @@
 #define ACAM 32
 //#define AccessControlAllowMethods "GET,POST,DELETE,PUT,OPTIONS,HEAD"
 namespace crow {
-  //MySQL will automatically shut down after 8 hours (28800 seconds) of
+  //SqlDataBase will automatically shut down after 8 hours (28800 seconds) of
   // inactivity by default (determined by the mechanism provided by the server)
   //typedef sql_database<sqlType,time_wait> D;time_wait default 28800
   typedef sql_database<mysql, 99> Mysql;
