@@ -4,6 +4,7 @@
 #  Tcmalloc_LIBRARIES   - List of libraries when using Tcmalloc.
 #  Tcmalloc_FOUND       - True if Tcmalloc found.
 
+message( "USE_TCMALLOC SERACH!!!" )
 if (USE_TCMALLOC)
   set(Tcmalloc_NAMES tcmalloc)
 else ()

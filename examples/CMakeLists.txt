@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project (crow_examples)
-set(LIBS ${Boost_LIBRARIES} ${MYSQL_LIBRARY} ${SQLite3_LIBRARIES} ${PostgreSQL_LIBRARIES} )
+set(LIBS ${Boost_LIBRARIES} ${MYSQL_LIBRARY} ${SQLite3_LIBRARIES}
+${PostgreSQL_LIBRARIES} ${OPENSSL_LIBRARIES})
 if (MSVC)
 	add_executable(example_vs example_vs.cpp)
 	target_link_libraries(example_vs ${LIBS})
@@ -36,11 +37,10 @@ if (Tcmalloc_FOUND)
 	target_link_libraries(example ${Tcmalloc_LIBRARIES})
 endif(Tcmalloc_FOUND)
 
-add_executable(example_with_all example_with_all.cpp)
-add_dependencies(example_with_all amalgamation)
-#target_link_libraries(example crow)
-target_link_libraries(example_with_all ${LIBS})
-target_link_libraries(example_with_all ${CMAKE_THREAD_LIBS_INIT})
+# add_executable(example_with_all example_with_all.cpp)
+# add_dependencies(example_with_all amalgamation)
+# target_link_libraries(example_with_all ${LIBS})
+# target_link_libraries(example_with_all ${CMAKE_THREAD_LIBS_INIT})
 
 add_custom_command(OUTPUT python/example_test.py
 	COMMAND ${CMAKE_COMMAND} -E

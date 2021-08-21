@@ -27,7 +27,7 @@ if (MSVC)
 	set(Boost_USE_STATIC_LIBS "On")
 	find_package( Boost 1.55 COMPONENTS system thread regex REQUIRED )
 else()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++1y -pedantic -Wextra")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64 -pthread -ldl -lz -static-libgcc -fexec-charset=GBK")
 	find_package( Boost 1.55 COMPONENTS system thread REQUIRED )
 	add_definitions(-Wno-ignored-attributes) # to skip postgresql warnings.
 endif()
@@ -89,7 +89,7 @@ else()
 		COMMAND python ${PROJECT_SOURCE_DIR}/amalgamate/merge_all.py ${PROJECT_SOURCE_DIR}/include
 		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/crow_all.h ${PROJECT_SOURCE_DIR}/amalgamate
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/amalgamate
-		DEPENDS ${PROJECT_SOURCE_DIR}/include/*.h ${PROJECT_SOURCE_DIR}/include/crow/*.h ${PROJECT_SOURCE_DIR}/include/sql/*.hh
+		DEPENDS ${PROJECT_SOURCE_DIR}/include/*.h ${PROJECT_SOURCE_DIR}/include/crow/*.h
 	)
 
 	add_custom_target(amalgamation ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/crow_all.h)

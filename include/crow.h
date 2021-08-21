@@ -1,4 +1,5 @@
 #pragma once
+#include "crow/json.hpp"
 #include "crow/ccORM.hh"
 #include "config.h"
 #include "crow/query_string.h"
@@ -6,7 +7,6 @@
 #include "crow/TinySHA1.hpp"
 #include "crow/settings.h"
 #include "crow/socket_adaptors.h"
-#include "crow/json.hpp"
 #include "crow/mustache.h"
 #include "crow/logging.h"
 #include "crow/str.h"

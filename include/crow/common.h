@@ -28,16 +28,16 @@ namespace crow {
   }
   inline HTTPMethod c2m(const char*m) {
 	switch (hack8Str(m)) {
-	  case hack8Str("DELETE"):return crow::HTTPMethod::DEL;
+	  case "DELETE"_l:return crow::HTTPMethod::DEL;
 	  case 4670804:return crow::HTTPMethod::GET;
 	  case 1212498244:return crow::HTTPMethod::HEAD;
 	  case 1347375956:return crow::HTTPMethod::POST;
 	  case 5264724:return crow::HTTPMethod::PUT;
-	  case hack8Str("OPTIONS"):return crow::HTTPMethod::OPTIONS;
-	  case hack8Str("CONNECT"):return crow::HTTPMethod::CONNECT;
-	  case hack8Str("TRACE"):return crow::HTTPMethod::TRACE;
-	  case hack8Str("PATCH"):return crow::HTTPMethod::PATCH;
-	  case hack8Str("PURGE"):return crow::HTTPMethod::PURGE;
+	  case "OPTIONS"_l:return crow::HTTPMethod::OPTIONS;
+	  case "CONNECT"_l:return crow::HTTPMethod::CONNECT;
+	  case "TRACE"_l:return crow::HTTPMethod::TRACE;
+	  case "PATCH"_l:return crow::HTTPMethod::PATCH;
+	  case "PURGE"_l:return crow::HTTPMethod::PURGE;
 	}
 	return HTTPMethod::InternalMethodCount;
   }
@@ -75,16 +75,16 @@ namespace crow {
 #ifndef CROW_MSVC_WORKAROUND
 constexpr crow::HTTPMethod operator""_mt(const char* str,size_t /*len*/) {
   switch (hack8Str(str)) {
-	case hack8Str("DELETE"):return crow::HTTPMethod::DEL;
-	case 'GET':return crow::HTTPMethod::GET;
-	case 'HEAD':return crow::HTTPMethod::HEAD;
-	case 'POST':return crow::HTTPMethod::POST;
-	case 'PUT':return crow::HTTPMethod::PUT;
-	case hack8Str("OPTIONS"):return crow::HTTPMethod::OPTIONS;
-	case hack8Str("CONNECT"):return crow::HTTPMethod::CONNECT;
-	case hack8Str("TRACE"):return crow::HTTPMethod::TRACE;
-	case hack8Str("PATCH"):return crow::HTTPMethod::PATCH;
-	case hack8Str("PURGE"):return crow::HTTPMethod::PURGE;
+	case "DELETE"_l:return crow::HTTPMethod::DEL;
+	case "GET"_i:return crow::HTTPMethod::GET;
+	case "HEAD"_i:return crow::HTTPMethod::HEAD;
+	case "POST"_i:return crow::HTTPMethod::POST;
+	case "PUT"_i:return crow::HTTPMethod::PUT;
+	case "OPTIONS"_l:return crow::HTTPMethod::OPTIONS;
+	case "CONNECT"_l:return crow::HTTPMethod::CONNECT;
+	case "TRACE"_l:return crow::HTTPMethod::TRACE;
+	case "PATCH"_l:return crow::HTTPMethod::PATCH;
+	case "PURGE"_l:return crow::HTTPMethod::PURGE;
   }
   throw std::runtime_error("invalid http method");
 }

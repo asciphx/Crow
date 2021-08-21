@@ -48,23 +48,28 @@ char*toStr(int i) {
   while (t>0x7f) { w[--z]=RES_ASCII[b];i=t;t=i/0x100;b=i-t*0x100-32; }
   w[--z]=RES_ASCII[b];if (z>0) { t-=32;w[0]=RES_ASCII[t]; } return w;
 }
-constexpr unsigned long long hack8Str(const char*s) {
-  unsigned long long r=0;for (int i=0;s[i];r*=0x100,r+=s[i++]);return r;
-}
-constexpr int hack4Str(const char*s) { int r=0;for (int i=0;s[i];r*=0x100,r+=s[i++]);return r; }
-int hack_str(const char*oid) {
-  int t=0,i=strLen(oid),j,pow=1;
-  while (i-->0) {
-    char*chr=subStr(oid,i,i+1);j=0;
-    while (j++<0x61) {
-      char*s=subStr(RES_ASCII,j-1,j);
-      if (strCmp(chr,s)==0) {
-        t=t+(j+0x1f)*pow; pow=pow*0x100;free(s);break;
+int hack_str(const char* oid) {
+  int t = 0, i = strLen(oid), j, pow = 1;
+  while (i-- > 0) {
+    char* chr = subStr(oid, i, i + 1); j = 0;
+    while (j++ < 0x61) {
+      char* s = subStr(RES_ASCII, j - 1, j);
+      if (strCmp(chr, s) == 0) {
+        t = t + (j + 0x1f) * pow; pow = pow * 0x100; free(s); break;
       } free(s);
     } free(chr);
   } return t;
 }
-
+constexpr unsigned long long hack8Str(const char*s) {
+  unsigned long long r=0;for (int i=0;s[i];r*=0x100,r+=s[i++]);return r;
+}
+constexpr int hack4Str(const char*s) { int r=0;for (int i=0;s[i];r*=0x100,r+=s[i++]);return r; }
 #ifdef __cplusplus
 }  /* extern "C" */
+constexpr int operator""_i(const char* s, size_t /*len*/) {
+  int r = 0; for (int i = 0; s[i]; r *= 0x100, r += s[i++]); return r;
+}
+constexpr unsigned long long operator""_l(const char* s, size_t /*len*/) {
+  unsigned long long r = 0; for (unsigned long long i = 0; s[i]; r *= 0x100, r += s[i++]); return r;
+}
 #endif

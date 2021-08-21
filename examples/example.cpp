@@ -9,7 +9,7 @@ class ExampleLogHandler : public ILogHandler {
 	std::cerr << "ExampleLogHandler -> " <<message;
   }
 };
-int main() {
+int main() { setlocale(LC_ALL, ".65001");
   App<ExampleMiddleware/*,Middle*/> app;//Global Middleware,and default config
   app.directory("./static").home("i.htm").timeout(2)
 	.file_type({"html","ico","css","js","json","svg","png","jpg","gif","txt"})

@@ -1,9 +1,10 @@
 ﻿#include "crow.h"
 #include "middleware.h"
 #include "module.h"
+#include "asci.h"
 using namespace crow;auto d = D_();//auto d = D_pgsql();
 					//auto d = D_sqlite("test.db");
-int main() {
+int main() { //setlocale(LC_ALL, ".936");
   App</*Middle*/> app;//Global Middleware,and default config
   app.directory("./static").home("i.htm").timeout(2)
 	.file_type({"html","ico","css","js","json","svg","png","gif","jpg","txt"});
@@ -16,11 +17,11 @@ int main() {
   //sql
   app.route("/sql")([] {
 	auto q = d.conn();
-	//std::tuple<int, std::string> ds=q("select id,name from users_test where id = 1").template r__<int,std::string>();
-	//std::cout<<std::get<0>(ds)<<std::get<1>(ds);
+	//json v = q("select id,name from users_test where id = 1").JSON();
+	//std::cout << v;
 	int i = 0; q("SELECT 200+2").r__(i);
 	std::string s; q("SELECT '你好 世界！'").r__(s);
-	return Res(i,s);
+	return Res(i, s);
   });
   // a request to /path should be forwarded to /path/
   app.route("/path/")([]() {
@@ -41,10 +42,11 @@ int main() {
 	json json_output = json(list);
 	return json_output;
   });
+
   //status code + return json
   app.route("/json")([] {
 	json x;
-	x["message"] = "Hello, World!";
+	x["message"] = u8"你好 世界！";
 	x["double"] = 3.1415926;
 	x["int"] = 2352352;
 	x["true"] = true;

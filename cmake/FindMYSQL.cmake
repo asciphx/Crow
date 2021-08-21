@@ -67,28 +67,23 @@ if( WIN32 )
 	set(MYSQL_LIBRARY ${MYSQL_LIBRARY} ${MYSQLCLIENT_LIBRARY})
 	  
 else()
-	find_path( MYSQL_INCLUDE_DIR
-		NAMES "mysql.h"
-		PATHS "/usr/include/mariadb/" "/usr/include/mysql" 
-		"/usr/local/include/mariadb/"
-		"/usr/local/include/mysql/"
-		"/usr/mysql/include/mysql/" 
-              "/usr/local/opt/mysql-client/include/mysql/")
-	
-	find_library( MYSQL_LIBRARY
-		NAMES "mariadbclient" "mysqlclient" "mysqlclient_r"
-		PATHS "/usr/local/opt/mariadb/lib"
-		  "/lib/mysql"
-			"/lib64/mysql"
-			"/usr/lib/mysql"
-			"/usr/lib64/mysql"
-			"/usr/local/lib/mysql"
-			"/usr/local/lib64/mysql"
-			"/usr/mysql/lib/mysql"
-			"/usr/mysql/lib64/mysql"
-			"/usr/local/opt/mysql-client/lib" 
-			"/usr/lib/x86_64-linux-gnu"
-			)
+
+set( MYSQL_ROOT_DIR /home/asciphx/vcpkg/packages/libmariadb_x64-linux)
+find_library( MYSQLCLIENT_LIBRARY
+	NAMES "mariadbclient" "mysqlclient"
+	PATHS ${MYSQL_ROOT_DIR}/lib )
+find_library( MYSQL_LIBRARY
+		NAMES "mariadb" "mysql"
+		PATHS ${MYSQL_ROOT_DIR}/lib )
+if (MYSQL_LIBRARY)
+message( ${MYSQL_LIBRARY} )
+  set( MYSQL_INCLUDE_DIR ${MYSQL_ROOT_DIR}/include)
+  set( MYSQL_LIBRARY ${MYSQL_LIBRARY} ${MYSQLCLIENT_LIBRARY}  )
+else ()
+message("not found MYSQL")
+  set(MYSQL_FOUND FALSE)
+  set( MYSQL_LIBRARY )
+endif ()
 endif()
 
 #set(MYSQL_LIBRARY ${MYSQL_LIBRARY} openssl)
@@ -108,5 +103,5 @@ find_package_handle_standard_args( MYSQL DEFAULT_MSG
 
 set( MYSQL_INCLUDE_DIRS ${MYSQL_INCLUDE_DIR} )
 message( MYSQL_INCLUDE_DIRS ${MYSQL_INCLUDE_DIR} )
-message( ${MYSQL_LIBRARY} )
+message("mysql in :" ${MYSQL_LIBRARY} " " )
 mark_as_advanced( MYSQL_INCLUDE_DIR MYSQL_LIBRARY )
