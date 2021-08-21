@@ -138,14 +138,14 @@ namespace crow {
 #else
   inline char* UnicodeToUtf8(const char* str) {
 	if (NULL == str) return NULL;
-	size_t len = (strlen(str) + 1) * sizeof(wchar_t);
-	size_t destlen = 0;
-	wchar_t* WStr = (wchar_t*)malloc(len);
-	mbstowcs_s(&destlen, WStr, len, str, _TRUNCATE);
-	len = wcslen(WStr) * sizeof(char) + 1; destlen = 0;
-	char* CStr = (char*)malloc(len);
-	wcstombs_s(&destlen, CStr, len, WStr, _TRUNCATE); CStr[len] = 0;
-	free(WStr); WStr = NULL; return CStr;
+	size_t destlen = mbstowcs(0, str, 0);
+	size_t size = destlen + 1;
+	wchar_t* pw = new wchar_t[size];
+	mbstowcs(pw, str, size);
+	size = wcslen(pw) * sizeof(wchar_t);
+	char* pc = (char*)malloc(size + 1); memset(pc, 0, size + 1);
+	destlen = wcstombs(pc, pw, size + 1);
+	pc[size] = 0; delete[] pw; pw = NULL; return pc;
   }
 #endif
   constexpr int count_first_falses() { return 0; }
@@ -531,7 +531,6 @@ namespace crow {
   }
 
   namespace internal {
-
 	template<typename T, typename F>
 	constexpr auto is_valid(F&& f) -> decltype(f(std::declval<T>()), true) { return true; }
 
@@ -539,7 +538,7 @@ namespace crow {
 	constexpr bool is_valid(...) { return false; }
 
   }
-
+  class sqlite_statement_result;
 #define IS_VALID(T, EXPR) internal::is_valid<T>( [](auto&& obj)->decltype(obj.EXPR){} )
 
   template <typename B> template <typename F> void sql_result<B>::map(F map_function) {
