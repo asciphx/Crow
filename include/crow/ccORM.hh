@@ -133,7 +133,7 @@ namespace crow {
 	char* szUtf8 = (char*)malloc(nLen + 1);
 	memset(szUtf8, 0, nLen + 1);
 	WideCharToMultiByte(CP_UTF8, 0, unicode, -1, szUtf8, nLen, NULL, NULL);
-	szUtf8[nLen + 1] = 0; return szUtf8;
+	return szUtf8;
   }
 #else
   inline char* UnicodeToUtf8(const char* str) {
