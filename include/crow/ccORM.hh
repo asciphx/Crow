@@ -127,13 +127,13 @@ namespace crow {
 	if (nLen == 0) return "";
 	wchar_t* pwszDst = new wchar_t[nLen];
 	MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, pwszDst, nLen);
-	std::wstring wstr(pwszDst); free(pwszDst); pwszDst = NULL;
+	std::wstring wstr(pwszDst); delete[] pwszDst; pwszDst = NULL;
 	const wchar_t* unicode = wstr.c_str();
 	nLen = WideCharToMultiByte(CP_UTF8, 0, unicode, -1, NULL, 0, NULL, NULL);
 	char* szUtf8 = (char*)malloc(nLen + 1);
 	memset(szUtf8, 0, nLen + 1);
 	WideCharToMultiByte(CP_UTF8, 0, unicode, -1, szUtf8, nLen, NULL, NULL);
-	return szUtf8;
+	szUtf8[nLen + 1] = 0; return szUtf8;
   }
 #else
   inline char* UnicodeToUtf8(const char* str) {
