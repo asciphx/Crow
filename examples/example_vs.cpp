@@ -1,7 +1,6 @@
 ﻿#include "crow.h"
 #include "middleware.h"
 #include "module.h"
-#include "asci.h"
 using namespace crow;auto d = D_();//auto d = D_pgsql();
 					//auto d = D_sqlite("test.db");
 int main() { //setlocale(LC_ALL, ".936");

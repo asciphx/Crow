@@ -127,25 +127,25 @@ namespace crow {
 	if (nLen == 0) return "";
 	wchar_t* pwszDst = new wchar_t[nLen];
 	MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, pwszDst, nLen);
-	std::wstring wstr(pwszDst); free(pwszDst); pwszDst = NULL;
+	std::wstring wstr(pwszDst); delete[] pwszDst; pwszDst = NULL;
 	const wchar_t* unicode = wstr.c_str();
 	nLen = WideCharToMultiByte(CP_UTF8, 0, unicode, -1, NULL, 0, NULL, NULL);
 	char* szUtf8 = (char*)malloc(nLen + 1);
 	memset(szUtf8, 0, nLen + 1);
 	WideCharToMultiByte(CP_UTF8, 0, unicode, -1, szUtf8, nLen, NULL, NULL);
-	return szUtf8;
+	szUtf8[nLen + 1] = 0; return szUtf8;
   }
 #else
   inline char* UnicodeToUtf8(const char* str) {
 	if (NULL == str) return NULL;
-	size_t len = (strlen(str) + 1) * sizeof(wchar_t);
-	size_t destlen = 0;
-	wchar_t* WStr = (wchar_t*)malloc(len);
-	mbstowcs_s(&destlen, WStr, len, str, _TRUNCATE);
-	len = wcslen(WStr) * sizeof(char) + 1; destlen = 0;
-	char* CStr = (char*)malloc(len);
-	wcstombs_s(&destlen, CStr, len, WStr, _TRUNCATE); CStr[len] = 0;
-	free(WStr); WStr = NULL; return CStr;
+	size_t destlen = mbstowcs(0, str, 0);
+	size_t size = destlen + 1;
+	wchar_t* pw = new wchar_t[size];
+	mbstowcs(pw, str, size);
+	size = wcslen(pw) * sizeof(wchar_t);
+	char* pc = (char*)malloc(size + 1); memset(pc, 0, size + 1);
+	destlen = wcstombs(pc, pw, size + 1);
+	pc[size] = 0; delete[] pw; pw = NULL; return pc;
   }
 #endif
   constexpr int count_first_falses() { return 0; }
@@ -531,7 +531,6 @@ namespace crow {
   }
 
   namespace internal {
-
 	template<typename T, typename F>
 	constexpr auto is_valid(F&& f) -> decltype(f(std::declval<T>()), true) { return true; }
 
@@ -539,7 +538,7 @@ namespace crow {
 	constexpr bool is_valid(...) { return false; }
 
   }
-
+  class sqlite_statement_result;
 #define IS_VALID(T, EXPR) internal::is_valid<T>( [](auto&& obj)->decltype(obj.EXPR){} )
 
   template <typename B> template <typename F> void sql_result<B>::map(F map_function) {
