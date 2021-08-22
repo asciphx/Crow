@@ -43,7 +43,13 @@ namespace crow {
       /// Process the queue: take functions out in time intervals and execute them.
       void process() {
         if (!io_service_)return;
-        while (!dq_.empty()) dq_.pop_front(), ++step_;
+        auto now = std::chrono::steady_clock::now();
+        while (!dq_.empty()) {
+          auto& x = dq_.front();
+          if (now - x.first < std::chrono::milliseconds(400)) break;
+          if (x.second)x.second();
+          dq_.pop_front(); ++step_;
+        }
       }
       void set_io_service(boost::asio::io_service& io_service) {
         io_service_=&io_service;

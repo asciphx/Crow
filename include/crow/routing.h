@@ -1028,9 +1028,9 @@ namespace crow {
         res=Res(301);
         // TODO absolute url building
         if (req.get_header_value("Host").empty()) {
-          res.add_header_t(RES_Loc,req.url+"/");
+          res.add_header(RES_Loc,req.url+"/");
         } else {
-          res.add_header_t(RES_Loc,"http://"+req.get_header_value("Host")+req.url+"/");
+          res.add_header(RES_Loc,"http://"+req.get_header_value("Host")+req.url+"/");
         }
         res.end();
         return;
