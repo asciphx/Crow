@@ -7,7 +7,7 @@
 #include "crow/ci_map.h"
 //response
 static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location", Res_Ca[14] = "Cache-Control",
-  RES_AJ[17]="application/json", RES_Txt[25] = "text/html;charset=UTF-8", RES_Xc[23] = "X-Content-Type-Options", RES_No[8] = "nosniff";
+  RES_AJ[17]="application/json", RES_Txt[24] = "text/html;charset=UTF-8", RES_Xc[23] = "X-Content-Type-Options", RES_No[8] = "nosniff";
 //RES_f[6]="false",RES_Al[6]="Allow";
 namespace crow {
   using json=nlohmann::json;
@@ -47,7 +47,7 @@ namespace crow {
 	Res& operator = (Res&& r) noexcept {
 	  body=std::move(r.body);
 	  json_value=std::move(r.json_value);
-	  code=r.code;
+	  code = r.code; hType = r.hType;
 	  headers=std::move(r.headers);
 	  path_=std::move(r.path_);
 	  completed_=r.completed_;
@@ -91,7 +91,7 @@ namespace crow {
 	  if (statResult_==0) {
 		std::size_t last_dot=path.find_last_of(".");
 		std::string extension=path.substr(last_dot+1);
-		this->set_header(RES_CL,std::to_string(statbuf_.st_size));
+		this->add_header(RES_CL,std::to_string(statbuf_.st_size));
 		std::string types="";types=content_types[extension];
 		if (types!="") {
 		  this->add_header(RES_CT,types),is_file=1;

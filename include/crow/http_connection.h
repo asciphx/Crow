@@ -270,11 +270,33 @@ namespace crow {
 	  if (res.is_file) {
 		buffers_.reserve(4 * (res.headers.size() + num_headers_) + 3);
 		prepare_buffers();
+		if (res.hType == 3) {
+		  buffers_.emplace_back(Res_Ca, 13);
+		  buffers_.emplace_back(Res_seperator, 2);
+		  buffers_.emplace_back(CROW_FILE_TIME, strlen(CROW_FILE_TIME));
+		  buffers_.emplace_back(Res_crlf, 2);
+		  buffers_.emplace_back(RES_Xc, 22);
+		  buffers_.emplace_back(Res_seperator, 2);
+		  buffers_.emplace_back(RES_No, 7);
+		  buffers_.emplace_back(Res_crlf, 2);
+		}
 		buffers_.emplace_back(Res_crlf, 2);
 		do_write_static();
 	  } else {
 		buffers_.reserve(4 * (res.headers.size() + num_headers_) + 15);
 		prepare_buffers();
+		if (res.hType == 2) {
+		  buffers_.emplace_back(RES_CT, 12);
+		  buffers_.emplace_back(Res_seperator, 2);
+		  buffers_.emplace_back(RES_AJ, 16);
+		  buffers_.emplace_back(Res_crlf, 2);
+		}
+		if (res.hType == 1) {
+		  buffers_.emplace_back(RES_CT, 12);
+		  buffers_.emplace_back(Res_seperator, 2);
+		  buffers_.emplace_back(RES_Txt, 23);
+		  buffers_.emplace_back(Res_crlf, 2);
+		}
 		detail::middleware_call_helper<0, decltype(ctx_), decltype(*middlewares_), Middlewares...>(*middlewares_, req_, res, ctx_);
 		hack_ = std::to_string(res.body.size());
 		buffers_.emplace_back(Res_content_length_tag, 16);
@@ -362,27 +384,6 @@ namespace crow {
 	  // res.complete_request_handler_=nullptr;
 	  buffers_.emplace_back(Res_http_status, 9);
 	  buffers_.emplace_back(status_, status_len_);
-
-	  if (res.hType == 1) {
-		buffers_.emplace_back(RES_CT, 12);
-		buffers_.emplace_back(Res_seperator, 2);
-		buffers_.emplace_back(RES_Txt, 24);
-		buffers_.emplace_back(Res_crlf, 2);
-	  } else if (res.hType == 2) {
-		buffers_.emplace_back(RES_CT, 12);
-		buffers_.emplace_back(Res_seperator, 2);
-		buffers_.emplace_back(RES_AJ, 16);
-		buffers_.emplace_back(Res_crlf, 2);
-	  } else if (res.hType == 3) {
-		buffers_.emplace_back(Res_Ca, 13);
-		buffers_.emplace_back(Res_seperator, 2);
-		buffers_.emplace_back(CROW_FILE_TIME, strlen(CROW_FILE_TIME));
-		buffers_.emplace_back(Res_crlf, 2);
-		buffers_.emplace_back(RES_Xc, 22);
-		buffers_.emplace_back(Res_seperator, 2);
-		buffers_.emplace_back(RES_No, 7);
-		buffers_.emplace_back(Res_crlf, 2);
-	  }
 	  if (res.code > 399) res.body = status_;
 	  for (auto& kv : res.headers) {
 		buffers_.emplace_back(kv.first.data(), kv.first.size());
