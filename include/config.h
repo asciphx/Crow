@@ -14,7 +14,7 @@
 //#define AccessControlAllowHeaders "content-type,cache-control,x-requested-with,authorization"
 #define ACAM 32
 //#define AccessControlAllowMethods "GET,POST,DELETE,PUT,OPTIONS,HEAD"
-
+#define SHOW_SERVER_NAME false //It is better to set false for 1-core 2G server
 namespace crow {
   //SqlDataBase will automatically shut down after 8 hours (28800 seconds) of
   // inactivity by default (determined by the mechanism provided by the server)

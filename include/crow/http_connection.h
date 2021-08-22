@@ -302,11 +302,11 @@ namespace crow {
 		buffers_.emplace_back(Res_content_length_tag, 16);
 		buffers_.emplace_back(hack_.data(), hack_.size());
 		buffers_.emplace_back(Res_crlf, 2);
-
+#if SHOW_SERVER_NAME
 		buffers_.emplace_back(Res_server_tag, 8);
 		buffers_.emplace_back(server_name_.data(), server_name_.size());
 		buffers_.emplace_back(Res_crlf, 2);
-
+#endif
 		date_str_ = get_cached_date_str();
 		buffers_.emplace_back(Res_date_tag, 6);
 		buffers_.emplace_back(date_str_.data(), date_str_.size());
