@@ -367,21 +367,21 @@ namespace crow {
 		buffers_.emplace_back(RES_CT, 12);
 		buffers_.emplace_back(Res_seperator, 2);
 		buffers_.emplace_back(RES_Txt, 24);
-		buffers_.emplace_back(Res_seperator, 2);
+		buffers_.emplace_back(Res_crlf, 2);
 	  } else if (res.hType == 2) {
 		buffers_.emplace_back(RES_CT, 12);
 		buffers_.emplace_back(Res_seperator, 2);
 		buffers_.emplace_back(RES_AJ, 16);
-		buffers_.emplace_back(Res_seperator, 2);
+		buffers_.emplace_back(Res_crlf, 2);
 	  } else if (res.hType == 3) {
 		buffers_.emplace_back(Res_Ca, 13);
 		buffers_.emplace_back(Res_seperator, 2);
 		buffers_.emplace_back(CROW_FILE_TIME, strlen(CROW_FILE_TIME));
-		buffers_.emplace_back(Res_seperator, 2);
+		buffers_.emplace_back(Res_crlf, 2);
 		buffers_.emplace_back(RES_Xc, 22);
 		buffers_.emplace_back(Res_seperator, 2);
 		buffers_.emplace_back(RES_No, 7);
-		buffers_.emplace_back(Res_seperator, 2);
+		buffers_.emplace_back(Res_crlf, 2);
 	  }
 	  if (res.code > 399) res.body = status_;
 	  for (auto& kv : res.headers) {
