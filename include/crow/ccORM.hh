@@ -1,4 +1,7 @@
 #pragma once
+#define SYS_IS_UTF8 1           //------ use GBK or UTF8 ------
+#define MaxSyncConnections 32   //---- MaxSync Connections ----
+
 #include <tuple>
 #include <vector>
 #include <any>
@@ -531,6 +534,7 @@ namespace crow {
   }
 
   namespace internal {
+
 	template<typename T, typename F>
 	constexpr auto is_valid(F&& f) -> decltype(f(std::declval<T>()), true) { return true; }
 
@@ -538,6 +542,7 @@ namespace crow {
 	constexpr bool is_valid(...) { return false; }
 
   }
+
   class sqlite_statement_result;
 #define IS_VALID(T, EXPR) internal::is_valid<T>( [](auto&& obj)->decltype(obj.EXPR){} )
 
@@ -1035,13 +1040,16 @@ namespace crow {
 		case enum_field_types::MYSQL_TYPE_VAR_STRING:
 		  // output[cname] = boost::lexical_cast<std::string>(
 			 //std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		  // break;
 		case enum_field_types::MYSQL_TYPE_LONG_BLOB:
 		case enum_field_types::MYSQL_TYPE_MEDIUM_BLOB:
 		case enum_field_types::MYSQL_TYPE_TINY_BLOB:
 		case enum_field_types::MYSQL_TYPE_BLOB: {
+#ifdef SYS_IS_UTF8
+		  output[cname] = current_row_[i]; break;
+#else
 		  char* c = UnicodeToUtf8(current_row_[i]);
 		  output[cname] = c; free(c); c = NULL; break;
+#endif // SYS_IS_UTF8
 		} break;
 		default:output[cname] = current_row_[i]; break;
 		}
@@ -1121,7 +1129,6 @@ namespace crow {
 	return mysql_statement<B>{mysql_wrapper_, * pair.first->second, data_};
   }
 }
-#define MaxSyncConnections 256
 #define EXPECT_THROW(STM)\
 try {STM;std::cerr << "This must have thrown an exception: " << #STM << std::endl; } catch (...) {}
 #define EXPECT_EQUAL(A, B)\
@@ -1300,27 +1307,27 @@ namespace crow {
 	}
 	inline void bind(sqlite3_stmt* stmt, int pos, sql_null_t) { sqlite3_bind_null(stmt, pos); }
 	inline int bind(sqlite3_stmt* stmt, int pos, const char* s) const {
-#ifdef _WIN32
+#ifdef SYS_IS_UTF8
+	  return sqlite3_bind_text(stmt, pos, s, strlen(s), nullptr);
+#else
 	  char* c = UnicodeToUtf8(s); int ret = sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
 	  free(c); c = NULL; return ret;
-#else
-	  return sqlite3_bind_text(stmt, pos, s, strlen(s), nullptr);
 #endif
 	}
 	inline int bind(sqlite3_stmt* stmt, int pos, const std::string& s) const {
-#ifdef _WIN32
+#ifdef SYS_IS_UTF8
+	  return sqlite3_bind_text(stmt, pos, s.c_str(), s.length(), nullptr);
+#else
 	  char* c = UnicodeToUtf8(s.c_str()); int ret = sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
 	  free(c); c = NULL; return ret;
-#else
-	  return sqlite3_bind_text(stmt, pos, s.c_str(), s.length(), nullptr);
 #endif
 	}
 	inline int bind(sqlite3_stmt* stmt, int pos, const std::string_view& s) const {
-#ifdef _WIN32
+#ifndef SYS_IS_UTF8
+	  return sqlite3_bind_text(stmt, pos, s.data(), s.length(), nullptr);
+#else
 	  char* c = UnicodeToUtf8(s.data()); int ret = sqlite3_bind_text(stmt, pos, c, strlen(c), nullptr);
 	  free(c); c = NULL; return ret;
-#else
-	  return sqlite3_bind_text(stmt, pos, s.data(), s.length(), nullptr);
 #endif
 	}
 	inline int bind(sqlite3_stmt* stmt, int pos, const sql_blob& b) const {
@@ -1624,9 +1631,13 @@ namespace crow {
 		case INT4OID:output[cname] = ntohl(*((uint32_t*)val)); break;
 		case INT2OID:output[cname] = ntohs(*((uint16_t*)val)); break;
 		case 25: {
+#ifdef SYS_IS_UTF8
+		  output[cname] = std::move(std::string(val, PQgetlength(current_result_, row_i_, i)));
+#else
 		  char* c = UnicodeToUtf8(val);
 		  output[cname] = std::move(std::string(c, PQgetlength(current_result_, row_i_, i)));
 		  free(c); c = NULL;
+#endif // SYS_IS_UTF8
 		} break;
 		default:output[cname] = nullptr;
 		  break;

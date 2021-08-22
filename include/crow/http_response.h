@@ -6,8 +6,9 @@
 #include "crow/any_types.h"
 #include "crow/ci_map.h"
 //response
-static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location",Res_Ca[14]="Cache-Control",//RES_f[6]="false",
-  RES_Al[6]="Allow",RES_Xc[23]="X-Content-Type-Options",RES_No[8]="nosniff";/*,RES_AJ[17]="application/json"*/;
+static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location", Res_Ca[14] = "Cache-Control",
+  RES_AJ[17]="application/json", RES_Txt[25] = "text/html;charset=UTF-8", RES_Xc[23] = "X-Content-Type-Options", RES_No[8] = "nosniff";
+//RES_f[6]="false",RES_Al[6]="Allow";
 namespace crow {
   using json=nlohmann::json;
   template <typename Adaptor,typename Handler,typename ... Middlewares>
@@ -37,13 +38,13 @@ namespace crow {
 	}
 	Res() {}
 	explicit Res(int code): code(code) {}
-	Res(std::string body): body(std::move(body)) {}
-	Res(int code,std::string body): code(code),body(std::move(body)) {}
-	Res(const json&& json_value): body(std::move(json_value).dump()) {
-	  //headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
+	Res(std::string body): body(std::move(body)) { headers.emplace(RES_CT, RES_Txt); }
+	Res(int code,std::string body): code(code),body(std::move(body)) { headers.emplace(RES_CT, RES_Txt); }
+	Res(const json&& json_value): body(std::move(json_value).dump()) {//headers.erase(RES_CT);
+	  headers.emplace(RES_CT,RES_AJ);
 	}
-	Res(int code,json&json_value): code(code),body(json_value.dump()) {
-	  //headers.erase(RES_CT);headers.emplace(RES_CT,RES_AJ);
+	Res(int code,json&json_value): code(code),body(json_value.dump()) {//headers.erase(RES_CT);
+	  headers.emplace(RES_CT,RES_AJ);
 	}
 	Res(const char* && char_value): body(std::move(char_value)) {}
 	Res(int code,const char* && char_value): code(code),body(std::move(char_value)) {}
@@ -59,9 +60,7 @@ namespace crow {
 	  return *this;
 	}
 	bool is_completed() const noexcept { return completed_; }
-	void clear() {
-	  completed_=false;body.clear();headers.clear();
-	}
+	void clear() { completed_=false;body.clear();headers.clear(); }
 	/// Return a "Temporary Redirect" Res.
 	/// Location can either be a route or a full URL.
 	void redirect(const std::string& location) {

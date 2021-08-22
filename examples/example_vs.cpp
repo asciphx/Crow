@@ -19,7 +19,7 @@ int main() { //setlocale(LC_ALL, ".936");
 	//json v = q("select id,name from users_test where id = 1").JSON();
 	//std::cout << v;
 	int i = 0; q("SELECT 200+2").r__(i);
-	std::string s; q("SELECT '你好 世界！'").r__(s);
+	std::string s; q(u8"SELECT '你好 世界！'").r__(s);
 	return Res(i, s);
   });
   // a request to /path should be forwarded to /path/
