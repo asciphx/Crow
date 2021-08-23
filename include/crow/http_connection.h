@@ -187,10 +187,10 @@ namespace crow {
 	  adaptor_.start([this](const boost::system::error_code& ec) {
 		if (!ec) {
 		  start_deadline(); do_read();
-		} 		else {
+		} else {
 		  adaptor_.close(); delete this;
 		}
-		});
+	  });
 	}
 
 	void handle() {
@@ -253,7 +253,7 @@ namespace crow {
 		  decltype(*middlewares_)>
 		  (*middlewares_, ctx_, req_, res);
 	  }//res.complete_request_handler_=nullptr;
-	  uint8_t num_headers_ =res.hType==3?3:res.hType?2:1;
+	  uint8_t num_headers_ = res.hType == 3 ? 3 : res.hType ? 2 : 1;
 #ifdef AccessControlAllowCredentials
 	  ++num_headers_;
 #endif
@@ -503,7 +503,7 @@ namespace crow {
 	  timer_queue_.cancel(timer_cancel_key_);
 	}
 
-	void start_deadline(/*int timeout = 5*/) 	{
+	void start_deadline(/*int timeout = 5*/) {
 	  cancel_deadline_timer();
 	  timer_cancel_key_ = timer_queue_.add([this] {
 		if (!adaptor_.is_open())return;

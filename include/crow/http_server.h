@@ -63,8 +63,8 @@ namespace crow {
         boost::asio::deadline_timer timer(*io_service_pool_[i]);
         std::function<void(const boost::system::error_code&)> handler;
         timer.expires_from_now(boost::posix_time::millseconds(1));
-        timer.async_wait(handler=[&timer_queue,&timer,&handler](const boost::system::error_code& ec) {
-          if (ec)return;
+        timer.async_wait(handler=[&timer_queue,&timer,&handler](const boost::system::error_code&/* ec*/) {
+          //if (ec)return;
           timer_queue.process();
           timer.expires_from_now(boost::posix_time::seconds(1));
           timer.async_wait(handler);
@@ -88,18 +88,18 @@ namespace crow {
         CROW_LOG_INFO<<"Exiting.";
       }).join();
     }
-    void stop() {
+    inline void stop() {
       io_service_.stop();for (auto& io_service:io_service_pool_) io_service->stop();
     }
     void signal_clear() { signals_.clear(); }
     void signal_add(int signal_number) { signals_.add(signal_number); }
 
     private:
-    asio::io_service& pick_io_service() {
+    inline asio::io_service& pick_io_service() {
       if (++roundrobin_index_>core_) roundrobin_index_=0;
       return *io_service_pool_[roundrobin_index_];
     }
-    void do_accept() {
+    inline void do_accept() {
       asio::io_service& is=pick_io_service();
       auto p=new Connection<Adaptor,Handler,Middlewares...>(
         is,handler_,server_name_,middlewares_,

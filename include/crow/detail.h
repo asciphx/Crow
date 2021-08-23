@@ -46,7 +46,7 @@ namespace crow {
         auto now = std::chrono::steady_clock::now();
         while (!dq_.empty()) {
           auto& x = dq_.front();
-          if (now - x.first < std::chrono::milliseconds(400)) break;
+          if (now - x.first < std::chrono::milliseconds(618)) break;
           if (x.second)x.second();
           dq_.pop_front(); ++step_;
         }
@@ -58,7 +58,7 @@ namespace crow {
       private:
       boost::asio::io_service* io_service_{};
       std::deque<std::pair<decltype(std::chrono::steady_clock::now()),std::function<void()>>> dq_;
-      int step_{};
+      int step_{};//x.first < max Latency Distribution
     };
   }
 }
