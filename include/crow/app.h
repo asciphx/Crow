@@ -45,7 +45,7 @@ namespace crow {
     ///An HTTP server that runs on SSL with an SSLAdaptor
     using ssl_server_t=Server<Crow,SSLAdaptor,Middlewares...>;
 #endif
-    Crow() { std::locale::global(std::locale(u8"en_US.UTF8"));std::cout << u8"C++ webServer[·þÎñÆ÷] run on http://localhost"; }
+    Crow() { std::locale::global(std::locale(u8"en_US.UTF8"));std::cout << u8"C++ webServer[æœåŠ¡å™¨] run on http://localhost"; }
     ///Process an Upgrade Req
     ///Currently used to upgrrade an HTTP connection to a WebSocket connection
     template <typename Adaptor>
