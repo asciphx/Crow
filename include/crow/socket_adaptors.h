@@ -10,27 +10,27 @@
 #define GET_IO_SERVICE(s) ((s).get_io_service())
 #endif
 namespace crow {
-  using namespace boost;unsigned int utimeout_milli = 3500;//int nSendBuf = 20*1024,nRecvBuf = 20*1024;
+  using namespace boost;//constexpr int nSendBuf = 50 * 1024,nRecvBuf = 50 * 1024;//unsigned int utimeout_milli = 3500;
   using tcp=asio::ip::tcp;
   ///A wrapper for the asio::ip::tcp::socket and asio::ssl::stream
-#if defined __linux__ || defined __APPLE__// platform-specific switch
-  struct timeval tv;// assume everything else is posix
-#else
-  int32_t timeout = crow::utimeout_milli; // use windows-specific time
-#endif
+//#if defined __linux__ || defined __APPLE__// platform-specific switch
+//  struct timeval tv;// assume everything else is posix
+//#else
+//  int32_t timeout = crow::utimeout_milli; // use windows-specific time
+//#endif
   struct SocketAdaptor {
     using Ctx=void;
     SocketAdaptor(asio::io_service& io_service,Ctx*): socket_(io_service) {
       //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDBUF,(const char*)&crow::nSendBuf,sizeof(int));
       //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVBUF,(const char*)&crow::nRecvBuf,sizeof(int));
-#if defined __linux__ || defined __APPLE__// platform-specific switch
-	  tv.tv_sec = utimeout_milli/1000;tv.tv_usec = utimeout_milli;
-	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVTIMEO,&tv,sizeof(tv));//Receiving time limit
-	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDTIMEO,&tv,sizeof(tv));//Sending time limit
-#else
-	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVTIMEO,(const char*)&timeout,sizeof(timeout));
-	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDTIMEO,(const char*)&timeout,sizeof(timeout));
-#endif
+//#if defined __linux__ || defined __APPLE__// platform-specific switch
+//	  tv.tv_sec = utimeout_milli/1000;tv.tv_usec = utimeout_milli;
+//	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVTIMEO,&tv,sizeof(tv));//Receiving time limit
+//	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDTIMEO,&tv,sizeof(tv));//Sending time limit
+//#else
+//	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVTIMEO,(const char*)&timeout,sizeof(timeout));
+//	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDTIMEO,(const char*)&timeout,sizeof(timeout));
+//#endif
     }
     asio::io_service& get_io_service() {
       return GET_IO_SERVICE(socket_);

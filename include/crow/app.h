@@ -30,7 +30,7 @@
 
 namespace crow {
   static std::string RES_home=CROW_HOME_PAGE;
-  //int detail::dumb_timer_queue::tick=4;//Prevent being stuck by long connection
+  int detail::dumb_timer_queue::tick=4;//Prevent being stuck by long connection
 #ifdef CROW_ENABLE_SSL
   using ssl_context_t=boost::asio::ssl::context;
 #endif
@@ -67,8 +67,8 @@ namespace crow {
     ///Set the port that Crow will handle requests on
     self_t& port(std::uint16_t port) { port_=port; return *this; }
     ///Set the maximum number of seconds (latency) per request (default is 4)
-    self_t& timeout(std::uint8_t timeout) {if (timeout < 1)timeout = 1; //detail::dumb_timer_queue::tick = timeout;
-    if (timeout > 10)timeout = 10; utimeout_milli = timeout*1000; return *this; }
+    self_t& timeout(std::uint8_t timeout) { if (timeout > 10)timeout = 10;
+    if (timeout < 1)timeout = 1; detail::dumb_timer_queue::tick = timeout; return *this; }
     ///Set the server name
     self_t& server_name(std::string server_name) { server_name_=server_name;return *this; }
     ///The IP address that Crow will handle requests on (default is 0.0.0.0)
