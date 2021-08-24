@@ -541,7 +541,7 @@ namespace crow {
 
   }
 
-  class sqlite_statement_result;
+class sqlite_statement_result;
 #define IS_VALID(T, EXPR) internal::is_valid<T>( [](auto&& obj)->decltype(obj.EXPR){} )
 
   template <typename B> template <typename F> void sql_result<B>::map(F map_function) {
@@ -959,10 +959,9 @@ namespace crow {
 	MYSQL_ROW current_row_ = nullptr;
 	bool end_of_result_ = false;
 	unsigned int current_row_num_fields_ = 0;
-	uint32_t count_result_ = 0;
 	char** proto_name_ = nullptr;
 	uint16_t* proto_type_ = nullptr;
-	uint64_t current_result_nrows_ = 0;
+	uint64_t current_result_nrows_ = 1;
 	mysql_result(B& mysql_wrapper_, std::shared_ptr<mysql_connection_data> connection_)
 	  : mysql_wrapper_(mysql_wrapper_), connection_(connection_) {}
 	mysql_result& operator=(mysql_result&) = delete;
@@ -992,11 +991,10 @@ namespace crow {
 	  end_of_result_ = true;
 	  return;
 	}
-	current_result_nrows_ = mysql_num_rows(result_);
 	current_row_lengths_ = mysql_fetch_lengths(result_);
   }
   template <typename B> template <typename T> unsigned int mysql_result<B>::readJson(T&& output) {
-	next_row(); if (end_of_result_) return 0;
+	next_row(); if (end_of_result_) return 0; T j;
 	if (proto_type_ == nullptr) {
 	  proto_name_ = (char**)malloc(sizeof(char*) * (int)current_row_num_fields_);
 	  proto_type_ = (uint16_t*)malloc(sizeof(uint16_t) * (int)current_row_num_fields_);
@@ -1007,55 +1005,9 @@ namespace crow {
 		strcpy(proto_name_[i], field->name);
 		proto_type_[i] = (uint16_t)field->type;
 	  }
-	}
-	if (current_result_nrows_ == 1) {
-	  for (unsigned int i = 0; i < current_row_num_fields_; i++) {
-		switch (proto_type_[i]) {
-		case enum_field_types::MYSQL_TYPE_DOUBLE:
-		  output[proto_name_[i]] = boost::lexical_cast<double>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_FLOAT:
-		  output[proto_name_[i]] = boost::lexical_cast<float>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_TINY:
-		  output[proto_name_[i]] = boost::lexical_cast<signed char>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_INT24:
-		  output[proto_name_[i]] = boost::lexical_cast<int>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_SHORT:
-		  output[proto_name_[i]] = boost::lexical_cast<short>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_LONGLONG:
-		  output[proto_name_[i]] = boost::lexical_cast<long long>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_LONG:
-		  output[proto_name_[i]] = boost::lexical_cast<long>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_STRING:
-		case enum_field_types::MYSQL_TYPE_VAR_STRING:
-		case enum_field_types::MYSQL_TYPE_LONG_BLOB:
-		case enum_field_types::MYSQL_TYPE_MEDIUM_BLOB:
-		case enum_field_types::MYSQL_TYPE_TINY_BLOB:
-		case enum_field_types::MYSQL_TYPE_BLOB: {
-#ifdef SYS_IS_UTF8
-		  output[proto_name_[i]] = boost::lexical_cast<std::string>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-#else
-		  char* c = UnicodeToUtf8(current_row_[i]);
-		  output[proto_name_[i]] = boost::lexical_cast<std::string>(
-			std::string_view(c, current_row_lengths_[i]));
-		  free(c); c = NULL; break;
-#endif // SYS_IS_UTF8
-		} break;
-		default:output[proto_name_[i]] = nullptr; break;
-		}
-	  }
-	  return 1;
-	}
-	T j;
-	while (current_row_) {
-	  for (unsigned int i = 0; i < current_row_num_fields_; i++) {
+	}_:
+	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
+	  if (current_row_[i] == 0) { j[proto_name_[i]] = nullptr; continue; }
 		switch (proto_type_[i]) {
 		case enum_field_types::MYSQL_TYPE_DOUBLE:
 		  j[proto_name_[i]] = boost::lexical_cast<double>(
@@ -1094,15 +1046,16 @@ namespace crow {
 		  free(c); c = NULL; break;
 #endif // SYS_IS_UTF8
 		} break;
-		default:j[proto_name_[i]] = nullptr; break;
+		default: j[proto_name_[i]] = boost::lexical_cast<std::string>(
+		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
 		}
-		//printf("[%.*s] ", (int)current_row_lengths_[i], current_row_[i] ? current_row_[i] : "NULL");
-	  }//printf("\n");
-	  current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_);
-	  output.push_back(j);
+	  //printf("[%.*s] ", (int)current_row_lengths_[i], current_row_[i] ? current_row_[i] : "NULL");
+	}//printf("\n");
+	if (!(current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
+	  if (current_result_nrows_ == 1) output = j; else output.push_back(j);
+	  return current_result_nrows_;
+	} output.push_back(j); ++current_result_nrows_; goto _;
 	}
-	return count_result_;
-  }
   template <typename B> template <typename T> bool mysql_result<B>::read(T&& output) {
 	next_row();
 	if (end_of_result_) return false;
@@ -1198,8 +1151,8 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
   if (!(A)) { std::cerr << #A << " (== " << (A) << ") must be true" << std::endl; }
 #define ASSERT(x,m) if(!x)std::cerr<<#m
 template <typename... T> std::ostream& operator<<(std::ostream& os, std::tuple<T...> t) {
-  bool one = true; os << "TUPLE<"; crow::tuple_map(std::forward<std::tuple<T...>>(t), [&os, &one](auto v) {
-	if (one) os << v, one = false; else os << "," << v; }); os << ">"; return os;
+  bool one = true; os << "TUPLE<"; crow::tuple_map(std::forward<std::tuple<T...>>(t), [&os,&one](auto v) {
+	if(one) os << v, one=false; else os << "," << v; }); os << ">"; return os;
 }
 namespace crow {
   struct mysql {
@@ -1714,10 +1667,10 @@ namespace crow {
 		  strcpy(proto_name_[field_i], PQfname(current_result_, field_i));
 		}
 	  }
-	}
+	  }
 	if (current_result_nrows_ == 1) {
 	  for (int i = 0; i < nfields; ++i) {
-		char* val = PQgetvalue(current_result_, 0, i); std::cout << "->" << val << "|";
+		char* val = PQgetvalue(current_result_, 0, i);
 		switch (proto_type_[i]) {
 		case INT8OID:output[proto_name_[i]] = be64toh(*((uint64_t*)val)); break;
 		case INT4OID:output[proto_name_[i]] = ntohl(*((uint32_t*)val)); break;
@@ -1739,7 +1692,7 @@ namespace crow {
 	}
 	for (T j; row_i_ < current_result_nrows_; ++row_i_) {
 	  for (int i = 0; i < nfields; ++i) {
-		char* val = PQgetvalue(current_result_, row_i_, i); std::cout << "->" << val << "|";
+		char* val = PQgetvalue(current_result_, row_i_, i);
 		switch (proto_type_[i]) {
 		case INT8OID:j[proto_name_[i]] = be64toh(*((uint64_t*)val)); break;
 		case INT4OID:j[proto_name_[i]] = ntohl(*((uint32_t*)val)); break;
@@ -1759,7 +1712,7 @@ namespace crow {
 	  }output.push_back(j);
 	}
 	return row_i_;
-  }
+	}
   template <typename T> bool pgsql_result::read(T&& output) {
 	int nfields = proto_type_.size();
 	if (!current_result_ || row_i_ == current_result_nrows_) {
@@ -2178,7 +2131,7 @@ namespace crow {
 	I impl; Timer timer;
 	typedef typename I::connection_data_type connection_data_type;
 	typedef typename I::db_tag db_tag;
-	std::deque<connection_data_type*> sync_connections_; std::mutex sync_connections_mutex_;
+	std::deque<connection_data_type*> sync_connections_;std::mutex sync_connections_mutex_;
 	int n_sync_connections_ = 0, max_sync_connections_ = 0;
 	sql_database(unsigned int port, const char* host, const char* database, const char* user, const char* password, unsigned int max_sync_connections = MaxSyncConnections)
 	  : impl(host, database, user, password, port), max_sync_connections_(max_sync_connections) { init(); };
@@ -2190,8 +2143,7 @@ namespace crow {
 	inline void init() {
 	  if constexpr (std::is_same_v<db_tag, mysql_tag>) {
 		connection_data_type* data = impl.new_connection(); sync_connections_.push_back(data);
-		timer.setIntervalSec([this]() {
-		  if (!sync_connections_.empty()) { impl.ping(sync_connections_.back()); } }, Time);
+		timer.setIntervalSec([this]() { impl.ping(sync_connections_.back()); }, Time);
 	  } else if constexpr (std::is_same_v<db_tag, pgsql_tag>) {
 		timer.setIntervalSec([this]() { impl.ping(); }, Time);
 	  }
