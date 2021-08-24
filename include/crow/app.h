@@ -45,7 +45,7 @@ namespace crow {
     ///An HTTP server that runs on SSL with an SSLAdaptor
     using ssl_server_t=Server<Crow,SSLAdaptor,Middlewares...>;
 #endif
-    Crow() { }
+    Crow() { std::locale::global(std::locale(u8"en_US.UTF8"));std::cout << u8"C++ webServer[·þÎñÆ÷] run on http://localhost"; }
     ///Process an Upgrade Req
     ///Currently used to upgrrade an HTTP connection to a WebSocket connection
     template <typename Adaptor>
@@ -65,7 +65,7 @@ namespace crow {
     self_t& signal_clear() { signals_.clear(); return *this; }
     self_t& signal_add(int signal_number) { signals_.push_back(signal_number); return *this;}
     ///Set the port that Crow will handle requests on
-    self_t& port(std::uint16_t port) { port_=port; return *this; }
+    self_t& port(std::uint16_t port) { port_=port; std::cout<<":"<<port_<<std::endl; return *this; }
     ///Set the maximum number of seconds (latency) per request (default is 4)
     self_t& timeout(std::uint8_t timeout) { if (timeout > 10)timeout = 10;
     if (timeout < 1)timeout = 1; detail::dumb_timer_queue::tick = timeout; return *this; }
