@@ -119,17 +119,16 @@ namespace crow {
 	friend struct crow::Res;
   public:
 	Connection(boost::asio::io_service& io_service,
-	  Handler* handler, const std::string& server_name,
-	  std::tuple<Middlewares...>* middlewares,
+	  Handler* handler, std::tuple<Middlewares...>* middlewares,
 	  std::function<std::string()>& get_cached_date_str_f,
 	  detail::dumb_timer_queue& timer_queue,
 	  typename Adaptor::Ctx* adaptor_ctx_) :
 	  adaptor_(io_service, adaptor_ctx_),
 	  handler_(handler),
-	  server_name_(server_name),
 	  middlewares_(middlewares),
 	  get_cached_date_str(get_cached_date_str_f),
-	  timer_queue_(timer_queue) {
+	  timer_queue_(timer_queue),
+	  server_name_(CROW_SERVER_NAME) {
 	  llhttp_init(this, HTTP_REQUEST, &settings_);
 	}
 	~Connection() { res.complete_request_handler_ = nullptr; cancel_deadline_timer(); }
@@ -491,19 +490,19 @@ namespace crow {
 		});
 	}
 
-	void check_destroy() {
+	inline void check_destroy() {
 	  CROW_LOG_DEBUG << this << " is_reading " << is_reading << " is_writing " << is_writing;
 	  if (!is_reading && !is_writing) {
 		CROW_LOG_DEBUG << this << " delete (idle) ";
 		delete this;
 	  }
 	}
-	void cancel_deadline_timer() {
+	inline void cancel_deadline_timer() {
 	  CROW_LOG_DEBUG << this << " timer cancelled: " << timer_cancel_key_.first << ' ' << timer_cancel_key_.second;
 	  timer_queue_.cancel(timer_cancel_key_);
 	}
 
-	void start_deadline(/*int timeout = 5*/) {
+	inline void start_deadline(/*int timeout = 5*/) {
 	  cancel_deadline_timer();
 	  timer_cancel_key_ = timer_queue_.add([this] {
 		if (!adaptor_.is_open())return;

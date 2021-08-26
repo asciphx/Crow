@@ -19,13 +19,12 @@ namespace crow {
   template <typename Handler,typename Adaptor=SocketAdaptor,typename ... Middlewares>
   class Server {
     public:
-    Server(Handler* handler,std::string bindaddr,uint16_t port,std::string server_name,std::tuple<Middlewares...>* middlewares=nullptr,uint16_t concurrency=1,typename Adaptor::Ctx* adaptor_ctx=nullptr)
+    Server(Handler* handler,std::string bindaddr,uint16_t port,std::tuple<Middlewares...>* middlewares=nullptr,uint16_t concurrency=1,typename Adaptor::Ctx* adaptor_ctx=nullptr)
       : acceptor_(io_service_,tcp::endpoint(boost::asio::ip::address::from_string(bindaddr),port)),
       signals_(io_service_,SIGINT,SIGTERM),
       handler_(handler),
       concurrency_(concurrency<1?1:concurrency),
       core_(concurrency_-1),
-      server_name_(std::move(server_name)),
       port_(port),
       bindaddr_(std::move(bindaddr)),
       middlewares_(middlewares),
@@ -73,7 +72,7 @@ namespace crow {
         io_service_pool_[i]->run();
       }));
 
-      CROW_LOG_INFO<<server_name_<<" server is running at "<<bindaddr_<<":"<<acceptor_.local_endpoint().port()
+      CROW_LOG_INFO<< CROW_SERVER_NAME <<" server is running at "<<bindaddr_<<":"<<acceptor_.local_endpoint().port()
         <<" using "<<concurrency_<<" threads";
       CROW_LOG_INFO<<"Call `app.loglevel(crow::LogLevel::Warning)` to hide Info level logs.";
 
@@ -102,7 +101,7 @@ namespace crow {
     inline void do_accept() {
       asio::io_service& is=pick_io_service();
       auto p=new Connection<Adaptor,Handler,Middlewares...>(
-        is,handler_,server_name_,middlewares_,
+        is,handler_,middlewares_,
         get_cached_date_str_pool_[roundrobin_index_],*timer_queue_pool_[roundrobin_index_],
         adaptor_ctx_);
       acceptor_.async_accept(p->socket(),
@@ -125,7 +124,6 @@ namespace crow {
     Handler* handler_;
     uint8_t concurrency_{1};
     uint8_t core_{1};
-    std::string server_name_;
     uint16_t port_;
     std::string bindaddr_;
     unsigned int roundrobin_index_{};

@@ -58,7 +58,7 @@ namespace crow {
 	private:
 	  boost::asio::io_service* io_service_{};
 	  std::deque<std::pair<decltype(std::chrono::steady_clock::now()), std::function<void()>>> dq_;
-	  int step_{};//x.first < max Latency Distribution
+	  int step_{};
 	};
   }
 }

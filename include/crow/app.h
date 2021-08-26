@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <chrono>
 #include <string>
 #include <functional>
@@ -69,8 +69,6 @@ namespace crow {
     ///Set the maximum number of seconds (latency) per request (default is 4)
     self_t& timeout(std::uint8_t timeout) { if (timeout > 10)timeout = 10;
     if (timeout < 1)timeout = 1; detail::dumb_timer_queue::tick = timeout; return *this; }
-    ///Set the server name
-    self_t& server_name(std::string server_name) { server_name_=server_name;return *this; }
     ///The IP address that Crow will handle requests on (default is 0.0.0.0)
     self_t& bindaddr(std::string bindaddr) { bindaddr_=bindaddr; return *this; }
     //Set static directory
@@ -132,13 +130,13 @@ namespace crow {
 
 #ifdef CROW_ENABLE_SSL
       if (use_ssl_) {
-        ssl_server_=std::move(std::unique_ptr<ssl_server_t>(new ssl_server_t(this,bindaddr_,port_,server_name_,&middlewares_,concurrency_,&ssl_context_)));
+        ssl_server_=std::move(std::unique_ptr<ssl_server_t>(new ssl_server_t(this,bindaddr_,port_,&middlewares_,concurrency_,&ssl_context_)));
         notify_server_start();
         ssl_server_->run();
       } else
 #endif
       {
-        server_=std::move(std::unique_ptr<server_t>(new server_t(this,bindaddr_,port_,server_name_,&middlewares_,concurrency_,nullptr)));
+        server_=std::move(std::unique_ptr<server_t>(new server_t(this,bindaddr_,port_,&middlewares_,concurrency_,nullptr)));
         server_->signal_clear();
         for (auto snum:signals_) {
           server_->signal_add(snum);
@@ -245,7 +243,6 @@ namespace crow {
     private:
     uint16_t port_=DEFAULT_PORT;
     uint16_t concurrency_=1;
-    std::string server_name_=CROW_SERVER_NAME;
     std::string bindaddr_="0.0.0.0";
     Router router_;
     bool is_not_set_types=true;

@@ -3,8 +3,8 @@
 //#define CROW_ENABLE_SSL
 #define CROW_FILE_TIME "max-age=1500,immutable"//Static resource cache seconds(= 25 minute)
 #define CROW_STATIC_DIRECTORY "static/"//Make sure you bring '/' with you at the end
-#define CROW_HOME_PAGE "index.html"//default home page(app.server_name(?))
-#define CROW_SERVER_NAME "Crow/1.0"//default server name(app.home(?))
+#define CROW_SERVER_NAME "Crow/1.0"//the server name config
+#define CROW_HOME_PAGE "index.html"//default home page(app.home(?))
 //Cors config
 #define ACAO 1
 //#define AccessControlAllowOrigin "*"
