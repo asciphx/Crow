@@ -16,9 +16,9 @@ int main() {
   //sql
   app.route("/sql")([] {
 	auto q = d.conn();
-	//json v = q("select id,name from users_test where id = 1").JSON();
+	//json v = q("select * from user where id = 1").JSON();
 	//std::cout << v;
-	int i = 0; q("SELECT 200+2").r__(i);
+	int i = 200; q("SELECT 200+2").r__(i);
 	std::string s; q(u8"SELECT '你好 世界！'").r__(s);
 	return Res(i, s);
   });
