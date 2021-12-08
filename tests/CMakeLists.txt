@@ -1,15 +1,12 @@
 cmake_minimum_required(VERSION 2.8)
 project (crow_test)
- 
+set(TEST_SRCS unittest.cpp)
 
-set(TEST_SRCS
-unittest.cpp
-)
+set(LIBS ${Boost_LIBRARIES} ${MYSQL_LIBRARY} ${SQLite3_LIBRARIES} ${PostgreSQL_LIBRARIES}
+${OPENSSL_LIBRARIES} ${Tcmalloc_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(unittest ${TEST_SRCS})
-#target_link_libraries(unittest crow)
-target_link_libraries(unittest ${Boost_LIBRARIES})
-target_link_libraries(unittest ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(unittest ${LIBS})
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 # using Clang

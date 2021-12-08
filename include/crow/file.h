@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <iterator>
+#include "crow/detail.h"
 
 namespace crow {
   namespace file {

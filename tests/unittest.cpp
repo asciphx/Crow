@@ -1,6 +1,5 @@
-//#define DEFAULT_ENABLE_LOGGING
+#undef DEFAULT_LOG_LEVEL
 #define DEFAULT_LOG_LEVEL 0
-#define CROW_ENABLE_DEBUG
 #include <iostream>
 #include <sstream>
 #include <vector>
