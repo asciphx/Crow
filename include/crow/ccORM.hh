@@ -25,6 +25,7 @@
 #include <mysql/mysql.h>
 #include <libpq-fe.h>
 #include <sqlite3.h>
+#include "crow/json.hh"
 
 #include <chrono>
 #include <atomic>
@@ -543,7 +544,7 @@ namespace crow {
 
   }
 
-class sqlite_statement_result;
+  class sqlite_statement_result;
 #define IS_VALID(T, EXPR) internal::is_valid<T>( [](auto&& obj)->decltype(obj.EXPR){} )
 
   template <typename B> template <typename F> void sql_result<B>::map(F map_function) {
@@ -1003,57 +1004,57 @@ namespace crow {
 	  strcpy(proto_name_[i], field->name);
 	  proto_type_[i] = (uint16_t)field->type;
 	}
-	_:
+  _:
 	for (unsigned int i = 0; i < current_row_num_fields_; ++i) {
 	  if (current_row_[i] == 0) { j[proto_name_[i]] = nullptr; continue; }
-		switch (proto_type_[i]) {
-		case enum_field_types::MYSQL_TYPE_DOUBLE:
-		  j[proto_name_[i]] = boost::lexical_cast<double>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_FLOAT:
-		  j[proto_name_[i]] = boost::lexical_cast<float>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_TINY:
-		  j[proto_name_[i]] = boost::lexical_cast<signed char>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_INT24:
-		  j[proto_name_[i]] = boost::lexical_cast<int>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_SHORT:
-		  j[proto_name_[i]] = boost::lexical_cast<short>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_LONGLONG:
-		  j[proto_name_[i]] = boost::lexical_cast<long long>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_LONG:
-		  j[proto_name_[i]] = boost::lexical_cast<long>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		case enum_field_types::MYSQL_TYPE_STRING:
-		case enum_field_types::MYSQL_TYPE_VAR_STRING:
-		case enum_field_types::MYSQL_TYPE_LONG_BLOB:
-		case enum_field_types::MYSQL_TYPE_MEDIUM_BLOB:
-		case enum_field_types::MYSQL_TYPE_TINY_BLOB:
-		case enum_field_types::MYSQL_TYPE_BLOB: {
-#ifdef SYS_IS_UTF8
-		  j[proto_name_[i]] = boost::lexical_cast<std::string>(
-			std::string_view(current_row_[i], current_row_lengths_[i])); break;
-#else
-		  char* c = UnicodeToUtf8(current_row_[i]);
-		  j[proto_name_[i]] = boost::lexical_cast<std::string>(
-			std::string_view(c, current_row_lengths_[i]));
-		  free(c); c = NULL; break;
-#endif // SYS_IS_UTF8
-		} break;
-		default: j[proto_name_[i]] = boost::lexical_cast<std::string>(
+	  switch (proto_type_[i]) {
+	  case enum_field_types::MYSQL_TYPE_DOUBLE:
+		j[proto_name_[i]] = boost::lexical_cast<double>(
 		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
-		}
+	  case enum_field_types::MYSQL_TYPE_FLOAT:
+		j[proto_name_[i]] = boost::lexical_cast<float>(
+		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+	  case enum_field_types::MYSQL_TYPE_TINY:
+		j[proto_name_[i]] = boost::lexical_cast<signed char>(
+		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+	  case enum_field_types::MYSQL_TYPE_INT24:
+		j[proto_name_[i]] = boost::lexical_cast<int>(
+		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+	  case enum_field_types::MYSQL_TYPE_SHORT:
+		j[proto_name_[i]] = boost::lexical_cast<short>(
+		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+	  case enum_field_types::MYSQL_TYPE_LONGLONG:
+		j[proto_name_[i]] = boost::lexical_cast<long long>(
+		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+	  case enum_field_types::MYSQL_TYPE_LONG:
+		j[proto_name_[i]] = boost::lexical_cast<long>(
+		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+	  case enum_field_types::MYSQL_TYPE_STRING:
+	  case enum_field_types::MYSQL_TYPE_VAR_STRING:
+	  case enum_field_types::MYSQL_TYPE_LONG_BLOB:
+	  case enum_field_types::MYSQL_TYPE_MEDIUM_BLOB:
+	  case enum_field_types::MYSQL_TYPE_TINY_BLOB:
+	  case enum_field_types::MYSQL_TYPE_BLOB: {
+#ifdef SYS_IS_UTF8
+		j[proto_name_[i]] = boost::lexical_cast<std::string>(
+		  std::string_view(current_row_[i], current_row_lengths_[i])); break;
+#else
+		char* c = UnicodeToUtf8(current_row_[i]);
+		j[proto_name_[i]] = boost::lexical_cast<std::string>(
+		  std::string_view(c, current_row_lengths_[i]));
+		free(c); c = NULL; break;
+#endif // SYS_IS_UTF8
+	  } break;
+	  default: j[proto_name_[i]] = boost::lexical_cast<std::string>(
+		std::string_view(current_row_[i], current_row_lengths_[i])); break;
+	  }
 	  //printf("[%.*s] ", (int)current_row_lengths_[i], current_row_[i] ? current_row_[i] : "NULL");
 	}//printf("\n");
 	if (!(current_row_ = mysql_wrapper_.mysql_fetch_row(connection_->error_, result_))) {
 	  if (current_result_nrows_ == 1) output = j; else output.push_back(j);
 	  return current_result_nrows_;
 	} output.push_back(j); ++current_result_nrows_; goto _;
-	}
+  }
   template <typename B> template <typename T> bool mysql_result<B>::read(T&& output) {
 	next_row();
 	if (end_of_result_) return false;
@@ -1149,8 +1150,8 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
   if (!(A)) { std::cerr << #A << " (== " << (A) << ") must be true" << std::endl; }
 #define ASSERT(x,m) if(!x)std::cerr<<#m
 template <typename... T> std::ostream& operator<<(std::ostream& os, std::tuple<T...> t) {
-  bool one = true; os << "TUPLE<"; crow::tuple_map(std::forward<std::tuple<T...>>(t), [&os,&one](auto v) {
-	if(one) os << v, one=false; else os << "," << v; }); os << ">"; return os;
+  bool one = true; os << "TUPLE<"; crow::tuple_map(std::forward<std::tuple<T...>>(t), [&os, &one](auto v) {
+	if (one) os << v, one = false; else os << "," << v; }); os << ">"; return os;
 }
 namespace crow {
   struct mysql {
@@ -1662,7 +1663,7 @@ namespace crow {
 		  strcpy(proto_name_[field_i], PQfname(current_result_, field_i));
 		}
 	  }
-	  }
+	}
 	if (current_result_nrows_ == 1) {
 	  for (int i = 0; i < nfields; ++i) {
 		char* val = PQgetvalue(current_result_, 0, i);
@@ -1707,7 +1708,7 @@ namespace crow {
 	  }output.push_back(j);
 	}
 	return row_i_;
-	}
+  }
   template <typename T> bool pgsql_result::read(T&& output) {
 	int nfields = proto_type_.size();
 	if (!current_result_ || row_i_ == current_result_nrows_) {
@@ -2126,7 +2127,7 @@ namespace crow {
 	I impl; Timer timer;
 	typedef typename I::connection_data_type connection_data_type;
 	typedef typename I::db_tag db_tag;
-	std::deque<connection_data_type*> sync_connections_;std::mutex sync_connections_mutex_;
+	std::deque<connection_data_type*> sync_connections_; std::mutex sync_connections_mutex_;
 	int n_sync_connections_ = 0, max_sync_connections_ = 0;
 	sql_database(unsigned int port, const char* host, const char* database, const char* user, const char* password, unsigned int max_sync_connections = MaxSyncConnections)
 	  : impl(host, database, user, password, port), max_sync_connections_(max_sync_connections) { init(); };
@@ -2180,4 +2181,19 @@ namespace crow {
 	  return impl.scoped_connection(sptr);
 	}
   };
+}
+namespace crow {
+  //SqlDataBase will automatically shut down after 8 hours (28800 seconds) of
+  // inactivity by default (determined by the mechanism provided by the server)
+  //typedef sql_database<sqlType,time_wait> D;time_wait default 28800
+  typedef sql_database<mysql, 99> Mysql;
+  typedef sql_database<pgsql, 99> Pgsql;
+  //-------------- utf8 / GB2312 / GBK --------------
+#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,SYS_IS_UTF8?"utf8":"GBK")
+#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,SYS_IS_UTF8?"utf8":"GBK")
+//------ Use GBK or GB2312 to support Chinese ------
+//---- SQLite can only support default encoding ----
+#define D_sqlite(path) crow::Sqlite(path)
+#define D_() crow::Mysql("127.0.0.1","test","root","",3306,SYS_IS_UTF8?"utf8":"GBK")
+//example to use: auto d = D_();
 }

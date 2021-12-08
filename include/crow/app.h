@@ -17,6 +17,8 @@
 #include "crow/http_request.h"
 #include "crow/http_server.h"
 #include "crow/detail.h"
+#include "crow/file.h"
+#include "crow/mustache.h"
 #ifdef CROW_ENABLE_COMPRESSION
 #include "crow/compression.h"
 #endif

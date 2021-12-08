@@ -5,6 +5,7 @@
 #include "crow/http_request.h"
 #include "crow/any_types.h"
 #include "crow/ci_map.h"
+#include "crow/detail.h"
 //response
 static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location", Res_Ca[14] = "Cache-Control",
   RES_AJ[17]="application/json", RES_Txt[24] = "text/html;charset=UTF-8", RES_Xc[23] = "X-Content-Type-Options", RES_No[8] = "nosniff";

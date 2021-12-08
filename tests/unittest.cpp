@@ -108,7 +108,7 @@ TEST(ParameterTagging) {
 }
 
 TEST(PathRouting) {
-  SimpleApp app;
+  App<> app;
 
   CROW_ROUTE(app,"/file")
 	([] {
@@ -162,7 +162,7 @@ TEST(PathRouting) {
 }
 
 TEST(RoutingTest) {
-  SimpleApp app;
+  App<> app;
   int A{};
   uint32_t B{};
   double C{};
@@ -286,13 +286,13 @@ TEST(simple_response_routing_params) {
 }
 
 TEST(handler_with_response) {
-  SimpleApp app;
+  App<> app;
   CROW_ROUTE(app,"/")([](const crow::Req&,crow::Res&) {
   });
 }
 
 TEST(http_method) {
-  SimpleApp app;
+  App<> app;
 
   CROW_ROUTE(app,"/")
 	.methods("POST"_mt,"GET"_mt)
@@ -400,9 +400,9 @@ TEST(http_method) {
 
 TEST(server_handling_error_request) {
   static char buf[2048];
-  SimpleApp app;
+  App<> app;
   CROW_ROUTE(app,"/")([] {return "A";});
-  //Server<SimpleApp> server(&app, LOCALHOST_ADDRESS, 45451);
+  //Server<App<>> server(&app, LOCALHOST_ADDRESS, 45451);
   //auto _ = async(launch::async, [&]{server.run();});
   auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).port(45451).run();});
   app.wait_for_server_start();
@@ -427,12 +427,12 @@ TEST(server_handling_error_request) {
 
 TEST(multi_server) {
   static char buf[2048];
-  SimpleApp app1,app2;
+  App<> app1,app2;
   CROW_ROUTE(app1,"/").methods("GET"_mt,"POST"_mt)([] {return "A";});
   CROW_ROUTE(app2,"/").methods("GET"_mt,"POST"_mt)([] {return "B";});
 
-  //Server<SimpleApp> server1(&app1, LOCALHOST_ADDRESS, 45451);
-  //Server<SimpleApp> server2(&app2, LOCALHOST_ADDRESS, 45452);
+  //Server<App<>> server1(&app1, LOCALHOST_ADDRESS, 45451);
+  //Server<App<>> server2(&app2, LOCALHOST_ADDRESS, 45452);
 
   //auto _ = async(launch::async, [&]{server1.run();});
   //auto _2 = async(launch::async, [&]{server2.run();});
@@ -906,7 +906,7 @@ TEST(middleware_cookieparser) {
 TEST(bug_quick_repeated_request) {
   static char buf[2048];
 
-  SimpleApp app;
+  App<> app;
 
   CROW_ROUTE(app,"/")([&] {
 	return "hello";
@@ -942,7 +942,7 @@ TEST(bug_quick_repeated_request) {
 TEST(simple_url_params) {
   static char buf[2048];
 
-  SimpleApp app;
+  App<> app;
 
   query_string last_url_params;
 
@@ -1072,7 +1072,7 @@ TEST(simple_url_params) {
 }
 
 TEST(route) {
-  SimpleApp app;
+  App<> app;
   int x=1;
   app.route("/")
 	([&] {

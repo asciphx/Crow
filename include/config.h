@@ -15,18 +15,3 @@
 #define ACAM 32
 //#define AccessControlAllowMethods "GET,POST,DELETE,PUT,OPTIONS,HEAD"
 #define SHOW_SERVER_NAME false //It is better to set false for 1-core 2G server
-namespace crow {
-  //SqlDataBase will automatically shut down after 8 hours (28800 seconds) of
-  // inactivity by default (determined by the mechanism provided by the server)
-  //typedef sql_database<sqlType,time_wait> D;time_wait default 28800
-  typedef sql_database<mysql, 99> Mysql;
-  typedef sql_database<pgsql, 99> Pgsql;
-//-------------- utf8 / GB2312 / GBK --------------
-#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,SYS_IS_UTF8?"utf8":"GBK")
-#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,SYS_IS_UTF8?"utf8":"GBK")
-//------ Use GBK or GB2312 to support Chinese ------
-//---- SQLite can only support default encoding ----
-#define D_sqlite(path) crow::Sqlite(path)
-#define D_() crow::Mysql("127.0.0.1","test","root","",3306,SYS_IS_UTF8?"utf8":"GBK")
-//example to use: auto d = D_();
-}

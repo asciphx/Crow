@@ -7,6 +7,7 @@
 #include <thread>
 #include <fstream>
 #include <iterator>
+#include "config.h"
 #include "crow/logging.h"
 namespace boost {
   namespace posix_time {
