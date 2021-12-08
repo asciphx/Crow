@@ -1,4 +1,4 @@
-﻿#include "crow.h"
+#include "crow.h"
 #include "middleware.h"
 #include "module.h"
 #include <sstream>

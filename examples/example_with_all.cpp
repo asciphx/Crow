@@ -1,7 +1,7 @@
 #include "../amalgamate/crow_all.h"
 #include <sstream>
 int main() {
-  crow::SimpleApp app;
+  crow::App<> app;
   CROW_ROUTE(app,"/about")([]() {
 	return "About Crow example.";
   });

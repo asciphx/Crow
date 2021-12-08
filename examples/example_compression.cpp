@@ -3,7 +3,7 @@
 #include "crow/compression.h"
 
 int main() {
-  crow::SimpleApp app;
+  crow::App<> app;
   //crow::App<crow::CompressionGzip> app;
   CROW_ROUTE(app,"/hello")([&](const crow::Req&,crow::Res& res) {
 	res.compressed=false;

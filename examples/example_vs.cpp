@@ -1,4 +1,4 @@
-﻿#include "crow.h"
+#include "crow.h"
 #include "middleware.h"
 #include "module.h"
 using namespace crow;auto d = D_();//auto d = D_pgsql();
@@ -19,7 +19,7 @@ int main() {
 	//json v = q("select * from user where id = 1").JSON();
 	//std::cout << v;
 	int i = 200; q("SELECT 200+2").r__(i);
-	std::string s; q(u8"SELECT '你好 世界！'").r__(s);
+	std::string s; q("SELECT '你好 世界！'").r__(s);
 	return Res(i, s);
   });
   // a request to /path should be forwarded to /path/
@@ -45,7 +45,7 @@ int main() {
   //status code + return json
   app.route("/json")([] {
 	json x;
-	x["message"] = u8"你好 世界！";
+	x["message"] = "你好 世界！";
 	x["double"] = 3.1415926;
 	x["int"] = 2352352;
 	x["true"] = true;

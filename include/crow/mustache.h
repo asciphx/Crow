@@ -4,7 +4,7 @@
 #include <functional>
 #include <fstream>
 #include <iterator>
-#include "crow/json.hpp"
+#include "crow/json.hh"
 #include "crow/detail.h"
 #include <boost/lexical_cast.hpp>
 namespace crow {

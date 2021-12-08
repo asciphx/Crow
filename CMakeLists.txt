@@ -1,37 +1,16 @@
 cmake_minimum_required(VERSION 2.8)
 project (crow_all)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompilerOptions.cmake)
 if(EXISTS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake")
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompilerOptions.cmake)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 endif()
-set(CMAKE_VERBOSE_MAKEFILE ON)
-#include(CheckIncludeFileCXX)
-#check_include_file_cxx(any HAS_ANY)
-#check_include_file_cxx(string_view HAS_STRING_VIEW)
-#if(HAS_ANY AND HAS_STRING_VIEW)
-#  if (MSVC)
-#    add_compile_options("/std:c++latest")
-#  else()
-#    add_definitions(-std=c++latest)
-#  endif()
-#else()
-#endif()
-if(MSVC)
-  add_compile_options("/std:c++17")
-else()
-  add_definitions(-std=c++17)
-endif()
 if (MSVC)
-	SET(BOOST_ROOT "E:/Code/boost_1_75_0")
-	set(Boost_USE_STATIC_LIBS "On")
-	find_package( Boost 1.55 COMPONENTS system thread regex REQUIRED )
+    add_compile_options("/std:c++17")
 else()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64 -pthread -ldl -lz -static-libgcc -fexec-charset=GBK")
-	find_package( Boost 1.55 COMPONENTS system thread REQUIRED )
-	add_definitions(-Wno-ignored-attributes) # to skip postgresql warnings.
+    add_definitions(-std=c++17)
 endif()
-
+set(CMAKE_VERBOSE_MAKEFILE ON)
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 find_package(MYSQL REQUIRED)
 find_package(PostgreSQL REQUIRED)
@@ -40,12 +19,14 @@ find_package(ZLIB)
 find_package(Tcmalloc)
 find_package(Threads)
 find_package(OpenSSL)
-
-include_directories(${MYSQL_INCLUDE_DIR} ${SQLite3_INCLUDE_DIRS} ${PostgreSQL_INCLUDE_DIRS})
+if(ZLIB_FOUND)
+    message(STATUS "Ok! We find the Zlib!")
+else(ZLIB_FOUND)
+    message(STATUS "No! can't find the Zlib!")
+endif(ZLIB_FOUND)
 if(OPENSSL_FOUND)
 	include_directories(${OPENSSL_INCLUDE_DIR})
 endif()
-
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
   message("Found ccache ${CCACHE_FOUND}")
@@ -54,43 +35,36 @@ if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
-
 if (NOT CMAKE_BUILD_TYPE)
 	message(STATUS "No build type selected, default to Release")
 	set(CMAKE_BUILD_TYPE "Release")
 endif()
-
-
+if (MSVC)
+	SET(BOOST_ROOT "E:/Code/boost_1_75_0")
+	set(Boost_USE_STATIC_LIBS "On")
+	find_package( Boost 1.55 COMPONENTS system thread regex REQUIRED )
+else()
+	find_package( Boost 1.55 COMPONENTS system thread regex REQUIRED )
+	add_definitions(-Wno-ignored-attributes) # to skip postgresql warnings.
+endif()
 include_directories( ${Boost_INCLUDE_DIR} )
-
-#install(DIRECTORY include/sql/ DESTINATION include FILES_MATCHING PATTERN "*.hh")
-set(PROJECT_INCLUDE_DIR
-    ${PROJECT_SOURCE_DIR}/include
-)
+set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 include_directories("${PROJECT_INCLUDE_DIR}")
-
 include_directories("${PROJECT_SOURCE_DIR}")
-#link_directories(${MYSQL_LIBRARY})
-
-#add_subdirectory(src)
+include_directories(${MYSQL_INCLUDE_DIR} ${SQLite3_INCLUDE_DIRS} ${PostgreSQL_INCLUDE_DIRS})
 add_subdirectory(examples)
-
 if (MSVC)
 else()
 	add_subdirectory(tests)
-
 	enable_testing()
 	add_test(NAME crow_test COMMAND ${CMAKE_CURRENT_BINARY_DIR}/tests/unittest)
 	add_test(NAME template_test COMMAND ${CMAKE_CURRENT_BINARY_DIR}/tests/template/test.py WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tests/template)
-
 	file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/amalgamate)
-
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/crow_all.h
 		COMMAND python ${PROJECT_SOURCE_DIR}/amalgamate/merge_all.py ${PROJECT_SOURCE_DIR}/include
 		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/crow_all.h ${PROJECT_SOURCE_DIR}/amalgamate
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/amalgamate
 		DEPENDS ${PROJECT_SOURCE_DIR}/include/*.h ${PROJECT_SOURCE_DIR}/include/crow/*.h
 	)
-
 	add_custom_target(amalgamation ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/crow_all.h)
 endif()

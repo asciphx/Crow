@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include <mutex>
 int main() {
-  crow::SimpleApp app;
+  crow::App app;
   std::mutex mtx;
   std::unordered_set<crow::websocket::connection*> users;
   CROW_ROUTE(app,"/")([] {

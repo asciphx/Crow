@@ -1,7 +1,7 @@
 #define CROW_ENABLE_SSL
 #include "crow.h"
 int main() {
-  crow::SimpleApp app;
+  crow::App<> app;
   app.port(8080).ssl_file("test.crt","test.key").run();
   // Use .pem file
   //app.port(8080).ssl_file("test.pem").run();

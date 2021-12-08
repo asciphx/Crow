@@ -1,7 +1,6 @@
 #include "crow.h"
-using namespace crow;
 int main() {
-  SimpleApp app;
+  crow::App<> app;
   CROW_ROUTE(app,"/multipart").methods(HTTPMethod::POST)
 	([](const crow::Req& req) {
 	crow::multipart::message msg(req);
