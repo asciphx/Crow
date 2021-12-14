@@ -11,7 +11,6 @@ static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Lo
   RES_AJ[17]="application/json", RES_Txt[24] = "text/html;charset=UTF-8", RES_Xc[23] = "X-Content-Type-Options", RES_No[8] = "nosniff";
 //RES_f[6]="false",RES_Al[6]="Allow";
 namespace crow {
-  using json=nlohmann::json;
   template <typename Adaptor,typename Handler,typename ... Middlewares>
   class Connection;
   struct Res {

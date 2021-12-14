@@ -47,7 +47,7 @@ namespace crow {
 	///An HTTP server that runs on SSL with an SSLAdaptor
 	using ssl_server_t = Server<Crow, SSLAdaptor, Middlewares...>;
 #endif
-	Crow() { std::cout << "C++ webServer[服务器] run on http://localhost"; }
+	Crow() { std::cout << "C++ web[服务] run on http://localhost"; }
 	///Process an Upgrade Req
 	///Currently used to upgrrade an HTTP connection to a WebSocket connection
 	template <typename Adaptor>

@@ -3,12 +3,12 @@
 #include <unordered_set>
 #include <mutex>
 int main() {
-  crow::App app;
+  crow::App<> app;
   std::mutex mtx;
   std::unordered_set<crow::websocket::connection*> users;
   CROW_ROUTE(app,"/")([] {
 	char name[64];gethostname(name,64);
-	crow::json j{{"servername",name}};
+	json j{{"servername",name}};
 	return crow::mustache::load("ws.html").render(j);
   });
   CROW_ROUTE(app,"/ws")

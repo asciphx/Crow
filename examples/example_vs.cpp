@@ -52,7 +52,7 @@ int main() {
 	x["false"] = false;
 	x["null"] = nullptr;
 	x["bignumber"] = 2353464586543265455;
-	return Res(203,x);
+	return x;
   });
   //ostringstream
   app.route("/hello/<int>")([](int count) {

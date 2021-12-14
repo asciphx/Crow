@@ -65,7 +65,11 @@ namespace crow {
         timer.async_wait(handler=[&timer_queue,&timer,&handler](const boost::system::error_code&/* ec*/) {
           //if (ec)return;
           timer_queue.process();
+#if defined(_MSC_VER) || defined(__MINGW32__)
+          timer.expires_from_now(boost::posix_time::millseconds(1));
+#else
           timer.expires_from_now(boost::posix_time::seconds(1));
+#endif
           timer.async_wait(handler);
         });
         ++init_count;
