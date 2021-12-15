@@ -9,7 +9,6 @@
 //response
 static char RES_CT[13]="Content-Type",RES_CL[15]="Content-Length",RES_Loc[9]="Location", Res_Ca[14] = "Cache-Control",
   RES_AJ[17]="application/json", RES_Txt[24] = "text/html;charset=UTF-8", RES_Xc[23] = "X-Content-Type-Options", RES_No[8] = "nosniff";
-//RES_f[6]="false",RES_Al[6]="Allow";
 namespace crow {
   template <typename Adaptor,typename Handler,typename ... Middlewares>
   class Connection;
@@ -20,34 +19,38 @@ namespace crow {
 	template <typename Adaptor,typename Handler,typename ... Middlewares>
 	friend class crow::Connection;
 	uint16_t code{200};// Check whether the response has a static file defined.
-	std::string body; uint8_t  is_file{ 0 }, hType{ 0 };//1->txt,2->json,3->file
+	std::string body; uint8_t is_file{ 0 };
 	json json_value;
 	// `headers' stores HTTP default headers.
 #ifdef CROW_ENABLE_COMPRESSION
 	bool compressed=true; //< If compression is enabled and this is false, the individual response will not be compressed.
 #endif
 	bool is_head_response=false;      ///< Whether this is a Res to a HEAD Req.
-	inline void set_header(std::string key,std::string value) {
-	  headers.erase(key); headers.emplace(std::move(key),std::move(value));
+	inline void set_header(std::string key, std::string value) {
+	  headers.erase(key); headers.emplace(std::move(key), std::move(value));
 	}
-	inline void add_header(std::string key,std::string value) { headers.emplace(std::move(key),std::move(value)); }
+	inline void add_header(std::string key, std::string value) { headers.emplace(std::move(key), std::move(value)); }
 	const std::string& get_header_value(const std::string& key) {
 	  return crow::get_header_value(headers,key);
 	}
 	Res() {}
 	explicit Res(int code): code(code) {}
-	Res(std::string body): body(std::move(body)) { hType=1; }
-	Res(int code,std::string body): code(code),body(std::move(body)) { hType=1; }
-	Res(const json&& json_value): body(std::move(json_value).dump()) { hType=2; }
-	Res(int code,json&json_value): code(code),body(json_value.dump()) { hType=2; }
-	Res(const char* && char_value): body(std::move(char_value)) {hType=1;}
-	Res(int code,const char* && char_value): code(code),body(std::move(char_value)) {hType=1;}
+	Res(std::string body): body(std::move(body)) {}
+	Res(int code,std::string body): code(code),body(std::move(body)) {}
+	Res(const json&& json_value): body(std::move(json_value).dump()) {
+	  headers.emplace(RES_CT,RES_AJ);
+	}
+	Res(int code,json&json_value): code(code),body(json_value.dump()) {
+	  headers.emplace(RES_CT,RES_AJ);
+	}
+	Res(const char* && char_value): body(std::move(char_value)) {}
+	Res(int code,const char* && char_value): code(code),body(std::move(char_value)) {}
 	Res(Res&& r) { *this=std::move(r); }
 	Res& operator = (const Res& r)=delete;
 	Res& operator = (Res&& r) noexcept {
 	  body=std::move(r.body);
 	  json_value=std::move(r.json_value);
-	  code = r.code; hType = r.hType;
+	  code = r.code;
 	  headers=std::move(r.headers);
 	  path_=std::move(r.path_);
 	  completed_=r.completed_;
@@ -94,8 +97,7 @@ namespace crow {
 		this->add_header(RES_CL,std::to_string(statbuf_.st_size));
 		std::string types="";types=content_types[extension];
 		if (types!="") {
-		  this->add_header(RES_CT,types),is_file=1;
-		  hType = 3; if (extension=="ico")hType = 0;
+		  this->add_header(RES_CT,types),is_file=1;// if (extension=="ico")hType = 0;
 		} else {
 		  code=404;this->headers.clear();this->end();
 		  //this->add_header(RES_CT,"text/plain");

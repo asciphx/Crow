@@ -6,12 +6,8 @@
 #define CROW_SERVER_NAME "Crow/1.0"//the server name config
 #define CROW_HOME_PAGE "index.html"//default home page(app.home(?))
 //Cors config
-#define ACAO 1
-//#define AccessControlAllowOrigin "*"
-#define ACAC 4
+#define AccessControlAllowOrigin "*"
 //#define AccessControlAllowCredentials "true"
-#define ACAH 57
 //#define AccessControlAllowHeaders "content-type,cache-control,x-requested-with,authorization"
-#define ACAM 32
-//#define AccessControlAllowMethods "GET,POST,DELETE,PUT,OPTIONS,HEAD"
-#define SHOW_SERVER_NAME false //It is better to set false for 1-core 2G server
+#define AccessControlAllowMethods "GET,POST,DELETE,PUT,OPTIONS,HEAD"
+#define SHOW_SERVER_NAME 0 //It is better to set 0 for 1-core 2G server

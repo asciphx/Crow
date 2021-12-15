@@ -46,10 +46,9 @@ namespace crow {
 		if (!io_service_)return;
 		auto now = std::chrono::steady_clock::now();
 		while (!dq_.empty()) {
-		  auto& x = dq_.front();
-		  if (!x.second){ dq_.pop_front(); ++step_; continue; }
+		  auto& x = dq_.front(); if (!x.second) goto _;
 		  if (now - x.first < std::chrono::seconds(tick)) break;
-		  x.second(); dq_.pop_front(); ++step_;
+		  x.second(); _: dq_.pop_front(); ++step_;
 		}
 	  }
 	  void set_io_service(boost::asio::io_service& io_service) {
