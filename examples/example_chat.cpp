@@ -10,7 +10,7 @@ vector<pair<crow::Res*,decltype(chrono::steady_clock::now())>> ress;
 
 void broadcast(const string& msg) {
   msgs.push_back(msg);
-  crow::json x;
+  json x;
   x["msgs"][0]=msgs.back();
   x["last"]=msgs.size();
   string body=x.dump();
@@ -27,7 +27,7 @@ int main() {
   app.directory(".").home("example_chat.html");
   CROW_ROUTE(app,"/logs")([] {
 	CROW_LOG_INFO<<"logs requested";
-	crow::json x;
+	json x;
 	int start=max(0,(int)msgs.size()-100);
 	for (int i=start; i<(int)msgs.size(); i++)
 	  x["msgs"][i-start]=msgs[i];
@@ -40,7 +40,7 @@ int main() {
 	([](const crow::Req& /*req*/,crow::Res& res,int after) {
 	CROW_LOG_INFO<<"logs with last "<<after;
 	if (after<(int)msgs.size()) {
-	  crow::json x;
+	  json x;
 	  for (int i=after; i<(int)msgs.size(); i++)
 		x["msgs"][i-after]=msgs[i];
 	  x["last"]=msgs.size();

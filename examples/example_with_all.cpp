@@ -10,7 +10,7 @@ int main() {
   });
   // simple json response
   CROW_ROUTE(app,"/json")([] {
-	crow::json x;
+	json x;
 	x["message"]="Hello, World!";
 	return x;
   });
@@ -33,7 +33,7 @@ int main() {
 	  //return crow::Res(500);
   //});
   CROW_ROUTE(app,"/add_json").methods("POST"_mt)([](const crow::Req& req) {
-	auto x=crow::json::parse(req.body);
+	auto x=json::parse(req.body);
 	if (!x) return crow::Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();
 	std::ostringstream os;

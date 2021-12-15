@@ -14,10 +14,10 @@ string read_all(const string& filename) {
 }
 
 int main() {
-  auto data=nlohmann::json::parse(read_all("data"));
+  auto data=json::parse(read_all("data"));
   auto templ=template_t(read_all("template"));
-  auto partials=nlohmann::json::parse(read_all("partials"));
-  nlohmann::json ctx(data);
+  auto partials=json::parse(read_all("partials"));
+  json ctx(data);
   cout<<templ.render(ctx);
   return 0;
 }

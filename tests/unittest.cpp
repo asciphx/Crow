@@ -583,7 +583,7 @@ TEST(json_read_unescaping) {
 }
 
 TEST(json_write) {
-  crow::json x;
+  json x;
   x["message"]="hello world";
   ASSERT_EQUAL(R"({"message":"hello world"})",x.dump());
   x["message"]=std::string("string value");
@@ -597,7 +597,7 @@ TEST(json_write) {
   x["message"]=1234567890;
   ASSERT_EQUAL(R"({"message":1234567890})",x.dump());
 
-  crow::json y;
+  json y;
   y["scores"][0]=1;
   y["scores"][1]="king";
   y["scores"][2]=3.5;
@@ -616,9 +616,9 @@ TEST(json_write) {
 }
 
 TEST(json_copy_r_to_w_to_r) {
-  crow::json r=json::parse(R"({"smallint":2,"bigint":2147483647,"fp":23.43,"fpsc":2.343e1,"str":"a string","trueval":true,"falseval":false,"nullval":null,"listval":[1,2,"foo","bar"],"obj":{"member":23,"other":"baz"}})");
-  crow::json w{r};
-  crow::json x=json::parse(w.dump()); // why no copy-ctor value -> rvalue?
+  json r=json::parse(R"({"smallint":2,"bigint":2147483647,"fp":23.43,"fpsc":2.343e1,"str":"a string","trueval":true,"falseval":false,"nullval":null,"listval":[1,2,"foo","bar"],"obj":{"member":23,"other":"baz"}})");
+  json w{r};
+  json x=json::parse(w.dump()); // why no copy-ctor value -> rvalue?
   ASSERT_EQUAL(2,x["smallint"]);
   ASSERT_EQUAL(2147483647,x["bigint"]);
   ASSERT_EQUAL(23.43,x["fp"]);
@@ -640,7 +640,7 @@ TEST(json_copy_r_to_w_to_r) {
 
 TEST(template_basic) {
   auto t=crow::mustache::template_t(R"---(attack of {{name}})---");
-  crow::json ctx;
+  json ctx;
   ctx["name"]="killer tomatoes";
   auto result=t.render(ctx);
   ASSERT_EQUAL("attack of killer tomatoes",result);
@@ -651,7 +651,7 @@ TEST(template_load) {
   crow::mustache::directory(".");
   ofstream("test.mustache")<<R"---(attack of {{name}})---";
   auto t=crow::mustache::load("test.mustache");
-  crow::json ctx;
+  json ctx;
   ctx["name"]="killer tomatoes";
   auto result=t.render(ctx);
   ASSERT_EQUAL("attack of killer tomatoes",result);
