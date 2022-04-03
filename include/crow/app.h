@@ -24,6 +24,7 @@
 #endif
 
 #ifdef _WIN32
+#include <locale.h>
 #define CROW_ROUTE(app, url) app.route(url)
 #else
 #define CROW_ROUTE(app, url) app.route_url<crow::spell::get_parameter_tag(url)>(url)
@@ -47,7 +48,12 @@ namespace crow {
 	///An HTTP server that runs on SSL with an SSLAdaptor
 	using ssl_server_t = Server<Crow, SSLAdaptor, Middlewares...>;
 #endif
-	Crow() { std::cout << "C++ web[服务] run on http://localhost"; }
+	Crow() {
+#ifdef _WIN32
+	  ::system("chcp 65001 >nul"); setlocale(LC_ALL, ".UTF8");
+#endif
+	  std::cout << "C++ web[服务] run on http://localhost";
+	}
 	///Process an Upgrade Req
 	///Currently used to upgrrade an HTTP connection to a WebSocket connection
 	template <typename Adaptor>
@@ -144,11 +150,11 @@ namespace crow {
 		server_->signal_clear();
 		for (auto snum : signals_) {
 		  server_->signal_add(snum);
-	  }
+		}
 		notify_server_start();
 		server_->run();
+	  }
 	}
-  }
 	///Stop the server
 	void stop() {
 #ifdef CROW_ENABLE_SSL
@@ -265,7 +271,7 @@ namespace crow {
 	bool server_started_{ false };
 	std::condition_variable cv_started_;
 	std::mutex start_mutex_;
-};
+  };
   template <typename ... Middlewares>
   using App = Crow<Middlewares...>;
-  }
+}

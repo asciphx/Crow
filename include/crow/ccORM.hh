@@ -126,13 +126,14 @@ namespace crow {
   struct typelist_embeds_any_ref_of<typelist<T...>, U>
 	: public typelist_embeds<typelist<std::decay_t<T>...>, std::decay_t<U>> {};
 #ifdef _WIN32
-  inline char* UnicodeToUtf8(const char* str) {
+#include <WinNls.h>
+  static char* UnicodeToUtf8(const char* str) {
 	LPCSTR pszSrc = str;
 	int nLen = MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, NULL, 0);
 	if (nLen == 0) return nullptr;
 	wchar_t* pwszDst = new wchar_t[nLen];
 	MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, pwszDst, nLen);
-	std::wstring wstr(pwszDst); delete[] pwszDst; pwszDst = NULL;
+	std::wstring wstr(pwszDst); delete[] pwszDst; pwszDst = nullptr;
 	const wchar_t* unicode = wstr.c_str();
 	nLen = WideCharToMultiByte(CP_UTF8, 0, unicode, -1, NULL, 0, NULL, NULL);
 	char* szUtf8 = (char*)malloc(nLen + 1);
@@ -141,7 +142,7 @@ namespace crow {
 	return szUtf8;
   }
 #else
-  inline char* UnicodeToUtf8(const char* str) {
+  static char* UnicodeToUtf8(const char* str) {
 	if (NULL == str) return nullptr;
 	size_t destlen = mbstowcs(0, str, 0);
 	size_t size = destlen + 1;
@@ -150,7 +151,7 @@ namespace crow {
 	size = wcslen(pw) * sizeof(wchar_t);
 	char* pc = (char*)malloc(size + 1); memset(pc, 0, size + 1);
 	destlen = wcstombs(pc, pw, size + 1);
-	pc[size] = 0; delete[] pw; pw = NULL; return pc;
+	pc[size] = 0; delete[] pw; pw = nullptr; return pc;
   }
 #endif
   constexpr int count_first_falses() { return 0; }

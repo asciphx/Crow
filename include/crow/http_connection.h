@@ -130,7 +130,9 @@ namespace crow {
 	  timer_queue_(timer_queue) {
 	  llhttp_init(this, HTTP_REQUEST, &settings_);
 	}
-	~Connection() { res.complete_request_handler_ = nullptr; cancel_deadline_timer(); }
+	~Connection() {
+	  cancel_deadline_timer();// res.complete_request_handler_ = nullptr;
+	}
 	static int on_url(http_parser* self_, const char* at, size_t length) {
 	  Connection* $ = static_cast<Connection*>(self_);
 	  $->header_state = 0; $->url.clear(); $->raw_url.clear(); $->header_field.clear();
@@ -156,8 +158,7 @@ namespace crow {
 	  Connection* $ = static_cast<Connection*>(self_);
 	  if (!$->header_field.empty()) $->headers.emplace(std::move($->header_field), std::move($->header_value));
 	  //always HTTP 1.1 Expect: 100-continue
-	  if ($->http_minor == 1 && $->headers.count("expect") && get_header_value($->headers, "expect") == "100-continue")
-	  { $->buffers_.clear(); $->buffers_ += Res_expect; $->do_write(); }
+	  if ($->http_minor == 1 && $->headers.count("expect") && get_header_value($->headers, "expect") == "100-continue") { $->buffers_.clear(); $->buffers_ += Res_expect; $->do_write(); }
 	  return 0;
 	}
 	static int on_body(http_parser* self_, const char* at, size_t length) {
@@ -178,7 +179,7 @@ namespace crow {
 		} else {
 		  adaptor_.close(); delete this;
 		}
-	  });
+		});
 	}
 
 	inline void handle() {
@@ -301,10 +302,10 @@ namespace crow {
 		  default:
 			break;
 		  }
-		}
+	  }
 #endif
 		do_write_general();
-	  }
+	}
 	  //if there is a redirection with a partial URL, treat the URL as a route.
 	  std::string location = res.get_header_value("Location");
 	  if (!location.empty() && location.find("://", 0) == std::string::npos) {
@@ -314,46 +315,46 @@ namespace crow {
 		location.insert(0, "http://" + req_.get_header_value("Host"));
 #endif
 		res.add_header(Res_loc, location);
-	  }
-	}
+  }
+}
 
   private:
 	inline void set_status(uint16_t status) {
 	  res.code = status;
 	  switch (status) {
-	  case 200:status_ = "200 OK\r\n", status_len_ = 8; break;
-	  case 201:status_ = "201 Created\r\n", status_len_ = 13; break;
-	  case 202:status_ = "202 Accepted\r\n", status_len_ = 14; break;
-	  case 203:status_ = "203 Non-Authoritative Information\r\n", status_len_ = 35; break;
-	  case 204:status_ = "204 No Content\r\n", status_len_ = 16; break;
+	  case 200:status_ = "200 OK\r\n"; break;
+	  case 201:status_ = "201 Created\r\n"; break;
+	  case 202:status_ = "202 Accepted\r\n"; break;
+	  case 203:status_ = "203 Non-Authoritative Information\r\n"; break;
+	  case 204:status_ = "204 No Content\r\n"; break;
 
-	  case 301:status_ = "301 Moved Permanently\r\n", status_len_ = 23; break;
-	  case 302:status_ = "302 Found\r\n", status_len_ = 11; break;
-	  case 303:status_ = "303 See Other\r\n", status_len_ = 15; break;
-	  case 304:status_ = "304 Not Modified\r\n", status_len_ = 18; break;
-	  case 307:status_ = "307 Temporary redirect\r\n", status_len_ = 24; break;
+	  case 301:status_ = "301 Moved Permanently\r\n"; break;
+	  case 302:status_ = "302 Found\r\n"; break;
+	  case 303:status_ = "303 See Other\r\n"; break;
+	  case 304:status_ = "304 Not Modified\r\n"; break;
+	  case 307:status_ = "307 Temporary redirect\r\n"; break;
 
-	  case 400:status_ = "400 Bad Request\r\n", status_len_ = 17; break;
-	  case 401:status_ = "401 Unauthorized\r\n", status_len_ = 19; break;
-	  case 402:status_ = "402 Payment Required\r\n", status_len_ = 22; break;
-	  case 403:status_ = "403 Forbidden\r\n", status_len_ = 15; break;
-	  case 405:status_ = "405 HTTP verb used to access this page is not allowed (method not allowed)\r\n", status_len_ = 76; break;
-	  case 406:status_ = "406 Client browser does not accept the MIME type of the requested page\r\n", status_len_ = 72; break;
-	  case 409:status_ = "409 Conflict\r\n", status_len_ = 14; break;
+	  case 400:status_ = "400 Bad Request\r\n"; res.body = status_; break;
+	  case 401:status_ = "401 Unauthorized\r\n"; res.body = status_; break;
+	  case 402:status_ = "402 Payment Required\r\n"; res.body = status_; break;
+	  case 403:status_ = "403 Forbidden\r\n"; res.body = status_; break;
+	  case 405:status_ = "405 HTTP verb used to access this page is not allowed\r\n"; res.body = status_; break;
+	  case 406:status_ = "406 Browser does not accept the MIME type of the requested page\r\n"; res.body = status_; break;
+	  case 409:status_ = "409 Conflict\r\n"; res.body = status_; break;
 
-	  case 500:status_ = "500 Internal Server Error\r\n", status_len_ = 27; break;
-	  case 501:status_ = "501 Not Implemented\r\n", status_len_ = 21; break;
-	  case 502:status_ = "502 Bad Gateway\r\n", status_len_ = 17; break;
-	  case 503:status_ = "503 Service Unavailable\r\n", status_len_ = 25; break;
+	  case 500:status_ = "500 Internal Server Error\r\n"; break;
+	  case 501:status_ = "501 Not Implemented\r\n"; res.body = status_; break;
+	  case 502:status_ = "502 Bad Gateway\r\n"; res.body = status_; break;
+	  case 503:status_ = "503 Service Unavailable\r\n"; res.body = status_; break;
 
-	  default:status_ = "404 Not Found\r\n", status_len_ = 15; break;
+	  default:status_ = "404 Not Found\r\n"; res.body = status_; break;
 	  }
 	}
 	inline void prepare_buffers() {
-	  // res.complete_request_handler_=nullptr;
+	  res.complete_request_handler_ = nullptr;
 	  buffers_ += Res_http_status;
 	  buffers_ += status_;
-	  if (res.code > 399) res.body = status_;
+	  //if (res.code > 399) res.body = status_;
 	  for (auto& kv : res.headers) {
 		buffers_ += kv.first;
 		buffers_ += Res_seperator;
@@ -380,7 +381,7 @@ namespace crow {
 	  buffers_ += AccessControlAllowOrigin;
 	  buffers_ += Res_crlf;
 #endif
-	}
+	  }
 
 	inline void do_write_static() {
 	  boost::asio::write(adaptor_.socket(), boost::asio::buffer(buffers_));
@@ -451,7 +452,7 @@ namespace crow {
 			  check_destroy();
 			}
 		  } else {
-			check_destroy();
+			delete this;
 		  }
 		});
 	}
@@ -468,7 +469,7 @@ namespace crow {
 	inline void start_deadline(/*int timeout = 5*/) {
 	  cancel_deadline_timer();
 	  timer_cancel_key_ = timer_queue_.add([this] {
-		if (!adaptor_.is_open())return;
+		if (!adaptor_.is_open()) { delete this; return; }
 		adaptor_.shutdown_readwrite();
 		adaptor_.close();
 		});
@@ -479,7 +480,6 @@ namespace crow {
 
 	boost::array<char, 4096> buffer_;
 	const char* status_ = "404 Not Found\r\n";
-	int status_len_ = 15;
 	const unsigned res_stream_threshold_ = 1048576;
 
 	inline static http_parser_settings settings_ = {
@@ -514,5 +514,5 @@ namespace crow {
 	std::tuple<Middlewares...>* middlewares_;
 	detail::Ctx<Middlewares...> ctx_;
 	std::function<std::string()>& get_cached_date_str;
-  };
+	};
 }

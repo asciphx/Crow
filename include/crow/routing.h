@@ -1038,15 +1038,17 @@ namespace crow {
       CROW_LOG_DEBUG<<"1027:Matched rule '"<<rules[rule_index]->rule_<<"' "<<static_cast<uint32_t>(req.method)<<" / "<<rules[rule_index]->get_methods();
       // any uncaught exceptions become 500s
       try {
-        rules[rule_index]->handle(req,res,found.second);
+        rules[rule_index]->handle(req, res, found.second);
       } catch (std::exception& e) {
-        CROW_LOG_ERROR<<"An uncaught exception occurred: "<<e.what();
-        res=Res(500);
+        res.code = 500;
+        res.body = e.what();//An uncaught exception occurred:
+        CROW_LOG_ERROR << e.what();
         res.end();
         return;
       } catch (...) {
-        CROW_LOG_ERROR<<"An uncaught exception occurred. The type was unknown so no information was available.";
-        res=Res(500);
+        CROW_LOG_ERROR << "An uncaught exception occurred. The type was unknown so no information was available.";
+        res.code = 500;
+        res.body = "500 Internal Server Error";
         res.end();
         return;
       }
