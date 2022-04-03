@@ -15,14 +15,14 @@ namespace crow {
 	const ci_map* headers; string boundary, menu; vector<param> params; //string content_type = "multipart/form-data";
 	const string& get_header_value(const string& key) const { return crow::get_header_value(*headers, key); }
 	~Parser() { headers = nullptr; }
-	Parser(const Req& req, const char* m) : headers(&(req.headers)), menu(CROW_STATIC_DIRECTORY CROW_UPLOAD_DIRECTORY),
+	Parser(const Req& req, const char* m) : headers(&(req.headers)), menu(CROW_UPLOAD_DIRECTORY),
 	  boundary(g_b(get_header_value("Content-Type"))) {
 	  menu += m; if (RES_menu.find(m) == RES_menu.end()) {
 		RES_menu.insert(m); if (!fs::is_directory(menu)) { fs::create_directory(menu); }
 	  }
 	  params = p_b(req.body);
 	}
-	Parser(const Req& req) : headers(&(req.headers)), menu(CROW_STATIC_DIRECTORY CROW_UPLOAD_DIRECTORY),
+	Parser(const Req& req) : headers(&(req.headers)), menu(CROW_UPLOAD_DIRECTORY),
 	  boundary(g_b(get_header_value("Content-Type"))), params(p_b(req.body)) {}
 	// Parser(const ci_map& headers, const string& boundary, const vector<param>& sections)
 	   //: headers(&headers), boundary(boundary), params(sections) {}
@@ -47,10 +47,11 @@ namespace crow {
 	  if (value.size() < 45) throw std::runtime_error("Wrong value size!");
 	  if (value.size() > L * 1024) throw std::runtime_error(std::string("Body size can't be biger than : ") + std::to_string(L) + "kb");
 	  vector<param> sections; size_t f = value.find(boundary);
-	  value.erase(0, f + boundary.length() + 2); _:;
+	  value.erase(0, f + boundary.length() + 2); string s; _:;
 	  if (value.size() != 2) {
 		f = value.find(boundary);
-		sections.emplace_back(p_s(value.substr(0, f - 0xf)));
+		s = value.substr(0, f - 0xf);
+		sections.emplace_back(p_s(s));
 		value.erase(0, f + boundary.length() + 2); goto _;
 	  }
 	  if (sections.size() == 0) throw std::runtime_error("Not Found!");
@@ -77,7 +78,7 @@ namespace crow {
 		if (b == '\0') {
 		  p.key = value; ++b;
 		} else if (b == '\1') {
-		  p.filename = value;//trim(value)
+		  p.filename = menu + value;//trim(value)
 		  ++b;
 		}
 	  }
@@ -92,7 +93,7 @@ namespace crow {
 		f = h.find(':');
 		//p.type = h.substr(f + 2);
 		p.size = p.value.length();
-		std::ofstream of(menu + p.filename, ios::out | ios::app | ios::binary);
+		std::ofstream of(CROW_STATIC_DIRECTORY + p.filename, ios::out | ios::app | ios::binary);
 		of << p.value; of.close();
 	  }
 	  return p;

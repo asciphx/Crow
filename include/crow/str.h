@@ -25,6 +25,7 @@ std::string& operator<<(std::string& s, const tm& _v);
 extern "C" {
 #endif
   static char RES_ASCII[97] = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+  static const std::string RES_STR("0123456789ABCDEF");
   static int strLen(const char* s) { const char* e = s; while (*++e); return e - s; }
   static void strCpy(char* d, const char* s) { while (*s) { *d++ = *s++; }*d = 0; }
   static char* strStr(char* d, const char* s) {
@@ -109,6 +110,24 @@ constexpr int operator""_i(const char* s, size_t /*len*/) {
 //You can match more strings with hackallstr method, but you need to match ""_a used together
 constexpr unsigned long long operator""_a(const char* s, size_t /*len*/) {
   unsigned long long r = 0; for (unsigned long long i = 0; s[i]; r *= 0x1f, r += s[i++]); return r;
+}
+
+std::string DecodeURL(const std::string& c) {
+  std::string rs; size_t len = c.size(); rs.reserve(len * 3 / 2);
+  for (size_t i = 0; i < len; ++i) {
+	switch (c[i]) {
+	case 0x25:
+	  if ((i + 2) < len) {
+		unsigned char h = std::find(std::begin(RES_STR), std::end(RES_STR), c[++i]) - std::begin(RES_STR);
+		unsigned char l = std::find(std::begin(RES_STR), std::end(RES_STR), c[++i]) - std::begin(RES_STR);
+		rs += char((h << 4) + l);
+	  } else { rs += 0x25; }
+	  break;
+	case 0x1f: rs += 0x20; break;
+	default: rs += c[i]; break;
+	}
+  }
+  return rs;
 }
 static std::string& toUpperCase(std::string& s) {
   char* c = (char*)s.c_str();

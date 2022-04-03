@@ -86,7 +86,7 @@ namespace crow {
 	inline bool is_alive() { return is_alive_helper_ && is_alive_helper_(); }
 	///Return a static file as the response body
 	void set_static_file_info(std::string path) {
-	  struct stat statbuf_; path_ = detail::directory_ + path;
+	  struct stat statbuf_; path_ = detail::directory_ + DecodeURL(path);
 	  statResult_ = stat(path_.c_str(), &statbuf_);
 #ifdef CROW_ENABLE_COMPRESSION
 	  compressed = false;

@@ -39,6 +39,17 @@ int main(){
    - Check [sqlpp11](https://github.com/rbock/sqlpp11) if you want one.
  - CORS is now allowed to be specially configured in 'config.h'
 ## Examples
+#### Upload file
+```c++
+  app.route("/upload").methods(crow::HTTPMethod::POST)([](const crow::Req& req) {
+	  crow::Parser<2048> msg(req);
+	  json j = json::object();
+	  for (auto p : msg.params) {
+	    if (!p.size) j[p.key] = p.value; else j[p.key] = p.filename;
+	  }
+	  return j;
+	});
+```
 #### sql query
 ```c++
   app.route("/sql")([] {

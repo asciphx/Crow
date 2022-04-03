@@ -35,6 +35,17 @@ int main(){
 -检查[sqlpp11](https://github.com/rbock/sqlpp11)如果你想要的话。
 - 现在允许在'config.h'专门配置CORS
 ## 示例
+#### 上传文件
+```c++
+  app.route("/upload").methods(crow::HTTPMethod::POST)([](const crow::Req& req) {
+	  crow::Parser<2048> msg(req);
+	  json j = json::object();
+	  for (auto p : msg.params) {
+	    if (!p.size) j[p.key] = p.value; else j[p.key] = p.filename;
+	  }
+	  return j;
+	});
+```
 #### sql查询
 ```c++
   app.route("/sql")([] {
