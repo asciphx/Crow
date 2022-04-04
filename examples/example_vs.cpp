@@ -44,7 +44,7 @@ int main() {
 	});
   //static reflect
   app.route("/lists")([]() {
-	List list; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
+	User u; List list{ &u }; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
 	json json_output = json(list);

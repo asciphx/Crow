@@ -1,8 +1,8 @@
 #pragma once
 #include <unordered_map>
-#include <string>
+#include <string_view>
 namespace cc {
-static std::unordered_map<std::string, std::string> content_types,
+static std::unordered_map<std::string_view, std::string_view> content_types,
 content_any_types {
 {"123","application/vnd.lotus-1-2-3"},
 {"3dml","text/vnd.in3d.3dml"},

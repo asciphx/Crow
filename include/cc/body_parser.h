@@ -6,19 +6,19 @@
 #include <set>
 #include "cc/http_request.h"
 namespace cc {
-  using namespace std; namespace fs = std::filesystem;
-  static std::set<const char*> RES_menu = {}; static const string crlf = "\r\n";//"\r\n\r\n"
+  using namespace std;
+  static std::set<const char*> RES_menu = {}; static const string crlf("\r\n");//"\r\n\r\n"
   struct param { uint32_t size = 0; string key; string value; string filename;/* string type;*/ };
   ///The parsed multipart Req/Res (Length[ kb ]),(Bool is_MD5)
   template<unsigned short L, bool B = false>
   struct Parser {
 	const ci_map* headers; string boundary, menu; vector<param> params; //string content_type = "multipart/form-data";
-	const string& get_header_value(const string& key) const { return cc::get_header_value(*headers, key); }
+	const string& get_header_value(const char* key) const { return cc::get_header_value(*headers, key); }
 	~Parser() { headers = nullptr; }
 	Parser(const Req& req, const char* m) : headers(&(req.headers)), menu(UPLOAD_DIRECTORY),
 	  boundary(g_b(get_header_value("Content-Type"))) {
 	  menu += m; if (RES_menu.find(m) == RES_menu.end()) {
-		RES_menu.insert(m); if (!fs::is_directory(menu)) { fs::create_directory(menu); }
+		RES_menu.insert(m); if (!std::filesystem::is_directory(menu)) { std::filesystem::create_directory(menu); }
 	  }
 	  params = p_b(req.body);
 	}

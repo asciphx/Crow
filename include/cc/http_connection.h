@@ -122,12 +122,14 @@ namespace cc {
 	  Handler* handler, std::tuple<Middlewares...>* middlewares,
 	  std::function<std::string()>& get_cached_date_str_f,
 	  detail::dumb_timer_queue& timer_queue,
-	  typename Adaptor::Ctx* adaptor_ctx_) :
+	  typename Adaptor::Ctx* adaptor_ctx_,
+	  std::atomic<uint16_t>& queue_length) :
 	  adaptor_(io_service, adaptor_ctx_),
 	  handler_(handler),
 	  middlewares_(middlewares),
 	  get_cached_date_str(get_cached_date_str_f),
-	  timer_queue_(timer_queue) {
+	  timer_queue_(timer_queue),
+	  queue_length_(queue_length) {
 	  llhttp_init(this, HTTP_REQUEST, &settings_);
 	}
 	~Connection() {
@@ -142,7 +144,7 @@ namespace cc {
 	static int on_header_field(http_parser* self_, const char* at, size_t length) {
 	  Connection* $ = static_cast<Connection*>(self_);
 	  switch ($->header_state) {
-	  case 0:if (!$->header_value.empty()) $->headers.emplace(std::move($->header_field), std::move($->header_value));
+	  case 0:if (!$->header_value.empty()) $->headers.emplace(std::move($->header_field.c_str()), std::move($->header_value));
 		$->header_field.assign(at, at + length); $->header_state = 1; break;
 	  case 1:$->header_field.insert($->header_field.end(), at, at + length); break;
 	  } return 0;
@@ -302,10 +304,10 @@ namespace cc {
 		  default:
 			break;
 		  }
-	  }
+		}
 #endif
 		do_write_general();
-	}
+	  }
 	  //if there is a redirection with a partial URL, treat the URL as a route.
 	  std::string location = res.get_header_value("Location");
 	  if (!location.empty() && location.find("://", 0) == std::string::npos) {
@@ -315,8 +317,8 @@ namespace cc {
 		location.insert(0, "http://" + req_.get_header_value("Host"));
 #endif
 		res.add_header(Res_loc, location);
-  }
-}
+	  }
+	}
 
   private:
 	inline void set_status(uint16_t status) {
@@ -381,11 +383,25 @@ namespace cc {
 	  buffers_ += AccessControlAllowOrigin;
 	  buffers_ += Res_crlf;
 #endif
-	  }
+	}
 
 	inline void do_write_static() {
 	  boost::asio::write(adaptor_.socket(), boost::asio::buffer(buffers_));
-	  res.do_stream_file(adaptor_);
+	  if (res.statResult_ == 0) {
+		std::ifstream is(res.path_.c_str(), std::ios::in | std::ios::binary);
+		char buf[16384];
+		while (is.read(buf, sizeof(buf)).gcount() > 0) {
+		  std::vector<asio::const_buffer> buffers;
+		  buffers.push_back(boost::asio::buffer(buf));
+		  write_buffer_list(buffers);
+		}
+	  }
+	  is_writing = false;
+	  if (close_connection_) {
+		adaptor_.shutdown_readwrite();
+		adaptor_.close();
+		check_destroy();
+	  }
 	  res.end();
 	  res.clear();
 	  buffers_.clear();
@@ -393,8 +409,7 @@ namespace cc {
 
 	inline void do_write_general() {
 	  if (res.body.length() < res_stream_threshold_) {
-		res_body_copy_.swap(res.body);
-		buffers_ += res_body_copy_;
+		buffers_ += res.body;
 		do_write();
 		if (need_to_start_read_after_complete_) {
 		  need_to_start_read_after_complete_ = false;
@@ -403,7 +418,32 @@ namespace cc {
 	  } else {
 		is_writing = true;
 		boost::asio::write(adaptor_.socket(), boost::asio::buffer(buffers_));
-		res.do_stream_body(adaptor_);
+		if (body.length() > 0) {
+
+		  std::string buf;
+		  std::vector<boost::asio::const_buffer> buffers;
+		  while (body.length() > 16384) {
+			//buf.reserve(16385);
+			buf = body.substr(0, 16384);
+			body = body.substr(16384);
+			buffers.clear();
+			buffers.push_back(boost::asio::buffer(buf));
+			write_buffer_list(buffers);
+		  }
+		  //Collect whatever is left (less than 16KB) and send it down the socket
+		  //buf.reserve(is.length());
+		  buf = body;
+		  body.clear();
+		  buffers.clear();
+		  buffers.push_back(boost::asio::buffer(buf));
+		  write_buffer_list(buffers);
+		}
+		is_writing = false;
+		if (close_connection_) {
+		  adaptor_.shutdown_readwrite();
+		  adaptor_.close();
+		  check_destroy();
+		}
 		res.end();
 		res.clear();
 		buffers_.clear();
@@ -414,26 +454,25 @@ namespace cc {
 	  is_reading = true;
 	  adaptor_.socket().async_read_some(boost::asio::buffer(buffer_),
 		[this](const boost::system::error_code& ec, std::size_t bytes_transferred) {
-		  bool error_while_reading = true;
 		  if (!ec) {
-			bool ret = llhttp_execute(this, buffer_.data(), bytes_transferred) == 0;
-			if (ret && adaptor_.is_open()) error_while_reading = false;
-		  }
-		  if (error_while_reading) {
+			if (llhttp_execute(this, buffer_.data(), bytes_transferred) == 0/* && adaptor_.is_open()*/) {
+			  if (close_connection_) {
+				cancel_deadline_timer();
+				is_reading = false;
+				check_destroy(); // adaptor will close after write
+			  } else if (!need_to_call_after_handlers_) {
+				start_deadline();
+				do_read();
+			  } else { // res will be completed later by user
+				need_to_start_read_after_complete_ = true;
+			  }
+			}
+		  } else {
 			cancel_deadline_timer();
 			adaptor_.shutdown_read();
 			adaptor_.close();
 			is_reading = false;
 			check_destroy();
-		  } else if (close_connection_) {
-			cancel_deadline_timer();
-			is_reading = false;
-			check_destroy(); // adaptor will close after write
-		  } else if (!need_to_call_after_handlers_) {
-			start_deadline();
-			do_read();
-		  } else { // res will be completed later by user
-			need_to_start_read_after_complete_ = true;
 		  }
 		});
 	}
@@ -444,7 +483,6 @@ namespace cc {
 		[this](const boost::system::error_code& ec, std::size_t /*bytes_transferred*/) {
 		  is_writing = false;
 		  res.clear();
-		  res_body_copy_.clear();
 		  if (!ec) {
 			if (close_connection_) {
 			  adaptor_.shutdown_write();
@@ -452,27 +490,31 @@ namespace cc {
 			  check_destroy();
 			}
 		  } else {
-			delete this;
+			//check_destroy();
+			--queue_length_; delete this;
 		  }
 		});
 	}
-
-	inline void check_destroy() {
-	  if (!is_reading && !is_writing) {
-		delete this;
-	  }
+	inline void write_buffer_list(std::vector<boost::asio::const_buffer>& buffers) {
+	  boost::asio::write(adaptor_.socket(), buffers, [this](std::error_code ec, std::size_t) {
+		if (!ec) {
+		  return false;
+		} else {
+		  LOG_ERROR << ec << " - happened while sending buffers";
+		  check_destroy();
+		  return true;
+		}
+		});
 	}
-	inline void cancel_deadline_timer() {
-	  timer_queue_.cancel(timer_cancel_key_);
-	}
-
-	inline void start_deadline(/*int timeout = 5*/) {
+	inline void check_destroy() { if (!is_reading && !is_writing) { --queue_length_; delete this; } }
+	inline void cancel_deadline_timer() { timer_queue_.cancel(timer_cancel_key_); }
+	inline void start_deadline(unsigned short timeout = cc::detail::dumb_timer_queue::tick) {
 	  cancel_deadline_timer();
 	  timer_cancel_key_ = timer_queue_.add([this] {
-		if (!adaptor_.is_open()) { delete this; return; }
+		if (!adaptor_.is_open()) { return; }
 		adaptor_.shutdown_readwrite();
 		adaptor_.close();
-		});
+		}, timeout);
 	}
   private:
 	Adaptor adaptor_;
@@ -500,13 +542,12 @@ namespace cc {
 	ci_map headers;
 	query_string url_params;
 	detail::dumb_timer_queue& timer_queue_;
-	detail::dumb_timer_queue::key timer_cancel_key_;
-
+	uint16_t timer_cancel_key_;
+	std::atomic<uint16_t>& queue_length_;
 	Req req_;
 	Res res;
-
 	bool close_connection_ = false;
-	std::string buffers_, body, res_body_copy_, date_str_;
+	std::string buffers_, body, date_str_;
 	bool is_reading{};
 	bool is_writing{};
 	bool need_to_call_after_handlers_{};
@@ -514,5 +555,5 @@ namespace cc {
 	std::tuple<Middlewares...>* middlewares_;
 	detail::Ctx<Middlewares...> ctx_;
 	std::function<std::string()>& get_cached_date_str;
-	};
+  };
 }

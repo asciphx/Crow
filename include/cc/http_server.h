@@ -26,7 +26,8 @@ namespace cc {
 	  : acceptor_(io_service_, tcp::endpoint(boost::asio::ip::address::from_string(bindaddr), port)),
 	  signals_(io_service_, SIGINT, SIGTERM),
 	  handler_(handler),
-	  concurrency_(concurrency < 1 ? 1 : concurrency),
+	  concurrency_(concurrency < 2 ? 2 : concurrency),
+	  roundrobin_index_(concurrency_ - 1),
 	  core_(concurrency_ - 1),
 	  port_(port),
 	  bindaddr_(std::move(bindaddr)),
@@ -50,7 +51,7 @@ namespace cc {
 		v.push_back(
 		  std::async(std::launch::async, [this, i, &init_count] {
 			auto last = std::chrono::steady_clock::now();
-			std::string date_str; date_str.resize(0x20);
+			std::string date_str;
 			get_cached_date_str_pool_[i] = [&date_str, &last]()->std::string {
 			  if (std::chrono::steady_clock::now() - last > std::chrono::seconds(2)) {
 				time_t last_time_t = time(0); tm my_tm;
@@ -60,27 +61,15 @@ namespace cc {
 #else
 				localtime_r(&last_time_t, &my_tm);
 #endif
-				date_str.resize(strftime(&date_str[0], 0x1f, RES_GMT, &my_tm));
+				date_str.resize(0x30);
+				date_str.resize(strftime(&date_str[0], 0x2f, RES_GMT, &my_tm));
 			  }
 			  return date_str;
 			};
 			// initializing timer queue
-			detail::dumb_timer_queue timer_queue;
+			detail::dumb_timer_queue timer_queue(*io_service_pool_[i]);
 			timer_queue_pool_[i] = &timer_queue;
-			timer_queue.set_io_service(*io_service_pool_[i]);
-			boost::asio::deadline_timer timer(*io_service_pool_[i]);
-			std::function<void(const boost::system::error_code&)> handler;
-			timer.expires_from_now(boost::posix_time::millseconds(1));
-			timer.async_wait(handler = [&timer_queue, &timer, &handler](const boost::system::error_code&/* ec*/) {
-			  //if (ec)return;
-			  timer_queue.process();
-#if defined(_MSC_VER) || defined(__MINGW32__)
-			  timer.expires_from_now(boost::posix_time::millseconds(1));
-#else
-			  timer.expires_from_now(boost::posix_time::seconds(1));
-#endif
-			  timer.async_wait(handler);
-			  });
+			roundrobin_index_[i] = 0;
 			++init_count;
 			io_service_pool_[i]->run();
 			}));
@@ -107,16 +96,24 @@ namespace cc {
 	void signal_add(int signal_number) { signals_.add(signal_number); }
 
   private:
-	inline asio::io_service& pick_io_service() {
-	  if (++roundrobin_index_ > core_) roundrobin_index_ = 0;
-	  return *io_service_pool_[roundrobin_index_];
+	inline uint16_t pick_io_service() {
+	  if (roundrobin_index_[0] == 0)return 0;
+	  uint16_t i = 0, l = roundrobin_index_[core_];
+	  while (++i < core_ && l < roundrobin_index_[i])l = roundrobin_index_[i];
+	  return i;
 	}
+	//inline asio::io_service& pick_io_service() {
+	//  if (++roundrobin_index_ > core_) roundrobin_index_ = 0; return *io_service_pool_[roundrobin_index_];
+	//}
 	inline void do_accept() {
-	  asio::io_service& is = pick_io_service();
+	  uint16_t idex = pick_io_service();
+	  //asio::io_service& is = pick_io_service();
+	  asio::io_service& is = *io_service_pool_[idex];
+	  ++roundrobin_index_[idex];
 	  auto p = new Connection<Adaptor, Handler, Middlewares...>(
 		is, handler_, middlewares_,
-		get_cached_date_str_pool_[roundrobin_index_], *timer_queue_pool_[roundrobin_index_],
-		adaptor_ctx_);
+		get_cached_date_str_pool_[idex], *timer_queue_pool_[idex],
+		adaptor_ctx_, roundrobin_index_[idex]);
 	  acceptor_.async_accept(p->socket(),
 		[this, p, &is](const boost::system::error_code& ec) {
 		  if (!ec) {
@@ -139,7 +136,7 @@ namespace cc {
 	uint8_t core_{ 1 };
 	uint16_t port_;
 	std::string bindaddr_;
-	unsigned int roundrobin_index_{};
+	std::vector<std::atomic<uint16_t>> roundrobin_index_;
 
 	std::tuple<Middlewares...>* middlewares_;
 

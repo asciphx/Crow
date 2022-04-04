@@ -33,7 +33,7 @@
 
 namespace cc {
   static std::string RES_home = HOME_PAGE;
-  int detail::dumb_timer_queue::tick = 4;//Prevent being stuck by long connection
+  unsigned short detail::dumb_timer_queue::tick = 4;//Prevent being stuck by long connection
 #ifdef ENABLE_SSL
   using ssl_context_t = boost::asio::ssl::context;
 #endif
@@ -50,7 +50,7 @@ namespace cc {
 #endif
 	Crow() {
 #ifdef _WIN32
-	  ::system("chcp 65001 >nul"); setlocale(LC_ALL, ".UTF8");
+	  ::system("chcp 65001 >nul"); setlocale(LC_CTYPE, ".UTF8");
 #endif
 	  std::cout << "C++ web[服务] run on http://localhost";
 	}
@@ -87,10 +87,10 @@ namespace cc {
 	}
 	self_t& home(std::string path) { RES_home = path; return *this; }
 	//Set content types 
-	self_t& file_type(const std::vector<std::string>& line) {
+	self_t& file_type(const std::vector<std::string_view>& line) {
 	  for (auto iter = line.cbegin(); iter != line.cend(); ++iter) {
-		std::string types = ""; types = content_any_types[*iter];
-		if (types != "") content_types.emplace(*iter, types);
+		std::string_view types; types = content_any_types[*iter];
+		if (types != "") { content_types.emplace(*iter, types); }
 	  } is_not_set_types = false; return *this;
 	}
 	///Run the server on multiple threads using all available threads

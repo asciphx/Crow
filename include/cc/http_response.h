@@ -26,11 +26,12 @@ namespace cc {
 	bool compressed = true; //< If compression is enabled and this is false, the individual response will not be compressed.
 #endif
 	bool is_head_response = false;      ///< Whether this is a Res to a HEAD Req.
-	inline void set_header(std::string key, std::string value) {
-	  headers.erase(key); headers.emplace(std::move(key), std::move(value));
+	inline void set_header(const char* key, std::string value) {
+	  headers.erase(key); headers.emplace(key, std::move(value));
 	}
-	inline void add_header(std::string key, std::string value) { headers.emplace(std::move(key), std::move(value)); }
-	const std::string& get_header_value(const std::string& key) {
+	inline void add_header(const char* key, std::string value) { headers.emplace(key, std::move(value)); }
+	inline void add_header(const char* key, std::string_view value) { headers.emplace(key, value); }
+	const std::string& get_header_value(const char* key) {
 	  return cc::get_header_value(headers, key);
 	}
 	Res() {}
@@ -93,11 +94,10 @@ namespace cc {
 #endif
 	  if (statResult_ == 0) {
 		std::size_t last_dot = path.find_last_of(".");
-		std::string extension = path.substr(last_dot + 1);
+		std::string extension(path.substr(last_dot + 1));
 		this->add_header(RES_CL, std::to_string(statbuf_.st_size));
-		std::string types = ""; types = content_types[extension];
-		if (types != "") {
-		  this->add_header(RES_CT, types), is_file = 1;// if (extension=="ico")hType = 0;
+		if (content_types.find(extension) != content_types.end()) {
+		  this->add_header(RES_CT, content_types[extension]), is_file = 1;
 		} else {
 		  code = 404; this->headers.clear(); this->end();
 		  //this->add_header(RES_CT,"text/plain");
@@ -106,71 +106,12 @@ namespace cc {
 		code = 404;
 	  }
 	}
-	/// Stream a static file.
-	template<typename Adaptor>
-	inline void do_stream_file(Adaptor& adaptor) {
-	  if (statResult_ == 0) {
-		std::ifstream is(path_.c_str(), std::ios::in | std::ios::binary);
-		write_streamed(is, adaptor);
-	  }
-	}
-	/// Stream the response body (send the body in chunks).
-	template<typename Adaptor>
-	inline void do_stream_body(Adaptor& adaptor) {
-	  if (body.length() > 0)write_streamed_string(body, adaptor);
-	}
   private:
 	std::string path_;
 	int statResult_;
 	bool completed_{};
 	std::function<void()> complete_request_handler_;
 	std::function<bool()> is_alive_helper_;
-	template<typename Stream, typename Adaptor>
-	void write_streamed(Stream& is, Adaptor& adaptor) {
-	  char buf[16384];
-	  while (is.read(buf, sizeof(buf)).gcount() > 0) {
-		std::vector<boost::asio::const_buffer> buffers;
-		buffers.push_back(boost::asio::buffer(buf));
-		write_buffer_list(buffers, adaptor);
-	  }
-	}
 
-	//THIS METHOD DOES MODIFY THE BODY, AS IN IT EMPTIES IT
-	template<typename Adaptor>
-	inline void write_streamed_string(std::string& is, Adaptor& adaptor) {
-	  std::string buf;
-	  std::vector<boost::asio::const_buffer> buffers;
-	  while (is.length() > 16384) {
-		//buf.reserve(16385);
-		buf = is.substr(0, 16384);
-		is = is.substr(16384);
-		push_and_write(buffers, buf, adaptor);
-	  }
-	  //Collect whatever is left (less than 16KB) and send it down the socket
-	  //buf.reserve(is.length());
-	  buf = is;
-	  is.clear();
-	  push_and_write(buffers, buf, adaptor);
-	}
-
-	template<typename Adaptor>
-	inline void push_and_write(std::vector<boost::asio::const_buffer>& buffers, std::string& buf, Adaptor& adaptor) {
-	  buffers.clear();
-	  buffers.push_back(boost::asio::buffer(buf));
-	  write_buffer_list(buffers, adaptor);
-	}
-
-	template<typename Adaptor>
-	inline void write_buffer_list(std::vector<boost::asio::const_buffer>& buffers, Adaptor& adaptor) {
-	  boost::asio::write(adaptor.socket(), buffers, [this](std::error_code ec, std::size_t) {
-		if (!ec) {
-		  return false;
-		} else {
-		  LOG_ERROR << ec << " - happened while sending buffers";
-		  this->end();
-		  return true;
-		}
-		});
-	}
   };
 }

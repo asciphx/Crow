@@ -1,5 +1,6 @@
 #pragma once
 #include <boost/asio.hpp>
+#include <string_view>
 #include "cc/common.h"
 #include "cc/ci_map.h"
 #include "cc/query_string.h"
@@ -31,7 +32,7 @@ namespace cc {
       : method(method),raw_url(std::move(raw_url)),url(std::move(url)),url_params(std::move(url_params)),headers(std::move(headers)),body(std::move(body)) {}
 
     void add_header(std::string key,std::string value) {
-      headers.emplace(std::move(key),std::move(value));
+      headers.emplace(std::move(key), std::move(value));
     }
 
     const std::string& get_header_value(const std::string& key) const {

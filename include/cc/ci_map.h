@@ -17,6 +17,9 @@ namespace cc {
 	bool operator()(const std::string& l, const std::string& r) const {
 	  return boost::iequals(l, r);
 	}
+	bool operator()(const char* l, const std::string& r) const {
+	  return boost::iequals(l, r);
+	}
   };
   using ci_map = std::unordered_multimap<std::string, std::string, ci_hash, ci_key_eq>;
 }
