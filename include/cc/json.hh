@@ -2852,7 +2852,7 @@ std::tuple<STAR_S(o, NUM_ARGS(__VA_ARGS__),__VA_ARGS__)> o::Tuple = std::make_tu
 std::string& operator<<(std::string& s, o* c) {\
   if (c == nullptr || *((char*)(RUST_CAST(c)+(size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->*std::get<0>(o::Tuple))))) == 0) {\
   s += "null"; return s; } s.push_back('{'); int8_t i = -1; orm::ForEachField(c, [&i, c, &s](auto& t) { using Y=std::remove_reference_t<decltype(t)>;\
-  if constexpr (!orm::is_vector<Y>::value) { s.push_back('"'); s += c->$[++i]; }\
+  ++i; if constexpr (!orm::is_vector<Y>::value) { s.push_back('"'); s += c->$[i]; }\
   if constexpr (std::is_same<tm, Y>::value) {\
 	s += "\":\""; std::ostringstream os; const tm* time = &t; os << std::setfill('0');\
     if constexpr(_IS_WIN32){os << std::setw(4) << time->tm_year + 1900;}else{\
@@ -2866,7 +2866,7 @@ std::string& operator<<(std::string& s, o* c) {\
   } else if constexpr (std::is_same<std::string, Y>::value) {\
 	s += "\":\"" + t + "\""; s.push_back(',');\
   } else if constexpr (orm::is_vector<Y>::value) {\
-	size_t l = t.size(); if (l) { s.push_back('"'); s += c->$[++i]; s += "\":"; s << &t; s.push_back(','); }\
+	size_t l = t.size(); if (l) { s.push_back('"'); s += c->$[i]; s += "\":"; s << &t; s.push_back(','); }\
   } else if constexpr (orm::is_ptr<Y>::value) {\
     s += "\":";t==nullptr?s+="null":s << t; s.push_back(',');\
   } else if constexpr (is_text<Y>::value) {\
