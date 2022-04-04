@@ -11,7 +11,7 @@ Crow is C++ microframework for web. Support Mac, Linux, windows, three platforms
 #include "cc.h"
 int main(){
     cc::SimpleApp app;
-    CROW_ROUTE(app, "/")([](){
+    ROUTE(app, "/")([](){
         return "Hello world!";
     });
     app.port(18080).multithreaded().run();
@@ -81,7 +81,7 @@ int main(){
 
 #### JSON Response
 ```c++
-CROW_ROUTE(app, "/json")([]{
+ROUTE(app, "/json")([]{
     cc::json x;
 	x["message"]="Hello, World!";
 	x["double"]=3.1415926;
@@ -96,7 +96,7 @@ CROW_ROUTE(app, "/json")([]{
 
 #### Arguments
 ```c++
-CROW_ROUTE(app,"/hello/<int>")([](int count){
+ROUTE(app,"/hello/<int>")([](int count){
     if (count > 100) return cc::Res(400);
     std::ostringstream os;
     os << count << " bottles of beer!";
@@ -106,14 +106,14 @@ CROW_ROUTE(app,"/hello/<int>")([](int count){
 Handler arguments type check at compile time
 ```c++
 // Compile error with message "Handler type is mismatched with URL paramters"
-CROW_ROUTE(app,"/another/<int>")([](int a, int b){
+ROUTE(app,"/another/<int>")([](int a, int b){
     return cc::Res(500);
 });
 ```
 
 #### Handling JSON Requests
 ```c++
-CROW_ROUTE(app, "/add_json").methods("POST"_mt)
+ROUTE(app, "/add_json").methods("POST"_mt)
 ([](const cc::Req& req){
     auto x = cc::json::load(req.body);
     if (!x) return cc::Res(400);

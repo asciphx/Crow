@@ -12,7 +12,7 @@
 #include "cc.h"
 int main(){
     cc::SimpleApp app;
-    CROW_ROUTE(app, "/")([](){
+    ROUTE(app, "/")([](){
         return u8"你好 世界！";
     });
     app.port(18080).multithreaded().run();
@@ -77,7 +77,7 @@ int main(){
 
 #### JSON响应
 ```c++
-CROW_ROUTE(app, "/json")([]{
+ROUTE(app, "/json")([]{
     cc::json x;
 	x["message"] = u8"你好 世界！";
 	x["double"]=3.1415926;
@@ -92,7 +92,7 @@ CROW_ROUTE(app, "/json")([]{
 
 #### 论据
 ```c++
-CROW_ROUTE(app,"/hello/<int>")([](int count){
+ROUTE(app,"/hello/<int>")([](int count){
     if (count > 100) return cc::Res(400);
     std::ostringstream os;
     os << count << " bottles of beer!";
@@ -102,14 +102,14 @@ CROW_ROUTE(app,"/hello/<int>")([](int count){
 编译时的处理程序参数类型检查 
 ```c++
 // 编译错误，消息"处理程序类型与URL参数不匹配"
-CROW_ROUTE(app,"/another/<int>")([](int a, int b){
+ROUTE(app,"/another/<int>")([](int a, int b){
     return cc::Res(500);
 });
 ```
 
 #### 处理JSON请求
 ```c++
-CROW_ROUTE(app, "/add_json").methods("POST"_mt)
+ROUTE(app, "/add_json").methods("POST"_mt)
 ([](const cc::Req& req){
     auto x = cc::json::load(req.body);
     if (!x) return cc::Res(400);
@@ -121,7 +121,7 @@ CROW_ROUTE(app, "/add_json").methods("POST"_mt)
 ```
 
 ## 如何构建
-如果您只想使用crow，请复制amalgamate/crow_all.h 并包含它。
+如果您只想使用crow，请复制amalgamate/all.h 并包含它。
 
 ### 要求
 - C++ 编译器，支持C++17（用G++测试>8.0）
