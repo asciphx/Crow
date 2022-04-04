@@ -46,11 +46,22 @@ namespace cc {
 	private:
 	  void tick_handler(.../*const boost::system::error_code& ec*/) {
 		//if (ec) return;
+#ifdef _WIN32
 		for (const auto& task : dq_) {
 		  if (task.second.first < std::chrono::steady_clock::now()) {
 			(task.second.second)(); dq_.erase(task.first);
 		  }
 		}
+#else
+		std::vector<uint16_t> vts;
+		for (const auto& task : dq_) {
+		  if (task.second.first < std::chrono::steady_clock::now()) {
+			(task.second.second)();
+			vts.push_back(task.first);
+		  }
+		}
+		for (const auto& task : vts) dq_.erase(task);
+#endif
 		deadline_timer_.expires_from_now(boost::posix_time::seconds(1));
 		deadline_timer_.async_wait(std::bind(&dumb_timer_queue::tick_handler, this, std::placeholders::_1));
 	  }

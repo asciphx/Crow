@@ -132,7 +132,7 @@ namespace cc {
 	  queue_length_(queue_length) {
 	  llhttp_init(this, HTTP_REQUEST, &settings_);
 	}
-	~Connection() { res.complete_request_handler_ = nullptr; cancel_deadline_timer(); }
+	~Connection() { /*res.complete_request_handler_ = nullptr;*/ cancel_deadline_timer(); }
 	static int on_url(http_parser* self_, const char* at, size_t length) {
 	  Connection* $ = static_cast<Connection*>(self_);
 	  $->header_state = 0; $->url.clear(); $->raw_url.clear(); $->header_field.clear();
@@ -396,7 +396,7 @@ namespace cc {
 	  }
 	  is_writing = false;
 	  if (close_connection_) {
-		adaptor_.shutdown_write();
+		adaptor_.shutdown_write();//shutdown_readwrite();
 		adaptor_.close();
 		check_destroy();
 	  }
@@ -407,7 +407,8 @@ namespace cc {
 
 	inline void do_write_general() {
 	  if (res.body.length() < res_stream_threshold_) {
-		buffers_ += res.body;
+		res_body_copy_.swap(res.body);
+		buffers_ += res_body_copy_;
 		do_write();
 		if (need_to_start_read_after_complete_) {
 		  need_to_start_read_after_complete_ = false;
@@ -438,7 +439,7 @@ namespace cc {
 		}
 		is_writing = false;
 		if (close_connection_) {
-		  adaptor_.shutdown_write();
+		  adaptor_.shutdown_write();//shutdown_readwrite();
 		  adaptor_.close();
 		  check_destroy();
 		}
@@ -458,8 +459,7 @@ namespace cc {
 			adaptor_.close();
 			is_reading = false;
 			check_destroy();
-		  }
-		  if (llhttp_execute(this, buffer_.data(), bytes_transferred) == 0 /*&& adaptor_.is_open()*/) {
+		  } else if (llhttp_execute(this, buffer_.data(), bytes_transferred) == 0 /*&& adaptor_.is_open()*/) {
 			if (close_connection_) {
 			  cancel_deadline_timer();
 			  is_reading = false;
@@ -480,6 +480,7 @@ namespace cc {
 		[this](const boost::system::error_code& ec, std::size_t /*bytes_transferred*/) {
 		  is_writing = false;
 		  res.clear();
+		  res_body_copy_.clear();
 		  if (!ec) {
 			if (close_connection_) {
 			  adaptor_.shutdown_write();
@@ -505,13 +506,13 @@ namespace cc {
 	}
 	inline void check_destroy() { if (!is_reading && !is_writing) { --queue_length_; delete this; } }
 	inline void cancel_deadline_timer() { timer_queue_.cancel(timer_cancel_key_); }
-	inline void start_deadline(unsigned short timeout = cc::detail::dumb_timer_queue::tick) {
+	inline void start_deadline() {
 	  cancel_deadline_timer();
 	  timer_cancel_key_ = timer_queue_.add([this] {
 		if (!adaptor_.is_open()) { return; }
 		adaptor_.shutdown_readwrite();
 		adaptor_.close();
-		}, timeout);
+		});
 	}
   private:
 	Adaptor adaptor_;
@@ -544,7 +545,7 @@ namespace cc {
 	Req req_;
 	Res res;
 	bool close_connection_ = false;
-	std::string buffers_, body, date_str_;
+	std::string buffers_, body, res_body_copy_, date_str_;
 	bool is_reading{};
 	bool is_writing{};
 	bool need_to_call_after_handlers_{};
