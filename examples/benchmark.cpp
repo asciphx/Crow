@@ -1,6 +1,6 @@
-#include "crow.h"
+#include "cc.h"
 #include <sstream>
-using namespace crow;using namespace std;
+using namespace cc;using namespace std;
 int main() {
   App<> app;app.directory(".").home("main.html").file_type({"html","css","js","json","wasm","ico"});
   app.route("/plaintext")([] {

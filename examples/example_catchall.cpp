@@ -1,9 +1,9 @@
-#include <crow.h>
+#include <cc.h>
 int main() {
-  crow::App<> app;
+  cc::App<> app;
   //Setting a custom route for any URL that isn't defined, instead of a simple 404.
-  CROW_CATCHALL_ROUTE(app)
-	([](crow::Res& res) {
+  CATCHALL_ROUTE(app)
+	([](cc::Res& res) {
 	res.body="The URL does not seem to be correct.";
 	res.end();
   });

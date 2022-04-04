@@ -9,9 +9,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/asciphx/Crow/badge.svg?branch=master)](https://coveralls.io/github/asciphx/Crow?branch=master)
 
 ```c++
-#include "crow.h"
+#include "cc.h"
 int main(){
-    crow::SimpleApp app;
+    cc::SimpleApp app;
     CROW_ROUTE(app, "/")([](){
         return u8"你好 世界！";
     });
@@ -26,7 +26,6 @@ int main(){
 - 更多关于[crow benchmark]的数据(https://github.com/ipkn/crow-benchmark)
 - 第三方JSON解析器[Nlohmann json](https://github.com/nlohmann/json)用于静态反射，输出json。
 - [Mustache](http://mustache.github.io/)基于模板库（crow:：mustache）
-- 仅页眉的每一项功能 [`crow_all.h`](https://github.com/ipkn/crow/releases/download/v0.1/crow_all.h) with every features ([Download from here](https://github.com/ipkn/crow/releases/download/v0.1/crow_all.h))
 - 中间件支持，Websocket支持
 - 支持静态资源,并且默认在'static/'目录
 - 模块化开发，效率非常高，代码极简
@@ -37,8 +36,8 @@ int main(){
 ## 示例
 #### 上传文件
 ```c++
-  app.route("/upload").methods(crow::HTTPMethod::POST)([](const crow::Req& req) {
-	  crow::Parser<2048> msg(req);
+  app.route("/upload").methods(cc::HTTPMethod::POST)([](const cc::Req& req) {
+	  cc::Parser<2048> msg(req);
 	  json j = json::object();
 	  for (auto p : msg.params) {
 	    if (!p.size) j[p.key] = p.value; else j[p.key] = p.filename;
@@ -79,7 +78,7 @@ int main(){
 #### JSON响应
 ```c++
 CROW_ROUTE(app, "/json")([]{
-    crow::json x;
+    cc::json x;
 	x["message"] = u8"你好 世界！";
 	x["double"]=3.1415926;
 	x["int"]=2352352;
@@ -94,30 +93,30 @@ CROW_ROUTE(app, "/json")([]{
 #### 论据
 ```c++
 CROW_ROUTE(app,"/hello/<int>")([](int count){
-    if (count > 100) return crow::Res(400);
+    if (count > 100) return cc::Res(400);
     std::ostringstream os;
     os << count << " bottles of beer!";
-    return crow::Res(os.str());
+    return cc::Res(os.str());
 });
 ```
 编译时的处理程序参数类型检查 
 ```c++
 // 编译错误，消息"处理程序类型与URL参数不匹配"
 CROW_ROUTE(app,"/another/<int>")([](int a, int b){
-    return crow::Res(500);
+    return cc::Res(500);
 });
 ```
 
 #### 处理JSON请求
 ```c++
 CROW_ROUTE(app, "/add_json").methods("POST"_mt)
-([](const crow::Req& req){
-    auto x = crow::json::load(req.body);
-    if (!x) return crow::Res(400);
+([](const cc::Req& req){
+    auto x = cc::json::load(req.body);
+    if (!x) return cc::Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();
     std::ostringstream os;
     os << sum;
-    return crow::Res{os.str()};
+    return cc::Res{os.str()};
 });
 ```
 

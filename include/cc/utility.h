@@ -6,10 +6,10 @@
 #include <cstring>
 #include <functional>
 #include <string>
-#include "crow/settings.h"
-namespace crow {
+#include "cc/settings.h"
+namespace cc {
   namespace spell {
-#ifndef CROW_MSVC_WORKAROUND
+#ifndef MSVC_WORKAROUND
     struct OutOfRange {
       OutOfRange(unsigned /*pos*/,unsigned /*length*/) {}
     };
@@ -114,25 +114,25 @@ namespace crow {
     struct parameter_tag {
       static const int value=0;
     };
-#define CROW_INTERNAL_PARAMETER_TAG(t, i) \
+#define INTERNAL_PARAMETER_TAG(t, i) \
 template <> \
 struct parameter_tag<t> \
 { \
     static const int value = i; \
 }
-    CROW_INTERNAL_PARAMETER_TAG(int,1);
-    CROW_INTERNAL_PARAMETER_TAG(char,1);
-    CROW_INTERNAL_PARAMETER_TAG(short,1);
-    CROW_INTERNAL_PARAMETER_TAG(long,1);
-    CROW_INTERNAL_PARAMETER_TAG(long long,1);
-    CROW_INTERNAL_PARAMETER_TAG(unsigned int,2);
-    CROW_INTERNAL_PARAMETER_TAG(unsigned char,2);
-    CROW_INTERNAL_PARAMETER_TAG(unsigned short,2);
-    CROW_INTERNAL_PARAMETER_TAG(unsigned long,2);
-    CROW_INTERNAL_PARAMETER_TAG(unsigned long long,2);
-    CROW_INTERNAL_PARAMETER_TAG(double,3);
-    CROW_INTERNAL_PARAMETER_TAG(std::string,4);
-#undef CROW_INTERNAL_PARAMETER_TAG
+    INTERNAL_PARAMETER_TAG(int,1);
+    INTERNAL_PARAMETER_TAG(char,1);
+    INTERNAL_PARAMETER_TAG(short,1);
+    INTERNAL_PARAMETER_TAG(long,1);
+    INTERNAL_PARAMETER_TAG(long long,1);
+    INTERNAL_PARAMETER_TAG(unsigned int,2);
+    INTERNAL_PARAMETER_TAG(unsigned char,2);
+    INTERNAL_PARAMETER_TAG(unsigned short,2);
+    INTERNAL_PARAMETER_TAG(unsigned long,2);
+    INTERNAL_PARAMETER_TAG(unsigned long long,2);
+    INTERNAL_PARAMETER_TAG(double,3);
+    INTERNAL_PARAMETER_TAG(std::string,4);
+#undef INTERNAL_PARAMETER_TAG
     template <typename ... Args>
     struct compute_parameter_tag_from_args_list;
 
@@ -194,7 +194,7 @@ struct parameter_tag<t> \
           ):
         get_parameter_tag_runtime(s,p+1);
     }
-#ifndef CROW_MSVC_WORKAROUND
+#ifndef MSVC_WORKAROUND
     constexpr uint64_t get_parameter_tag(const_str s,unsigned p=0) {
       return
         p==s.size()
@@ -359,25 +359,25 @@ struct parameter_tag<t> \
       using type=T;
     };
 
-#define CROW_INTERNAL_PROMOTE_TYPE(t1, t2) \
+#define INTERNAL_PROMOTE_TYPE(t1, t2) \
         template<> \
         struct promote<t1> \
         {  \
             using type = t2; \
         }
 
-    CROW_INTERNAL_PROMOTE_TYPE(char,int64_t);
-    CROW_INTERNAL_PROMOTE_TYPE(short,int64_t);
-    CROW_INTERNAL_PROMOTE_TYPE(int,int64_t);
-    CROW_INTERNAL_PROMOTE_TYPE(long,int64_t);
-    CROW_INTERNAL_PROMOTE_TYPE(long long,int64_t);
-    CROW_INTERNAL_PROMOTE_TYPE(unsigned char,uint64_t);
-    CROW_INTERNAL_PROMOTE_TYPE(unsigned short,uint64_t);
-    CROW_INTERNAL_PROMOTE_TYPE(unsigned int,uint64_t);
-    CROW_INTERNAL_PROMOTE_TYPE(unsigned long,uint64_t);
-    CROW_INTERNAL_PROMOTE_TYPE(unsigned long long,uint64_t);
-    CROW_INTERNAL_PROMOTE_TYPE(float,double);
-#undef CROW_INTERNAL_PROMOTE_TYPE
+    INTERNAL_PROMOTE_TYPE(char,int64_t);
+    INTERNAL_PROMOTE_TYPE(short,int64_t);
+    INTERNAL_PROMOTE_TYPE(int,int64_t);
+    INTERNAL_PROMOTE_TYPE(long,int64_t);
+    INTERNAL_PROMOTE_TYPE(long long,int64_t);
+    INTERNAL_PROMOTE_TYPE(unsigned char,uint64_t);
+    INTERNAL_PROMOTE_TYPE(unsigned short,uint64_t);
+    INTERNAL_PROMOTE_TYPE(unsigned int,uint64_t);
+    INTERNAL_PROMOTE_TYPE(unsigned long,uint64_t);
+    INTERNAL_PROMOTE_TYPE(unsigned long long,uint64_t);
+    INTERNAL_PROMOTE_TYPE(float,double);
+#undef INTERNAL_PROMOTE_TYPE
 
     template <typename T>
     using promote_t=typename promote<T>::type;
@@ -412,7 +412,7 @@ struct parameter_tag<t> \
     template<typename T>
     struct function_traits;
 
-#ifndef CROW_MSVC_WORKAROUND
+#ifndef MSVC_WORKAROUND
     template<typename T>
     struct function_traits : public function_traits<decltype(&T::operator())> {
       using parent_t=function_traits<decltype(&T::operator())>;

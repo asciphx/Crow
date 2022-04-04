@@ -1,10 +1,10 @@
-#pragma once// default settings for crow
+#pragma once// default settings for cc
 #define DEFAULT_ENABLE_LOGGING
 #define DEFAULT_LOG_LEVEL 3
 #define DEFAULT_PORT 80
 #if defined(_MSC_VER)
 #if _MSC_VER < 1900
-#define CROW_MSVC_WORKAROUND
+#define MSVC_WORKAROUND
 #define constexpr const
 #define noexcept throw()
 #endif

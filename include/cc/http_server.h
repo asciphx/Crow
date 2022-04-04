@@ -1,7 +1,7 @@
 #pragma once
 #include <chrono>
 #include <boost/asio.hpp>
-#ifdef CROW_ENABLE_SSL
+#ifdef ENABLE_SSL
 #include <boost/asio/ssl.hpp>
 #endif
 #include <cstdint>
@@ -11,11 +11,11 @@
 #include <memory>
 #include <filesystem>
 //#include <fstream>
-#include "crow/http_connection.h"
-#include "crow/logging.h"
-#include "crow/detail.h"
+#include "cc/http_connection.h"
+#include "cc/logging.h"
+#include "cc/detail.h"
 
-namespace crow {
+namespace cc {
   static const char RES_GMT[26] = "%a, %d %b %Y %H:%M:%S GMT";
   using namespace boost;
   using tcp = asio::ip::tcp;
@@ -34,11 +34,11 @@ namespace crow {
 	  adaptor_ctx_(adaptor_ctx) {}
 
 	void run() {
-	  if (!std::filesystem::is_directory(CROW_STATIC_DIRECTORY)) {
-		std::filesystem::create_directory(CROW_STATIC_DIRECTORY);
+	  if (!std::filesystem::is_directory(STATIC_DIRECTORY)) {
+		std::filesystem::create_directory(STATIC_DIRECTORY);
 	  }
-	  if (!std::filesystem::is_directory(CROW_STATIC_DIRECTORY CROW_UPLOAD_DIRECTORY)) {
-		std::filesystem::create_directory(CROW_STATIC_DIRECTORY CROW_UPLOAD_DIRECTORY);
+	  if (!std::filesystem::is_directory(STATIC_DIRECTORY UPLOAD_DIRECTORY)) {
+		std::filesystem::create_directory(STATIC_DIRECTORY UPLOAD_DIRECTORY);
 	  }
 	  for (int i = 0; i < concurrency_; ++i)
 		io_service_pool_.emplace_back(new boost::asio::io_service());
@@ -85,9 +85,9 @@ namespace crow {
 			io_service_pool_[i]->run();
 			}));
 
-	  CROW_LOG_INFO << CROW_SERVER_NAME << " server is running at " << bindaddr_ << ":" << acceptor_.local_endpoint().port()
+	  LOG_INFO << SERVER_NAME << " server is running at " << bindaddr_ << ":" << acceptor_.local_endpoint().port()
 		<< " using " << concurrency_ << " threads";
-	  CROW_LOG_INFO << "Call `app.loglevel(crow::LogLevel::Warning)` to hide Info level logs.";
+	  LOG_INFO << "Call `app.loglevel(cc::LogLevel::Warning)` to hide Info level logs.";
 
 	  signals_.async_wait(
 		[this](const boost::system::error_code& /*error*/, int /*signal_number*/) {
@@ -97,7 +97,7 @@ namespace crow {
 	  do_accept();
 	  std::thread([this] {
 		io_service_.run();
-		CROW_LOG_INFO << "Exiting.";
+		LOG_INFO << "Exiting.";
 		}).join();
 	}
 	inline void stop() {
@@ -143,7 +143,7 @@ namespace crow {
 
 	std::tuple<Middlewares...>* middlewares_;
 
-#ifdef CROW_ENABLE_SSL
+#ifdef ENABLE_SSL
 	bool use_ssl_{ false };
 	boost::asio::ssl::context ssl_context_{ boost::asio::ssl::context::sslv23 };
 #endif

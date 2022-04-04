@@ -1,11 +1,11 @@
 #pragma once
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/array.hpp>
-#include "crow/socket_adaptors.h"
-#include "crow/http_request.h"
-#include "crow/TinySHA1.hpp"
+#include "cc/socket_adaptors.h"
+#include "cc/http_request.h"
+#include "cc/TinySHA1.hpp"
 
-namespace crow {
+namespace cc {
   namespace websocket {
     enum class WebSocketReadState {
       MiniHeader,
@@ -59,12 +59,12 @@ namespace crow {
       ///
       /// Requires a Req with an "Upgrade: websocket" header.<br>
       /// Automatically handles the handshake.
-      Connection(const crow::Req& req,Adaptor&& adaptor,
-                 std::function<void(crow::websocket::connection&)> open_handler,
-                 std::function<void(crow::websocket::connection&,const std::string&,bool)> message_handler,
-                 std::function<void(crow::websocket::connection&,const std::string&)> close_handler,
-                 std::function<void(crow::websocket::connection&)> error_handler,
-                 std::function<bool(const crow::Req&)> accept_handler)
+      Connection(const cc::Req& req,Adaptor&& adaptor,
+                 std::function<void(cc::websocket::connection&)> open_handler,
+                 std::function<void(cc::websocket::connection&,const std::string&,bool)> message_handler,
+                 std::function<void(cc::websocket::connection&,const std::string&)> close_handler,
+                 std::function<void(cc::websocket::connection&)> error_handler,
+                 std::function<bool(const cc::Req&)> accept_handler)
         : adaptor_(std::move(adaptor)),open_handler_(std::move(open_handler)),message_handler_(std::move(message_handler)),close_handler_(std::move(close_handler)),error_handler_(std::move(error_handler))
         ,accept_handler_(std::move(accept_handler)) {
         if (!boost::iequals(req.get_header_value("upgrade"),"websocket")) {
@@ -88,7 +88,7 @@ namespace crow {
         s.processBytes(magic.data(),magic.size());
         uint8_t digest[20];
         s.getDigestBytes(digest);
-        start(crow::utility::base64encode((char*)digest,20));
+        start(cc::utility::base64encode((char*)digest,20));
       }
 
       /// Send data through the socket.
@@ -224,7 +224,7 @@ namespace crow {
             //boost::asio::async_read(adaptor_.socket(), boost::asio::buffer(&mini_header_, 1), 
             adaptor_.socket().async_read_some(boost::asio::buffer(&mini_header_,2),
                                               [this](const boost::system::error_code& ec,std::size_t
-#ifdef CROW_ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
                                                      bytes_transferred
 #endif
                                                      )
@@ -232,7 +232,7 @@ namespace crow {
             {
               is_reading=false;
               mini_header_=ntohs(mini_header_);
-#ifdef CROW_ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
 
               if (!ec&&bytes_transferred!=2) {
                 throw std::runtime_error("WebSocket:MiniHeader:async_read fail:asio bug?");
@@ -268,14 +268,14 @@ namespace crow {
             remaining_length16_=0;
             boost::asio::async_read(adaptor_.socket(),boost::asio::buffer(&remaining_length16_,2),
                                     [this](const boost::system::error_code& ec,std::size_t
-#ifdef CROW_ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
                                            bytes_transferred
 #endif
                                            ) {
               is_reading=false;
               remaining_length16_=ntohs(remaining_length16_);
               remaining_length_=remaining_length16_;
-#ifdef CROW_ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
               if (!ec&&bytes_transferred!=2) {
                 throw std::runtime_error("WebSocket:Len16:async_read fail:asio bug?");
               }
@@ -298,13 +298,13 @@ namespace crow {
           {
             boost::asio::async_read(adaptor_.socket(),boost::asio::buffer(&remaining_length_,8),
                                     [this](const boost::system::error_code& ec,std::size_t
-#ifdef CROW_ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
                                            bytes_transferred
 #endif
                                            ) {
               is_reading=false;
               remaining_length_=((1==ntohl(1))?(remaining_length_):(static_cast<uint64_t>(ntohl((remaining_length_)&0xFFFFFFFF))<<32)|ntohl((remaining_length_)>>32));
-#ifdef CROW_ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
               if (!ec&&bytes_transferred!=8) {
                 throw std::runtime_error("WebSocket:Len16:async_read fail:asio bug?");
               }
@@ -327,12 +327,12 @@ namespace crow {
           if (has_mask_) {
             boost::asio::async_read(adaptor_.socket(),boost::asio::buffer((char*)&mask_,4),
                                     [this](const boost::system::error_code& ec,std::size_t
-#ifdef CROW_ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
                                            bytes_transferred
 #endif
                                            ) {
               is_reading=false;
-#ifdef CROW_ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
               if (!ec&&bytes_transferred!=4) {
                 throw std::runtime_error("WebSocket:Mask:async_read fail:asio bug?");
               }
@@ -529,11 +529,11 @@ namespace crow {
       bool pong_received_{false};
       bool is_close_handler_called_{false};
 
-      std::function<void(crow::websocket::connection&)> open_handler_;
-      std::function<void(crow::websocket::connection&,const std::string&,bool)> message_handler_;
-      std::function<void(crow::websocket::connection&,const std::string&)> close_handler_;
-      std::function<void(crow::websocket::connection&)> error_handler_;
-      std::function<bool(const crow::Req&)> accept_handler_;
+      std::function<void(cc::websocket::connection&)> open_handler_;
+      std::function<void(cc::websocket::connection&,const std::string&,bool)> message_handler_;
+      std::function<void(cc::websocket::connection&,const std::string&)> close_handler_;
+      std::function<void(cc::websocket::connection&)> error_handler_;
+      std::function<bool(const cc::Req&)> accept_handler_;
     };
   }
 }

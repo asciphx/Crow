@@ -1,17 +1,17 @@
 #pragma once
 
-#include "crow/utility.h"
-#include "crow/http_request.h"
-#include "crow/http_response.h"
+#include "cc/utility.h"
+#include "cc/http_request.h"
+#include "cc/http_response.h"
 
-namespace crow {
+namespace cc {
   namespace detail {
 	template <typename ... Middlewares>
 	struct partial_context
 	  : public spell::pop_back<Middlewares...>::template rebind<partial_context>
 	  ,public spell::last_element_type<Middlewares...>::type::Ctx
 	{
-		using parent_context=typename spell::pop_back<Middlewares...>::template rebind<::crow::detail::partial_context>;
+		using parent_context=typename spell::pop_back<Middlewares...>::template rebind<::cc::detail::partial_context>;
 		template <int N>
 		using partial=typename std::conditional<N==sizeof...(Middlewares)-1, partial_context, typename parent_context::template partial<N>>::type;
 

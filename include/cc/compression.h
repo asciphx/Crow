@@ -1,11 +1,11 @@
-#ifdef CROW_ENABLE_COMPRESSION
+#ifdef ENABLE_COMPRESSION
 #pragma once
 
 #include <string>
 #include <zlib.h>
 
 // http://zlib.net/manual.html
-namespace crow
+namespace cc
 {
     namespace compression
     {

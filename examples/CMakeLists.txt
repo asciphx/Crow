@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project (crow_examples)
+project (cc_examples)
 set(LIBS ${Boost_LIBRARIES} ${MYSQL_LIBRARY} ${SQLite3_LIBRARIES} ${PostgreSQL_LIBRARIES}
 ${OPENSSL_LIBRARIES} ${Tcmalloc_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 if (MSVC)

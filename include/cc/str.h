@@ -113,21 +113,21 @@ constexpr unsigned long long operator""_a(const char* s, size_t /*len*/) {
 }
 
 std::string DecodeURL(const std::string& c) {
-  std::string rs; size_t len = c.size(); rs.reserve(len * 3 / 2);
+  std::string s; size_t len = c.size(); s.reserve(len * 3 / 2);
   for (size_t i = 0; i < len; ++i) {
 	switch (c[i]) {
 	case 0x25:
 	  if ((i + 2) < len) {
 		unsigned char h = std::find(std::begin(RES_STR), std::end(RES_STR), c[++i]) - std::begin(RES_STR);
 		unsigned char l = std::find(std::begin(RES_STR), std::end(RES_STR), c[++i]) - std::begin(RES_STR);
-		rs += char((h << 4) + l);
-	  } else { rs += 0x25; }
+		s += char((h << 4) + l);
+	  } else { s += 0x25; }
 	  break;
-	case 0x1f: rs += 0x20; break;
-	default: rs += c[i]; break;
+	case 0x1f: s += 0x20; break;
+	default: s += c[i]; break;
 	}
   }
-  return rs;
+  return s;
 }
 static std::string& toUpperCase(std::string& s) {
   char* c = (char*)s.c_str();

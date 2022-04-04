@@ -1,8 +1,8 @@
 #pragma once
 #include <boost/algorithm/string/trim.hpp>
-#include "crow/http_request.h"
-#include "crow/http_response.h"
-namespace crow {
+#include "cc/http_request.h"
+#include "cc/http_response.h"
+namespace cc {
   struct Middle {
 	struct Ctx {};
 	void before_handle(Req& req,Res& res,Ctx&) {}
@@ -79,7 +79,7 @@ namespace crow {
 	ExampleMiddleware() { message="fastify"; }
 	void setMessage(std::string s) { message=s; }
 	struct Ctx {};
-	void before_handle(Req& req,Res& res,Ctx& ctx) { CROW_LOG_WARNING<<" - MESSAGE: "<<message; }
+	void before_handle(Req& req,Res& res,Ctx& ctx) { LOG_WARNING<<" - MESSAGE: "<<message; }
 	void after_handle(Req& req,Res& res,Ctx& ctx) {}
   };
 }

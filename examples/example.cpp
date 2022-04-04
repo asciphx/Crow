@@ -1,8 +1,8 @@
-#include "crow.h"
+#include "cc.h"
 #include "middleware.h"
 #include "module.h"
 #include <sstream>
-using namespace crow; auto d = D_();//auto d = D_pgsql();
+using namespace cc; auto d = D_();//auto d = D_pgsql();
 					//auto d = D_sqlite("test.db");
 class ExampleLogHandler : public ILogHandler {
   public:void log(std::string message,LogLevel /*level*/) override {
@@ -64,10 +64,10 @@ int main() {
   // {integer_between -2^31 and 100} bottles of beer!
   app.route("/hello/<int>")([](int count) {
 	if (count>100)
-	  return crow::Res(400);
+	  return cc::Res(400);
 	std::ostringstream os;
 	os<<count<<" bottles of beer!";
-	return crow::Res(os.str());
+	return cc::Res(os.str());
   });
   // To see it in action submit {ip}:18080/add/1/2 and you should receive 3 (exciting, isn't it)
   app.route("/add/<int>/<int>")([](const Req& req,Res& res,int a,int b) {
@@ -77,9 +77,9 @@ int main() {
 	res.end();
   });
   // Compile error with message "Handler type is mismatched with URL paramters"
-  //CROW_ROUTE(app,"/another/<int>")
+  //ROUTE(app,"/another/<int>")
   //([](int a, int b){
-	  //return crow::response(500);
+	  //return cc::response(500);
   //});
   // more json example
   // To see it in action, I recommend to use the Postman Chrome extension:
@@ -90,22 +90,22 @@ int main() {
   //      * Send and you should receive 2
   // A simpler way for json example:
   //      * curl -d '{"a":1,"b":2}' {ip}:18080/add_json
-  CROW_ROUTE(app,"/add_json")
+  ROUTE(app,"/add_json")
 	.methods("POST"_mt)
-	([](const crow::Req& req) {
+	([](const cc::Req& req) {
 	auto x=json::parse(req.body);
 	if (!x)
-	  return crow::Res(400);
+	  return cc::Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();
 	std::ostringstream os;
 	os<<sum;
-	return crow::Res{os.str()};
+	return cc::Res{os.str()};
   });
   // Example of a request taking URL parameters
   // If you want to activate all the functions just query
   // {ip}:18080/params?foo='blabla'&pew=32&count[]=a&count[]=b
-  CROW_ROUTE(app,"/params")
-	([](const crow::Req& req) {
+  ROUTE(app,"/params")
+	([](const cc::Req& req) {
 	std::ostringstream os;
 	// To get a simple string from the url params
 	// To see it in action /params?foo='blabla'
@@ -131,12 +131,12 @@ int main() {
 	for (const auto& mydictVal:mydict) {
 	  os<<" - "<<mydictVal.first<<" -> "<<mydictVal.second<<'\n';
 	}
-	return crow::Res{os.str()};
+	return cc::Res{os.str()};
   });
-  CROW_ROUTE(app,"/large")([] {
+  ROUTE(app,"/large")([] {
 	return std::string(512*1024,' ');
   });
 
-  //crow::logger::setHandler(std::make_shared<ExampleLogHandler>());
+  //cc::logger::setHandler(std::make_shared<ExampleLogHandler>());
   app.loglevel(LogLevel::WARNING).port(8080).multithreaded().run();
 }

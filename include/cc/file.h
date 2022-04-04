@@ -2,9 +2,9 @@
 #include <fstream>
 #include <string>
 #include <iterator>
-#include "crow/detail.h"
+#include "cc/detail.h"
 
-namespace crow {
+namespace cc {
   namespace file {
 	using namespace std;
 	string read_file2s(string& filename) {

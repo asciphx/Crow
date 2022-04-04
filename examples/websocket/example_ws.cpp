@@ -1,29 +1,29 @@
-#define CROW_DISABLE_HOME
-#include "crow.h"
+#define DISABLE_HOME
+#include "cc.h"
 #include <unordered_set>
 #include <mutex>
 int main() {
-  crow::App<> app;
+  cc::App<> app;
   std::mutex mtx;
-  std::unordered_set<crow::websocket::connection*> users;
-  CROW_ROUTE(app,"/")([] {
+  std::unordered_set<cc::websocket::connection*> users;
+  ROUTE(app,"/")([] {
 	char name[64];gethostname(name,64);
 	json j{{"servername",name}};
-	return crow::mustache::load("ws.html").render(j);
+	return cc::mustache::load("ws.html").render(j);
   });
-  CROW_ROUTE(app,"/ws")
+  ROUTE(app,"/ws")
 	.websocket()
-	.onopen([&](crow::websocket::connection& conn) {
-	CROW_LOG_INFO<<"new websocket connection";
+	.onopen([&](cc::websocket::connection& conn) {
+	LOG_INFO<<"new websocket connection";
 	std::lock_guard<std::mutex> _(mtx);
 	users.insert(&conn);
   })
-	.onclose([&](crow::websocket::connection& conn,const std::string& reason) {
-	CROW_LOG_INFO<<"websocket connection closed: "<<reason;
+	.onclose([&](cc::websocket::connection& conn,const std::string& reason) {
+	LOG_INFO<<"websocket connection closed: "<<reason;
 	std::lock_guard<std::mutex> _(mtx);
 	users.erase(&conn);
   })
-	.onmessage([&](crow::websocket::connection& /*conn*/,const std::string& data,bool is_binary) {
+	.onmessage([&](cc::websocket::connection& /*conn*/,const std::string& data,bool is_binary) {
 	std::lock_guard<std::mutex> _(mtx);
 	for (auto u:users)
 	  if (is_binary)
@@ -32,7 +32,7 @@ int main() {
 		u->send_text(data);
   });
 
-  app.port(8080).loglevel(crow::LogLevel::WARNING)
+  app.port(8080).loglevel(cc::LogLevel::WARNING)
 	.multithreaded()
 	.run();
 }

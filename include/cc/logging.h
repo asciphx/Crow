@@ -6,8 +6,8 @@
 #include <iostream>
 #include <sstream>
 
-#include "crow/settings.h"
-namespace crow {
+#include "cc/settings.h"
+namespace cc {
   enum class LogLevel {
 	DEBUG=0,INFO,WARNING,ERR,CRITICAL,
   };
@@ -79,18 +79,18 @@ namespace crow {
 	LogLevel level_;
   };
 }
-#define CROW_LOG_CRITICAL   \
-        if (crow::logger::get_current_log_level() <= crow::LogLevel::CRITICAL) \
-            crow::logger("CRITICAL", crow::LogLevel::CRITICAL)
-#define CROW_LOG_ERROR      \
-        if (crow::logger::get_current_log_level() <= crow::LogLevel::ERR) \
-            crow::logger("ERROR   ", crow::LogLevel::ERR)
-#define CROW_LOG_WARNING    \
-        if (crow::logger::get_current_log_level() <= crow::LogLevel::WARNING) \
-            crow::logger("WARNING ", crow::LogLevel::WARNING)
-#define CROW_LOG_INFO       \
-        if (crow::logger::get_current_log_level() <= crow::LogLevel::INFO) \
-            crow::logger("INFO    ", crow::LogLevel::INFO)
-#define CROW_LOG_DEBUG      \
-        if (crow::logger::get_current_log_level() <= crow::LogLevel::DEBUG) \
-            crow::logger("DEBUG   ", crow::LogLevel::DEBUG)
+#define LOG_CRITICAL   \
+        if (cc::logger::get_current_log_level() <= cc::LogLevel::CRITICAL) \
+            cc::logger("CRITICAL", cc::LogLevel::CRITICAL)
+#define LOG_ERROR      \
+        if (cc::logger::get_current_log_level() <= cc::LogLevel::ERR) \
+            cc::logger("ERROR   ", cc::LogLevel::ERR)
+#define LOG_WARNING    \
+        if (cc::logger::get_current_log_level() <= cc::LogLevel::WARNING) \
+            cc::logger("WARNING ", cc::LogLevel::WARNING)
+#define LOG_INFO       \
+        if (cc::logger::get_current_log_level() <= cc::LogLevel::INFO) \
+            cc::logger("INFO    ", cc::LogLevel::INFO)
+#define LOG_DEBUG      \
+        if (cc::logger::get_current_log_level() <= cc::LogLevel::DEBUG) \
+            cc::logger("DEBUG   ", cc::LogLevel::DEBUG)

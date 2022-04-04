@@ -8,9 +8,9 @@ Crow is C++ microframework for web. Support Mac, Linux, windows, three platforms
 [![Coverage Status](https://coveralls.io/repos/github/asciphx/Crow/badge.svg?branch=master)](https://coveralls.io/github/asciphx/Crow?branch=master)
 
 ```c++
-#include "crow.h"
+#include "cc.h"
 int main(){
-    crow::SimpleApp app;
+    cc::SimpleApp app;
     CROW_ROUTE(app, "/")([](){
         return "Hello world!";
     });
@@ -27,9 +27,8 @@ int main(){
    - ![https://docs.google.com/spreadsheets/d/1KidO9XpuwCRZ2p_JRDJj2aep61H8Sh_KDOhApizv4LE/pubchart?oid=2041467789&format=image](./Benchmark.png)
    - More data on [crow-benchmark](https://github.com/ipkn/crow-benchmark)
  -  The third-party JSON parser [Nlohmann json](https://github.com/nlohmann/json) is used for static reflection and outputs JSON.
- - [Mustache](http://mustache.github.io/) based templating library (crow::mustache)
+ - [Mustache](http://mustache.github.io/) based templating library (cc::mustache)
  - Header only
- - Provide an amalgamated header file [`crow_all.h`](https://github.com/ipkn/crow/releases/download/v0.1/crow_all.h) with every features ([Download from here](https://github.com/ipkn/crow/releases/download/v0.1/crow_all.h))
  - Middleware support
  - Websocket support
  - Support static resources and the default is in the 'static/' directory
@@ -41,8 +40,8 @@ int main(){
 ## Examples
 #### Upload file
 ```c++
-  app.route("/upload").methods(crow::HTTPMethod::POST)([](const crow::Req& req) {
-	  crow::Parser<2048> msg(req);
+  app.route("/upload").methods(cc::HTTPMethod::POST)([](const cc::Req& req) {
+	  cc::Parser<2048> msg(req);
 	  json j = json::object();
 	  for (auto p : msg.params) {
 	    if (!p.size) j[p.key] = p.value; else j[p.key] = p.filename;
@@ -83,7 +82,7 @@ int main(){
 #### JSON Response
 ```c++
 CROW_ROUTE(app, "/json")([]{
-    crow::json x;
+    cc::json x;
 	x["message"]="Hello, World!";
 	x["double"]=3.1415926;
 	x["int"]=2352352;
@@ -98,36 +97,36 @@ CROW_ROUTE(app, "/json")([]{
 #### Arguments
 ```c++
 CROW_ROUTE(app,"/hello/<int>")([](int count){
-    if (count > 100) return crow::Res(400);
+    if (count > 100) return cc::Res(400);
     std::ostringstream os;
     os << count << " bottles of beer!";
-    return crow::Res(os.str());
+    return cc::Res(os.str());
 });
 ```
 Handler arguments type check at compile time
 ```c++
 // Compile error with message "Handler type is mismatched with URL paramters"
 CROW_ROUTE(app,"/another/<int>")([](int a, int b){
-    return crow::Res(500);
+    return cc::Res(500);
 });
 ```
 
 #### Handling JSON Requests
 ```c++
 CROW_ROUTE(app, "/add_json").methods("POST"_mt)
-([](const crow::Req& req){
-    auto x = crow::json::load(req.body);
-    if (!x) return crow::Res(400);
+([](const cc::Req& req){
+    auto x = cc::json::load(req.body);
+    if (!x) return cc::Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();
     std::ostringstream os;
     os << sum;
-    return crow::Res{os.str()};
+    return cc::Res{os.str()};
 });
 ```
 
 ## How to Build
 
-If you just want to use crow, copy amalgamate/crow_all.h and include it.
+If you just want to use crow, copy amalgamate/cc_all.h and include it.
 
 ### Requirements
  - C++ compiler with good C++17 support (tested with g++>8.0)

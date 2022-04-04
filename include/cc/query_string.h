@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace crow {
+namespace cc {
 // ----------------------------------------------------------------------------
 // qs_parse (modified)
 // https://github.com/bartgrantham/qs_parse
@@ -40,17 +40,17 @@ char* qs_scanvalue(const char* key, const char* qs, char* val, size_t val_len);
 #undef _qsSORTING
 
 // isxdigit _is_ available in <ctype.h>, but let's avoid another header instead
-#define CROW_QS_ISHEX(x)                                        \
+#define QS_ISHEX(x)                                        \
   ((((x) >= '0' && (x) <= '9') || ((x) >= 'A' && (x) <= 'F') || \
     ((x) >= 'a' && (x) <= 'f'))                                 \
        ? 1                                                      \
        : 0)
-#define CROW_QS_HEX2DEC(x)               \
+#define QS_HEX2DEC(x)               \
   (((x) >= '0' && (x) <= '9')   ? (x)-48 \
    : ((x) >= 'A' && (x) <= 'F') ? (x)-55 \
    : ((x) >= 'a' && (x) <= 'f') ? (x)-87 \
                                 : 0)
-#define CROW_QS_ISQSCHR(x) \
+#define QS_ISQSCHR(x) \
   ((((x) == '=') || ((x) == '#') || ((x) == '&') || ((x) == '\0')) ? 0 : 1)
 
 inline int qs_strncmp(const char* s, const char* qs, size_t n)
@@ -62,10 +62,10 @@ inline int qs_strncmp(const char* s, const char* qs, size_t n)
     u1 = static_cast<unsigned char>(*s++);
     u2 = static_cast<unsigned char>(*qs++);
 
-    if (!CROW_QS_ISQSCHR(u1)) {
+    if (!QS_ISQSCHR(u1)) {
       u1 = '\0';
     }
-    if (!CROW_QS_ISQSCHR(u2)) {
+    if (!QS_ISQSCHR(u2)) {
       u2 = '\0';
     }
 
@@ -76,8 +76,8 @@ inline int qs_strncmp(const char* s, const char* qs, size_t n)
     {
       unyb = static_cast<unsigned char>(*s++);
       lnyb = static_cast<unsigned char>(*s++);
-      if (CROW_QS_ISHEX(unyb) && CROW_QS_ISHEX(lnyb))
-        u1 = (CROW_QS_HEX2DEC(unyb) * 16) + CROW_QS_HEX2DEC(lnyb);
+      if (QS_ISHEX(unyb) && QS_ISHEX(lnyb))
+        u1 = (QS_HEX2DEC(unyb) * 16) + QS_HEX2DEC(lnyb);
       else
         u1 = '\0';
     }
@@ -89,8 +89,8 @@ inline int qs_strncmp(const char* s, const char* qs, size_t n)
     {
       unyb = static_cast<unsigned char>(*qs++);
       lnyb = static_cast<unsigned char>(*qs++);
-      if (CROW_QS_ISHEX(unyb) && CROW_QS_ISHEX(lnyb))
-        u2 = (CROW_QS_HEX2DEC(unyb) * 16) + CROW_QS_HEX2DEC(lnyb);
+      if (QS_ISHEX(unyb) && QS_ISHEX(lnyb))
+        u2 = (QS_HEX2DEC(unyb) * 16) + QS_HEX2DEC(lnyb);
       else
         u2 = '\0';
     }
@@ -99,7 +99,7 @@ inline int qs_strncmp(const char* s, const char* qs, size_t n)
     if (u1 == '\0') return 0;
     ++i;
   }
-  if (CROW_QS_ISQSCHR(*qs))
+  if (QS_ISQSCHR(*qs))
     return -1;
   else
     return 0;
@@ -153,16 +153,16 @@ inline int qs_decode(char* qs)
 {
   int i = 0, j = 0;
 
-  while (CROW_QS_ISQSCHR(qs[j])) {
+  while (QS_ISQSCHR(qs[j])) {
     if (qs[j] == '+') {
       qs[i] = ' ';
     } else if (qs[j] == '%')  // easier/safer than scanf
     {
-      if (!CROW_QS_ISHEX(qs[j + 1]) || !CROW_QS_ISHEX(qs[j + 2])) {
+      if (!QS_ISHEX(qs[j + 1]) || !QS_ISHEX(qs[j + 2])) {
         qs[i] = '\0';
         return i;
       }
-      qs[i] = (CROW_QS_HEX2DEC(qs[j + 1]) * 16) + CROW_QS_HEX2DEC(qs[j + 2]);
+      qs[i] = (QS_HEX2DEC(qs[j + 1]) * 16) + QS_HEX2DEC(qs[j + 2]);
       j += 2;
     } else {
       qs[i] = qs[j];
@@ -272,10 +272,10 @@ inline char* qs_scanvalue(const char* key, const char* qs, char* val,
 
   return val;
 }
-}  // namespace crow
+}  // namespace cc
 // ----------------------------------------------------------------------------
 
-namespace crow {
+namespace cc {
 /// A class to represent any data coming after the `?` in the Req URL into
 /// key-value pairs.
 class query_string
@@ -467,4 +467,4 @@ class query_string
   std::vector<char*> key_value_pairs_;
 };
 
-}  // namespace crow
+}  // namespace cc

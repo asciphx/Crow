@@ -1,28 +1,28 @@
 #pragma once
 #include <boost/asio.hpp>
-#ifdef CROW_ENABLE_SSL
+#ifdef ENABLE_SSL
 #include <boost/asio/ssl.hpp>
 #endif
-#include "crow/settings.h"
+#include "cc/settings.h"
 #if BOOST_VERSION > 106900
 #define GET_IO_SERVICE(s) ((boost::asio::io_context&)(s).get_executor().context())
 #else
 #define GET_IO_SERVICE(s) ((s).get_io_service())
 #endif
-namespace crow {
+namespace cc {
   using namespace boost; unsigned int utimeout_milli = 3500;//constexpr int nSendBuf = 50 * 1024,nRecvBuf = 50 * 1024;//
   using tcp=asio::ip::tcp;
   ///A wrapper for the asio::ip::tcp::socket and asio::ssl::stream
 #if defined __linux__ || defined __APPLE__// platform-specific switch
   struct timeval tv { utimeout_milli / 1000, utimeout_milli };// assume everything else is posix
 #else
-  int32_t timeout = crow::utimeout_milli; // use windows-specific time
+  int32_t timeout = cc::utimeout_milli; // use windows-specific time
 #endif
   struct SocketAdaptor {
     using Ctx=void;
     SocketAdaptor(asio::io_service& io_service,Ctx*): socket_(io_service) {
-      //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDBUF,(const char*)&crow::nSendBuf,sizeof(int));
-      //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVBUF,(const char*)&crow::nRecvBuf,sizeof(int));
+      //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDBUF,(const char*)&cc::nSendBuf,sizeof(int));
+      //setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVBUF,(const char*)&cc::nRecvBuf,sizeof(int));
 #if defined __linux__ || defined __APPLE__// platform-specific switch
 	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_RCVTIMEO,&tv,sizeof(tv));//Receiving time limit
 	  setsockopt(socket_.native_handle(),SOL_SOCKET,SO_SNDTIMEO,&tv,sizeof(tv));//Sending time limit
@@ -74,7 +74,7 @@ namespace crow {
     tcp::socket socket_;
   };
 
-#ifdef CROW_ENABLE_SSL
+#ifdef ENABLE_SSL
   struct SSLAdaptor {
     using Ctx=asio::ssl::context;
     using ssl_socket_t=asio::ssl::stream<tcp::socket>;

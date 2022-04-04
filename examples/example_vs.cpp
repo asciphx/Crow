@@ -1,7 +1,7 @@
-#include "crow.h"
+#include "cc.h"
 #include "middleware.h"
 #include "module.h"
-using namespace crow; auto d = D_();//auto d = D_pgsql();
+using namespace cc; auto d = D_();//auto d = D_pgsql();
 					//auto d = D_sqlite("test.db");
 int main() {
   App</*Middle*/> app;//Global Middleware,and default config
@@ -27,7 +27,7 @@ int main() {
 	return "Trailing slash test case..";
 	});
   // upload file
-  app.route("/upload").methods(HTTPMethod::POST)([](const Req& req) {
+  app.route("/upload").methods(HTTP::POST)([](const Req& req) {
 	Parser<4096> msg(req);
 	json j = json::object();
 	for (auto p : msg.params) {
@@ -78,7 +78,7 @@ int main() {
 	res.end();
 	});
   // Compile error with message "Handler type is mismatched with URL paramters"
-  //CROW_ROUTE(app,"/another/<int>")([](int a, int b){
+  //ROUTE(app,"/another/<int>")([](int a, int b){
 	  //return response(500);
   //});
   // more json example

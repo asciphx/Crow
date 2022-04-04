@@ -1,13 +1,15 @@
-#undef DEFAULT_LOG_LEVEL
-#define DEFAULT_LOG_LEVEL 0
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include "crow.h"
+#include "cc.h"
+#ifdef DEFAULT_LOG_LEVEL
+#undef DEFAULT_LOG_LEVEL
+#define DEFAULT_LOG_LEVEL 0
+#endif
 #include "middleware.h"
 
 using namespace std;
-using namespace crow;
+using namespace cc;
 
 struct Test { Test(); virtual void test()=0; };
 vector<Test*> tests;
@@ -77,7 +79,7 @@ TEST(Rule) {
   ASSERT_EQUAL(1,x);
 
   // registering handler with request argument
-  r([&x](const crow::Req&) {x=2;return "";});
+  r([&x](const cc::Req&) {x=2;return "";});
 
   r.validate();
 
@@ -109,12 +111,12 @@ TEST(ParameterTagging) {
 TEST(PathRouting) {
   App<> app;
 
-  CROW_ROUTE(app,"/file")
+  ROUTE(app,"/file")
 	([] {
 	return "file";
   });
 
-  CROW_ROUTE(app,"/path/")
+  ROUTE(app,"/path/")
 	([] {
 	return "path";
   });
@@ -168,25 +170,25 @@ TEST(RoutingTest) {
   string D{};
   string E{};
 
-  CROW_ROUTE(app,"/0/<uint>")
+  ROUTE(app,"/0/<uint>")
 	([&](uint32_t b) {
 	B=b;
 	return "OK";
   });
 
-  CROW_ROUTE(app,"/1/<int>/<uint>")
+  ROUTE(app,"/1/<int>/<uint>")
 	([&](int a,uint32_t b) {
 	A=a; B=b;
 	return "OK";
   });
 
-  CROW_ROUTE(app,"/4/<int>/<uint>/<double>/<string>")
+  ROUTE(app,"/4/<int>/<uint>/<double>/<string>")
 	([&](int a,uint32_t b,double c,string d) {
 	A=a; B=b; C=c; D=d;
 	return "OK";
   });
 
-  CROW_ROUTE(app,"/5/<int>/<uint>/<double>/<string>/<path>")
+  ROUTE(app,"/5/<int>/<uint>/<double>/<string>/<path>")
 	([&](int a,uint32_t b,double c,string d,string e) {
 	A=a; B=b; C=c; D=d; E=e;
 	return "OK";
@@ -286,14 +288,14 @@ TEST(simple_response_routing_params) {
 
 TEST(handler_with_response) {
   App<> app;
-  CROW_ROUTE(app,"/")([](const crow::Req&,crow::Res&) {
+  ROUTE(app,"/")([](const cc::Req&,cc::Res&) {
   });
 }
 
 TEST(http_method) {
   App<> app;
 
-  CROW_ROUTE(app,"/")
+  ROUTE(app,"/")
 	.methods("POST"_mt,"GET"_mt)
 	([](const Req& req) {
 	if (req.method=="GET"_mt)
@@ -302,22 +304,22 @@ TEST(http_method) {
 	  return "1";
   });
 
-  CROW_ROUTE(app,"/get_only")
+  ROUTE(app,"/get_only")
 	.methods("GET"_mt)
 	([](const Req& /*req*/) {
 	return "get";
   });
-  CROW_ROUTE(app,"/post_only")
+  ROUTE(app,"/post_only")
 	.methods("POST"_mt)
 	([](const Req& /*req*/) {
 	return "post";
   });
-  CROW_ROUTE(app,"/patch_only")
+  ROUTE(app,"/patch_only")
 	.methods("PATCH"_mt)
 	([](const Req& /*req*/) {
 	return "patch";
   });
-  CROW_ROUTE(app,"/purge_only")
+  ROUTE(app,"/purge_only")
 	.methods("PURGE"_mt)
 	([](const Req& /*req*/) {
 	return "purge";
@@ -328,7 +330,7 @@ TEST(http_method) {
 
 
   // cannot have multiple handlers for the same url
-  //CROW_ROUTE(app, "/")
+  //ROUTE(app, "/")
   //.methods("GET"_mt)
   //([]{ return "2"; });
 
@@ -400,7 +402,7 @@ TEST(http_method) {
 TEST(server_handling_error_request) {
   static char buf[2048];
   App<> app;
-  CROW_ROUTE(app,"/")([] {return "A";});
+  ROUTE(app,"/")([] {return "A";});
   //Server<App<>> server(&app, LOCALHOST_ADDRESS, 45451);
   //auto _ = async(launch::async, [&]{server.run();});
   auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).port(45451).run();});
@@ -427,8 +429,8 @@ TEST(server_handling_error_request) {
 TEST(multi_server) {
   static char buf[2048];
   App<> app1,app2;
-  CROW_ROUTE(app1,"/").methods("GET"_mt,"POST"_mt)([] {return "A";});
-  CROW_ROUTE(app2,"/").methods("GET"_mt,"POST"_mt)([] {return "B";});
+  ROUTE(app1,"/").methods("GET"_mt,"POST"_mt)([] {return "A";});
+  ROUTE(app2,"/").methods("GET"_mt,"POST"_mt)([] {return "B";});
 
   //Server<App<>> server1(&app1, LOCALHOST_ADDRESS, 45451);
   //Server<App<>> server2(&app2, LOCALHOST_ADDRESS, 45452);
@@ -553,7 +555,7 @@ TEST(json_read_real) {
   "0.7192708333333333", "0.05675117924528302", "0.21308541105121293",
   "0.7045386904761904", "0.8016815476190476"};
   for (auto x:v) {
-	CROW_LOG_DEBUG<<x;
+	LOG_DEBUG<<x;
 	ASSERT_EQUAL(json::parse(x).get<double>(),boost::lexical_cast<double>(x));
   }
 
@@ -639,18 +641,18 @@ TEST(json_copy_r_to_w_to_r) {
 }
 
 TEST(template_basic) {
-  auto t=crow::mustache::template_t(R"---(attack of {{name}})---");
+  auto t=cc::mustache::template_t(R"---(attack of {{name}})---");
   json ctx;
   ctx["name"]="killer tomatoes";
   auto result=t.render(ctx);
   ASSERT_EQUAL("attack of killer tomatoes",result);
-  //crow::mustache::load("basic.mustache");
+  //cc::mustache::load("basic.mustache");
 }
 
 TEST(template_load) {
-  crow::mustache::directory(".");
+  cc::mustache::directory(".");
   ofstream("test.mustache")<<R"---(attack of {{name}})---";
-  auto t=crow::mustache::load("test.mustache");
+  auto t=cc::mustache::load("test.mustache");
   json ctx;
   ctx["name"]="killer tomatoes";
   auto result=t.render(ctx);
@@ -708,7 +710,7 @@ struct NullSimpleMiddleware {
 TEST(middleware_simple) {
   App<NullMiddleware,NullSimpleMiddleware> app;
   decltype(app)::server_t server(&app,LOCALHOST_ADDRESS,45451);
-  CROW_ROUTE(app,"/")([&](const crow::Req& req) {
+  ROUTE(app,"/")([&](const cc::Req& req) {
 	app.get_context<NullMiddleware>(req);
 	app.get_context<NullSimpleMiddleware>(req);
 	return "";
@@ -786,7 +788,7 @@ TEST(middleware_context) {
   App<IntSettingMiddleware,FirstMW,SecondMW,ThirdMW> app;
 
   int x{};
-  CROW_ROUTE(app,"/")([&](const Req& req) {
+  ROUTE(app,"/")([&](const Req& req) {
 	{
 	  auto& ctx=app.get_context<IntSettingMiddleware>(req);
 	  x=ctx.val;
@@ -798,7 +800,7 @@ TEST(middleware_context) {
 
 	return "";
   });
-  CROW_ROUTE(app,"/break")([&](const Req& req) {
+  ROUTE(app,"/break")([&](const Req& req) {
 	{
 	  auto& ctx=app.get_context<FirstMW>(req);
 	  ctx.v.push_back("handle");
@@ -866,7 +868,7 @@ TEST(middleware_cookieparser) {
   std::string value3;
   std::string value4;
 
-  CROW_ROUTE(app,"/")([&](const Req& req) {
+  ROUTE(app,"/")([&](const Req& req) {
 	{
 	  auto& ctx=app.get_context<CookieParser>(req);
 	  value1=ctx.get_cookie("key1");
@@ -907,7 +909,7 @@ TEST(bug_quick_repeated_request) {
 
   App<> app;
 
-  CROW_ROUTE(app,"/")([&] {
+  ROUTE(app,"/")([&] {
 	return "hello";
   });
 
@@ -945,8 +947,8 @@ TEST(simple_url_params) {
 
   query_string last_url_params;
 
-  CROW_ROUTE(app,"/params")
-	([&last_url_params](const crow::Req& req) {
+  ROUTE(app,"/params")
+	([&last_url_params](const cc::Req& req) {
 	last_url_params=std::move(req.url_params);
 	return "OK";
   });

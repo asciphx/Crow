@@ -1,15 +1,15 @@
 #pragma once
 #include <string>
 #include <unordered_map>
-#include "crow/json.hh"
-#include "crow/http_request.h"
-#include "crow/any_types.h"
-#include "crow/ci_map.h"
-#include "crow/detail.h"
+#include "cc/json.hh"
+#include "cc/http_request.h"
+#include "cc/any_types.h"
+#include "cc/ci_map.h"
+#include "cc/detail.h"
 //response
 static char RES_CT[13] = "Content-Type", RES_CL[15] = "Content-Length", RES_Loc[9] = "Location", Res_Ca[14] = "Cache-Control",
 RES_AJ[17] = "application/json", RES_Txt[24] = "text/html;charset=UTF-8", RES_Xc[23] = "X-Content-Type-Options", RES_No[8] = "nosniff";
-namespace crow {
+namespace cc {
   template <typename Adaptor, typename Handler, typename ... Middlewares>
   class Connection;
   struct Res {
@@ -17,12 +17,12 @@ namespace crow {
 	ci_map headers;
   public:
 	template <typename Adaptor, typename Handler, typename ... Middlewares>
-	friend class crow::Connection;
+	friend class cc::Connection;
 	uint16_t code{ 200 };// Check whether the response has a static file defined.
 	std::string body; uint8_t is_file{ 0 };
 	json json_value;
 	// `headers' stores HTTP default headers.
-#ifdef CROW_ENABLE_COMPRESSION
+#ifdef ENABLE_COMPRESSION
 	bool compressed = true; //< If compression is enabled and this is false, the individual response will not be compressed.
 #endif
 	bool is_head_response = false;      ///< Whether this is a Res to a HEAD Req.
@@ -31,7 +31,7 @@ namespace crow {
 	}
 	inline void add_header(std::string key, std::string value) { headers.emplace(std::move(key), std::move(value)); }
 	const std::string& get_header_value(const std::string& key) {
-	  return crow::get_header_value(headers, key);
+	  return cc::get_header_value(headers, key);
 	}
 	Res() {}
 	explicit Res(int code) : code(code) {}
@@ -88,7 +88,7 @@ namespace crow {
 	void set_static_file_info(std::string path) {
 	  struct stat statbuf_; path_ = detail::directory_ + DecodeURL(path);
 	  statResult_ = stat(path_.c_str(), &statbuf_);
-#ifdef CROW_ENABLE_COMPRESSION
+#ifdef ENABLE_COMPRESSION
 	  compressed = false;
 #endif
 	  if (statResult_ == 0) {
@@ -166,7 +166,7 @@ namespace crow {
 		if (!ec) {
 		  return false;
 		} else {
-		  CROW_LOG_ERROR << ec << " - happened while sending buffers";
+		  LOG_ERROR << ec << " - happened while sending buffers";
 		  this->end();
 		  return true;
 		}

@@ -9,32 +9,32 @@
 #include <thread>
 #include <condition_variable>
 
-#include "crow/settings.h"
-#include "crow/logging.h"
-#include "crow/utility.h"
-#include "crow/routing.h"
-#include "crow/middleware_context.h"
-#include "crow/http_request.h"
-#include "crow/http_server.h"
-#include "crow/detail.h"
-#include "crow/file.h"
-#include "crow/mustache.h"
-#ifdef CROW_ENABLE_COMPRESSION
-#include "crow/compression.h"
+#include "cc/settings.h"
+#include "cc/logging.h"
+#include "cc/utility.h"
+#include "cc/routing.h"
+#include "cc/middleware_context.h"
+#include "cc/http_request.h"
+#include "cc/http_server.h"
+#include "cc/detail.h"
+#include "cc/file.h"
+#include "cc/mustache.h"
+#ifdef ENABLE_COMPRESSION
+#include "cc/compression.h"
 #endif
 
 #ifdef _WIN32
 #include <locale.h>
-#define CROW_ROUTE(app, url) app.route(url)
+#define ROUTE(app, url) app.route(url)
 #else
-#define CROW_ROUTE(app, url) app.route_url<crow::spell::get_parameter_tag(url)>(url)
+#define ROUTE(app, url) app.route_url<cc::spell::get_parameter_tag(url)>(url)
 #endif
-#define CROW_CATCHALL_ROUTE(app) app.default_route()
+#define CATCHALL_ROUTE(app) app.default_route()
 
-namespace crow {
-  static std::string RES_home = CROW_HOME_PAGE;
+namespace cc {
+  static std::string RES_home = HOME_PAGE;
   int detail::dumb_timer_queue::tick = 4;//Prevent being stuck by long connection
-#ifdef CROW_ENABLE_SSL
+#ifdef ENABLE_SSL
   using ssl_context_t = boost::asio::ssl::context;
 #endif
   ///The main server application
@@ -44,7 +44,7 @@ namespace crow {
   public:
 	using self_t = Crow;
 	using server_t = Server<Crow, SocketAdaptor, Middlewares...>;
-#ifdef CROW_ENABLE_SSL
+#ifdef ENABLE_SSL
 	///An HTTP server that runs on SSL with an SSLAdaptor
 	using ssl_server_t = Server<Crow, SSLAdaptor, Middlewares...>;
 #endif
@@ -60,15 +60,15 @@ namespace crow {
 	void handle_upgrade(const Req& req, Res& res, Adaptor&& adaptor) { router_.handle_upgrade(req, res, adaptor); }
 	///Process the Req and generate a Res for it
 	void handle(const Req& req, Res& res) { router_.handle(req, res); }
-	///Create a dynamic route using a rule (**Use CROW_ROUTE instead**)
+	///Create a dynamic route using a rule (**Use ROUTE instead**)
 	DynamicRule& route(std::string&& rule) { return router_.new_rule_dynamic(std::move(rule)); }
-	///Create a route using a rule (**Use CROW_ROUTE instead**)
+	///Create a route using a rule (**Use ROUTE instead**)
 	template <uint64_t Tag>
 	auto route_url(std::string&& rule)
 	  -> typename std::result_of<decltype(&Router::new_rule_tagged<Tag>)(Router, std::string&&)>::type {
 	  return router_.new_rule_tagged<Tag>(std::move(rule));
 	}
-	///Create a route for any requests without a proper route (**Use CROW_CATCHALL_ROUTE instead**)
+	///Create a route for any requests without a proper route (**Use CATCHALL_ROUTE instead**)
 	CatchallRule& default_route() { return router_.catchall_rule(); }
 	self_t& signal_clear() { signals_.clear(); return *this; }
 	self_t& signal_add(int signal_number) { signals_.push_back(signal_number); return *this; }
@@ -100,14 +100,14 @@ namespace crow {
 	  if (concurrency < 1) concurrency = 1; concurrency_ = 1 + concurrency; return *this;
 	}
 	///Set the server's log level
-	/// crow::LogLevel::Debug       (0)<br>
-	/// crow::LogLevel::Info        (1)<br>
-	/// crow::LogLevel::Warning     (2)<br>
-	/// crow::LogLevel::Error       (3)<br>
-	/// crow::LogLevel::Critical    (4)<br>
-	self_t& loglevel(crow::LogLevel level) { crow::logger::setLogLevel(level); return *this; }
+	/// cc::LogLevel::Debug       (0)<br>
+	/// cc::LogLevel::Info        (1)<br>
+	/// cc::LogLevel::Warning     (2)<br>
+	/// cc::LogLevel::Error       (3)<br>
+	/// cc::LogLevel::Critical    (4)<br>
+	self_t& loglevel(cc::LogLevel level) { cc::logger::setLogLevel(level); return *this; }
 
-#ifdef CROW_ENABLE_COMPRESSION
+#ifdef ENABLE_COMPRESSION
 	self_t& use_compression(compression::algorithm algorithm) {
 	  comp_algorithm_ = algorithm;
 	  return *this;
@@ -131,14 +131,14 @@ namespace crow {
 		this->file_type({ "html","ico","css","js","json","svg","png","jpg","gif","txt" });//default types
 		is_not_set_types = false;
 	  }
-#ifndef CROW_DISABLE_HOME
-	  route_url<crow::spell::get_parameter_tag("/")>("/")([] {
+#ifndef DISABLE_HOME
+	  route_url<cc::spell::get_parameter_tag("/")>("/")([] {
 		return (std::string)mustache::load(RES_home);
 		});
 #endif
 	  validate();
 
-#ifdef CROW_ENABLE_SSL
+#ifdef ENABLE_SSL
 	  if (use_ssl_) {
 		ssl_server_ = std::move(std::unique_ptr<ssl_server_t>(new ssl_server_t(this, bindaddr_, port_, &middlewares_, concurrency_, &ssl_context_)));
 		notify_server_start();
@@ -157,7 +157,7 @@ namespace crow {
 	}
 	///Stop the server
 	void stop() {
-#ifdef CROW_ENABLE_SSL
+#ifdef ENABLE_SSL
 	  if (use_ssl_) {
 		if (ssl_server_) {
 		  ssl_server_->stop();
@@ -171,11 +171,11 @@ namespace crow {
 	  }
 	}
 	void debug_print() {
-	  CROW_LOG_DEBUG << "Routing:";
+	  LOG_DEBUG << "Routing:";
 	  router_.debug_print();
 	}
 
-#ifdef CROW_ENABLE_SSL
+#ifdef ENABLE_SSL
 	///use certificate and key files for SSL
 	self_t& ssl_file(const std::string& crt_filename, const std::string& key_filename) {
 	  use_ssl_ = true;
@@ -213,20 +213,20 @@ namespace crow {
 #else
 	template <typename T, typename ... Remain>
 	self_t& ssl_file(T&&, Remain&&...) {
-	  // We can't call .ssl() member function unless CROW_ENABLE_SSL is defined.
+	  // We can't call .ssl() member function unless ENABLE_SSL is defined.
 	  static_assert(
 		// make static_assert dependent to T; always false
 		std::is_base_of<T, void>::value,
-		"Define CROW_ENABLE_SSL to enable ssl support.");
+		"Define ENABLE_SSL to enable ssl support.");
 	  return *this;
 	}
 	template <typename T>
 	self_t& ssl(T&&) {
-	  // We can't call .ssl() member function unless CROW_ENABLE_SSL is defined.
+	  // We can't call .ssl() member function unless ENABLE_SSL is defined.
 	  static_assert(
 		// make static_assert dependent to T; always false
 		std::is_base_of<T, void>::value,
-		"Define CROW_ENABLE_SSL to enable ssl support.");
+		"Define ENABLE_SSL to enable ssl support.");
 	  return *this;
 	}
 #endif
@@ -256,12 +256,12 @@ namespace crow {
 	std::string bindaddr_ = "0.0.0.0";
 	Router router_;
 	bool is_not_set_types = true;
-#ifdef CROW_ENABLE_COMPRESSION
+#ifdef ENABLE_COMPRESSION
 	compression::algorithm comp_algorithm_;
 #endif
 	std::tuple<Middlewares...> middlewares_;
 
-#ifdef CROW_ENABLE_SSL
+#ifdef ENABLE_SSL
 	std::unique_ptr<ssl_server_t> ssl_server_;
 #endif
 	std::unique_ptr<server_t> server_;

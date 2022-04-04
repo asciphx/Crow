@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project (crow_test)
+project (cc_test)
 set(TEST_SRCS unittest.cpp)
 
 set(LIBS ${Boost_LIBRARIES} ${MYSQL_LIBRARY} ${SQLite3_LIBRARIES} ${PostgreSQL_LIBRARIES}

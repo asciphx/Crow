@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project (crow_all)
+project (cc_all)
 if(EXISTS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake")
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompilerOptions.cmake)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
@@ -57,14 +57,14 @@ if (MSVC)
 else()
 	add_subdirectory(tests)
 	enable_testing()
-	add_test(NAME crow_test COMMAND ${CMAKE_CURRENT_BINARY_DIR}/tests/unittest)
+	add_test(NAME cc_test COMMAND ${CMAKE_CURRENT_BINARY_DIR}/tests/unittest)
 	add_test(NAME template_test COMMAND ${CMAKE_CURRENT_BINARY_DIR}/tests/template/test.py WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tests/template)
 	file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/amalgamate)
-	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/crow_all.h
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/cc_all.h
 		COMMAND python ${PROJECT_SOURCE_DIR}/amalgamate/merge_all.py ${PROJECT_SOURCE_DIR}/include
-		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/crow_all.h ${PROJECT_SOURCE_DIR}/amalgamate
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/cc_all.h ${PROJECT_SOURCE_DIR}/amalgamate
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/amalgamate
-		DEPENDS ${PROJECT_SOURCE_DIR}/include/*.h ${PROJECT_SOURCE_DIR}/include/crow/*.h
+		DEPENDS ${PROJECT_SOURCE_DIR}/include/*.h ${PROJECT_SOURCE_DIR}/include/cc/*.h
 	)
-	add_custom_target(amalgamation ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/crow_all.h)
+	add_custom_target(amalgamation ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/amalgamate/cc_all.h)
 endif()

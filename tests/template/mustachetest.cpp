@@ -2,11 +2,11 @@
 #include <fstream>
 #include <string>
 #include <iterator>
-#include "crow/mustache.h"
-#include "crow/json.hh"
+#include "cc/mustache.h"
+#include "cc/json.hh"
 using namespace std;
-using namespace crow;
-using namespace crow::mustache;
+using namespace cc;
+using namespace cc::mustache;
 
 string read_all(const string& filename) {
   ifstream is(filename);

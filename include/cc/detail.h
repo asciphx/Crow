@@ -8,7 +8,7 @@
 #include <fstream>
 #include <iterator>
 #include "config.h"
-#include "crow/logging.h"
+#include "cc/logging.h"
 namespace boost {
   namespace posix_time {
 	class BOOST_SYMBOL_VISIBLE millseconds : public time_duration {
@@ -19,9 +19,9 @@ namespace boost {
 	};
   }
 }
-namespace crow {
+namespace cc {
   namespace detail {
-	static std::string directory_ = CROW_STATIC_DIRECTORY;
+	static std::string directory_ = STATIC_DIRECTORY;
 	/// Fast timer queue for fixed tick value.
 	class dumb_timer_queue {
 	public:
@@ -38,7 +38,7 @@ namespace crow {
 	  key add(std::function<void()> f) {
 		dq_.emplace_back(std::chrono::steady_clock::now(), std::move(f));
 		int ret = step_ + dq_.size() - 1;
-		CROW_LOG_DEBUG << "timer add inside: " << this << ' ' << ret;
+		LOG_DEBUG << "timer add inside: " << this << ' ' << ret;
 		return { this, ret };
 	  }
 	  /// Process the queue: take functions out in time intervals and execute them.

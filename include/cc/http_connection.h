@@ -7,19 +7,19 @@
 #include <chrono>
 #include <vector>
 
-#include "crow/llhttp.h"
-#include "crow/http_response.h"
-#include "crow/logging.h"
-#include "crow/settings.h"
-#include "crow/detail.h"
-#include "crow/middleware_context.h"
-#include "crow/socket_adaptors.h"
-#include "crow/compression.h"
+#include "cc/llhttp.h"
+#include "cc/http_response.h"
+#include "cc/logging.h"
+#include "cc/settings.h"
+#include "cc/detail.h"
+#include "cc/middleware_context.h"
+#include "cc/socket_adaptors.h"
+#include "cc/compression.h"
 static char Res_server_tag[9] = "Server: ", Res_content_length_tag[17] = "Content-Length: ", Res_http_status[10] = "HTTP/1.1 ",
 RES_AcC[35] = "Access-Control-Allow-Credentials: ", RES_t[5] = "true", RES_AcM[] = "Access-Control-Allow-Methods: ",
 RES_AcH[31] = "Access-Control-Allow-Headers: ", RES_AcO[30] = "Access-Control-Allow-Origin: ", Res_expect[26] = "HTTP/1.1 100 Continue\r\n\r\n",
 Res_date_tag[7] = "Date: ", Res_content_length[15] = "content-length", Res_seperator[3] = ": ", Res_crlf[3] = "\r\n", Res_loc[9] = "location";
-namespace crow {
+namespace cc {
   namespace detail {
 	template <typename MW>struct check_before_handle_arity_3_const {
 	  template <typename T, void(T::*)(Req&, Res&, typename MW::Ctx&)const = &T::before_handle >
@@ -116,7 +116,7 @@ namespace crow {
   /// An HTTP connection.
   template <typename Adaptor, typename Handler, typename ... Middlewares>
   class Connection : http_parser {
-	friend struct crow::Res;
+	friend struct cc::Res;
   public:
 	Connection(boost::asio::io_service& io_service,
 	  Handler* handler, std::tuple<Middlewares...>* middlewares,
@@ -169,7 +169,7 @@ namespace crow {
 	  $->url_params = query_string($->raw_url); $->handle(); return 0;
 	}
 	Req to_request() const {
-	  return Req{ static_cast<HTTPMethod>(method), std::move(raw_url), std::move(url), std::move(url_params), std::move(headers), std::move(body) };
+	  return Req{ static_cast<HTTP>(method), std::move(raw_url), std::move(url), std::move(url_params), std::move(headers), std::move(body) };
 	}
 	decltype(std::declval<Adaptor>().raw_socket())& socket() { return adaptor_.raw_socket(); }
 	inline void start() {
@@ -204,7 +204,7 @@ namespace crow {
 		}
 	  }
 	  need_to_call_after_handlers_ = false;
-	  if (req_.method == HTTPMethod::OPTIONS) { res.code = 204; res.end(); complete_request(); } else if (!is_invalid_request) {
+	  if (req_.method == HTTP::OPTIONS) { res.code = 204; res.end(); complete_request(); } else if (!is_invalid_request) {
 		res.is_alive_helper_ = [this]()->bool { return adaptor_.is_open(); };
 		ctx_ = detail::Ctx<Middlewares...>();
 		req_.middleware_context = static_cast<void*>(&ctx_);
@@ -223,7 +223,7 @@ namespace crow {
 	}
 	/// Call the after handle middleware and send the write the Res to the connection.
 	inline void complete_request() {
-	  CROW_LOG_INFO << "Response: " << this << ' ' << req_.raw_url << ' ' << res.code << ' ' << close_connection_;
+	  LOG_INFO << "Response: " << this << ' ' << req_.raw_url << ' ' << res.code << ' ' << close_connection_;
 	  if (need_to_call_after_handlers_) {
 		need_to_call_after_handlers_ = false;
 		// call all after_handler of middlewares
@@ -252,7 +252,7 @@ namespace crow {
 		prepare_buffers();
 		buffers_ += Res_Ca;
 		buffers_ += Res_seperator;
-		buffers_ += CROW_FILE_TIME;
+		buffers_ += FILE_TIME;
 		buffers_ += Res_crlf;
 		buffers_ += RES_Xc;
 		buffers_ += Res_seperator;
@@ -275,7 +275,7 @@ namespace crow {
 		buffers_ += Res_crlf;
 #if SHOW_SERVER_NAME
 		buffers_ += Res_server_tag;
-		buffers_ += CROW_SERVER_NAME;
+		buffers_ += SERVER_NAME;
 		buffers_ += Res_crlf;
 #endif
 		date_str_ = get_cached_date_str();
@@ -283,7 +283,7 @@ namespace crow {
 		buffers_ += date_str_;
 		buffers_ += Res_crlf;
 		buffers_ += Res_crlf;
-#ifdef CROW_ENABLE_COMPRESSION
+#ifdef ENABLE_COMPRESSION
 		std::string accept_encoding = req_.get_header_value("Accept-Encoding");
 		if (!accept_encoding.empty() && res.compressed) {
 		  switch (handler_->compression_algorithm()) {
@@ -309,7 +309,7 @@ namespace crow {
 	  //if there is a redirection with a partial URL, treat the URL as a route.
 	  std::string location = res.get_header_value("Location");
 	  if (!location.empty() && location.find("://", 0) == std::string::npos) {
-#ifdef CROW_ENABLE_SSL
+#ifdef ENABLE_SSL
 		location.insert(0, "https://" + req_.get_header_value("Host"));
 #else
 		location.insert(0, "http://" + req_.get_header_value("Host"));

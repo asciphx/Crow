@@ -4,15 +4,15 @@
 #include <functional>
 #include <fstream>
 #include <iterator>
-#include "crow/json.hh"
-#include "crow/detail.h"
+#include "cc/json.hh"
+#include "cc/detail.h"
 #include <boost/lexical_cast.hpp>
-namespace crow {
+namespace cc {
   namespace mustache {
 	class invalid_template_exception : public std::exception {
 	public:
 	  invalid_template_exception(const std::string& msg)
-		: msg("crow::mustache error: " + msg) {}
+		: msg("cc::mustache error: " + msg) {}
 	  virtual const char* what() const throw() { return msg.c_str(); }
 	  std::string msg;
 	};

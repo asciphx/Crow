@@ -25,7 +25,7 @@
 #include <mysql/mysql.h>
 #include <libpq-fe.h>
 #include <sqlite3.h>
-#include "crow/json.hh"
+#include "cc/json.hh"
 
 #include <chrono>
 #include <atomic>
@@ -50,7 +50,7 @@
 #define INT8OID 20
 #define INT2OID 21
 #define INT4OID 23
-namespace crow {
+namespace cc {
 
   template <typename... E, typename F> constexpr void apply_each(F&& f, E&&... e) {
 	(void)std::initializer_list<int>{((void)f(std::forward<E>(e)), 0)...};
@@ -497,7 +497,7 @@ namespace crow {
   template <typename B>
   template <typename T1, typename... T>
   bool sql_result<B>::r__(T1&& t1, T&... tail) {
-	if constexpr (crow::is_tuple<std::decay_t<T1>>::value) {
+	if constexpr (cc::is_tuple<std::decay_t<T1>>::value) {
 	  static_assert(sizeof...(T) == 0);
 	  return impl_.read(std::forward<T1>(t1));
 	} else
@@ -593,7 +593,7 @@ struct mysql_statement_data : std::enable_shared_from_this<mysql_statement_data>
 	  std::cerr << "Error: could not free mysql statement" << std::endl;
   }
 };
-namespace crow {
+namespace cc {
 
   struct mysql_connection_data {
 	~mysql_connection_data() { mysql_close(connection_); }
@@ -754,7 +754,7 @@ namespace crow {
   template <typename A> mysql_bind_data<1> mysql_bind_output(mysql_statement_data& data, A& o) {
 	if (data.num_fields_ != 1)
 	  throw std::runtime_error("mysql_statement error: The number of column in the result set "
-		"shoud be 1. Use std::tuple or crow::sio to fetch several columns or "
+		"shoud be 1. Use std::tuple or cc::sio to fetch several columns or "
 		"modify the request so that it returns a set of 1 column.");
 	mysql_bind_data<1> bind_data; mysql_bind_output(bind_data.bind[0], &bind_data.real_lengths[0], o);
 	return bind_data;
@@ -825,7 +825,7 @@ namespace crow {
 	std::shared_ptr<mysql_connection_data> connection_;
 	bool result_allocated_ = false;
   };
-} namespace crow {
+} namespace cc {
   template <typename B> long long int mysql_statement_result<B>::affected_rows() {
 	return mysql_stmt_affected_rows(data_.stmt_);
   }
@@ -1065,7 +1065,7 @@ namespace crow {
 		boost::lexical_cast<std::string>(current_row_num_fields_) +
 		") does not match the size of the tuple (" +
 		boost::lexical_cast<std::string>(std::tuple_size_v<std::decay_t<T>>) + ")");
-	crow::tuple_map(std::forward<T>(output), [&](auto& v) {
+	cc::tuple_map(std::forward<T>(output), [&](auto& v) {
 	  v = boost::lexical_cast<std::decay_t<decltype(v)>>(
 		std::string_view(current_row_[i], current_row_lengths_[i]));
 	  ++i;
@@ -1083,7 +1083,7 @@ namespace crow {
 
   struct mysql_connection_data; struct mysql_tag {};  template <typename B>   struct mysql_connection {
 	typedef mysql_tag db_tag;
-	inline mysql_connection(B mysql_wrapper, std::shared_ptr<crow::mysql_connection_data>& data);
+	inline mysql_connection(B mysql_wrapper, std::shared_ptr<cc::mysql_connection_data>& data);
 
 	long long int last_insert_rowid();
 
@@ -1096,9 +1096,9 @@ namespace crow {
 	B mysql_wrapper_;
 	std::shared_ptr<mysql_connection_data> data_;
   };
-} namespace crow {
+} namespace cc {
   template <typename B>
-  inline mysql_connection<B>::mysql_connection(B mysql_wrapper, std::shared_ptr<crow::mysql_connection_data>& data)
+  inline mysql_connection<B>::mysql_connection(B mysql_wrapper, std::shared_ptr<cc::mysql_connection_data>& data)
 	: mysql_wrapper_(mysql_wrapper), data_(data) {}
   template <typename B> long long int mysql_connection<B>::last_insert_rowid() {
 	return mysql_insert_id(data_->connection_);
@@ -1151,10 +1151,10 @@ if(A!=B){std::cerr << #A << " (== " << A << ") " << " != " << #B << " (== " << B
   if (!(A)) { std::cerr << #A << " (== " << (A) << ") must be true" << std::endl; }
 #define ASSERT(x,m) if(!x)std::cerr<<#m
 template <typename... T> std::ostream& operator<<(std::ostream& os, std::tuple<T...> t) {
-  bool one = true; os << "TUPLE<"; crow::tuple_map(std::forward<std::tuple<T...>>(t), [&os, &one](auto v) {
+  bool one = true; os << "TUPLE<"; cc::tuple_map(std::forward<std::tuple<T...>>(t), [&os, &one](auto v) {
 	if (one) os << v, one = false; else os << "," << v; }); os << ">"; return os;
 }
-namespace crow {
+namespace cc {
   struct mysql {
 	typedef mysql_tag db_tag; typedef mysql_connection_data connection_data_type;
 	inline mysql(const char* host, const char* database, const char* user, const char* password, ...);
@@ -1258,7 +1258,7 @@ namespace crow {
 		this->read_column(i, v, sqlite3_column_type(stmt_, i));
 		++i;
 	  };
-	  ::crow::tuple_map(std::forward<T>(output), read_elt);
+	  ::cc::tuple_map(std::forward<T>(output), read_elt);
 	  return true;
 	}
 	inline long long int last_insert_id() { return sqlite3_last_insert_rowid(db_); }
@@ -1307,7 +1307,7 @@ namespace crow {
 	  sqlite3_reset(stmt_);
 	  sqlite3_clear_bindings(stmt_);
 	  int i = 1;
-	  crow::tuple_map(std::forward_as_tuple(args...), [&](auto& m) {
+	  cc::tuple_map(std::forward_as_tuple(args...), [&](auto& m) {
 		int err;
 		if ((err = this->bind(stmt_, i, m)) != SQLITE_OK)
 		  throw std::runtime_error(std::string("Sqlite error during binding: ") + sqlite3_errmsg(db_));
@@ -1739,7 +1739,7 @@ namespace crow {
 	if (nfields != std::tuple_size_v<std::decay_t<T>>)
 	  throw std::runtime_error("postgresql error: in fetch: Mismatch between the request number of "
 		"field and the outputs.");
-	crow::tuple_map(std::forward<T>(output), [&](auto& m) {
+	cc::tuple_map(std::forward<T>(output), [&](auto& m) {
 	  fetch_value(m, i, proto_type_[i]);
 	  ++i;
 	  });
@@ -2183,18 +2183,18 @@ namespace crow {
 	}
   };
 }
-namespace crow {
+namespace cc {
   //SqlDataBase will automatically shut down after 8 hours (28800 seconds) of
   // inactivity by default (determined by the mechanism provided by the server)
   //typedef sql_database<sqlType,time_wait> D;time_wait default 28800
   typedef sql_database<mysql, 99> Mysql;
   typedef sql_database<pgsql, 99> Pgsql;
   //-------------- utf8 / GB2312 / GBK --------------
-#define D_mysql() crow::Mysql("127.0.0.1","test","root","",3306,SYS_IS_UTF8?"utf8":"GBK")
-#define D_pgsql() crow::Pgsql("127.0.0.1","test","Asciphx","",5432,SYS_IS_UTF8?"utf8":"GBK")
+#define D_mysql() cc::Mysql("127.0.0.1","test","root","",3306,SYS_IS_UTF8?"utf8":"GBK")
+#define D_pgsql() cc::Pgsql("127.0.0.1","test","Asciphx","",5432,SYS_IS_UTF8?"utf8":"GBK")
 //------ Use GBK or GB2312 to support Chinese ------
 //---- SQLite can only support default encoding ----
-#define D_sqlite(path) crow::Sqlite(path)
-#define D_() crow::Mysql("127.0.0.1","test","root","",3306,SYS_IS_UTF8?"utf8":"GBK")
+#define D_sqlite(path) cc::Sqlite(path)
+#define D_() cc::Mysql("127.0.0.1","test","root","",3306,SYS_IS_UTF8?"utf8":"GBK")
 //example to use: auto d = D_();
 }

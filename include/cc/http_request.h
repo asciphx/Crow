@@ -1,9 +1,9 @@
 #pragma once
 #include <boost/asio.hpp>
-#include "crow/common.h"
-#include "crow/ci_map.h"
-#include "crow/query_string.h"
-namespace crow {
+#include "cc/common.h"
+#include "cc/ci_map.h"
+#include "cc/query_string.h"
+namespace cc {
   /// Find and return the value associated with the key. (returns an empty string if nothing is found)
   template <typename T>
   inline const std::string& get_header_value(const T& headers,const std::string& key) {
@@ -13,7 +13,7 @@ namespace crow {
   }
   struct DetachHelper;
   struct Req {
-    HTTPMethod method;
+    HTTP method;
     std::string raw_url; ///< The full URL containing the `?` and URL parameters.
     std::string url; ///< The endpoint without any parameters.
     query_string url_params; ///< The parameters associated with the request. (everything after the `?`)
@@ -24,10 +24,10 @@ namespace crow {
     boost::asio::io_service* io_service{};
 
     /// Construct an empty Req. (sets the method to `GET`)
-    Req(): method(HTTPMethod::GET) {}
+    Req(): method(HTTP::GET) {}
 
     /// Construct a Req with all values assigned.
-    Req(HTTPMethod method,std::string raw_url,std::string url,query_string url_params,ci_map headers,std::string body)
+    Req(HTTP method,std::string raw_url,std::string url,query_string url_params,ci_map headers,std::string body)
       : method(method),raw_url(std::move(raw_url)),url(std::move(url)),url_params(std::move(url_params)),headers(std::move(headers)),body(std::move(body)) {}
 
     void add_header(std::string key,std::string value) {
@@ -35,7 +35,7 @@ namespace crow {
     }
 
     const std::string& get_header_value(const std::string& key) const {
-      return crow::get_header_value(headers,key);
+      return cc::get_header_value(headers,key);
     }
 
     /// Send the Req with a completion handler and return immediately.
