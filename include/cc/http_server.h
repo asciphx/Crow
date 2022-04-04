@@ -102,12 +102,8 @@ namespace cc {
 	  while (++i < core_ && l < roundrobin_index_[i])l = roundrobin_index_[i];
 	  return i;
 	}
-	//inline asio::io_service& pick_io_service() {
-	//  if (++roundrobin_index_ > core_) roundrobin_index_ = 0; return *io_service_pool_[roundrobin_index_];
-	//}
 	inline void do_accept() {
 	  uint16_t idex = pick_io_service();
-	  //asio::io_service& is = pick_io_service();
 	  asio::io_service& is = *io_service_pool_[idex];
 	  ++roundrobin_index_[idex];
 	  auto p = new Connection<Adaptor, Handler, Middlewares...>(

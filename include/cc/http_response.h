@@ -26,14 +26,11 @@ namespace cc {
 	bool compressed = true; //< If compression is enabled and this is false, the individual response will not be compressed.
 #endif
 	bool is_head_response = false;      ///< Whether this is a Res to a HEAD Req.
-	inline void set_header(const char* key, std::string value) {
-	  headers.erase(key); headers.emplace(key, std::move(value));
-	}
+	inline void set_header(const char* key, std::string value) { headers.erase(key); headers.emplace(key, std::move(value)); }
+	inline void set_header(std::string key, std::string value) { headers.erase(key); headers.emplace(std::move(key), std::move(value)); }
 	inline void add_header(const char* key, std::string value) { headers.emplace(key, std::move(value)); }
 	inline void add_header(const char* key, std::string_view value) { headers.emplace(key, value); }
-	const std::string& get_header_value(const char* key) {
-	  return cc::get_header_value(headers, key);
-	}
+	const std::string& get_header_value(const std::string& key) { return cc::get_header_value(headers, key); }
 	Res() {}
 	explicit Res(int code) : code(code) {}
 	Res(std::string body) : body(std::move(body)) {}

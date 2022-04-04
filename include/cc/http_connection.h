@@ -132,9 +132,7 @@ namespace cc {
 	  queue_length_(queue_length) {
 	  llhttp_init(this, HTTP_REQUEST, &settings_);
 	}
-	~Connection() {
-	  cancel_deadline_timer();// res.complete_request_handler_ = nullptr;
-	}
+	~Connection() { res.complete_request_handler_ = nullptr; cancel_deadline_timer(); }
 	static int on_url(http_parser* self_, const char* at, size_t length) {
 	  Connection* $ = static_cast<Connection*>(self_);
 	  $->header_state = 0; $->url.clear(); $->raw_url.clear(); $->header_field.clear();
@@ -144,7 +142,7 @@ namespace cc {
 	static int on_header_field(http_parser* self_, const char* at, size_t length) {
 	  Connection* $ = static_cast<Connection*>(self_);
 	  switch ($->header_state) {
-	  case 0:if (!$->header_value.empty()) $->headers.emplace(std::move($->header_field.c_str()), std::move($->header_value));
+	  case 0:if (!$->header_value.empty()) $->headers.emplace(std::move($->header_field), std::move($->header_value));
 		$->header_field.assign(at, at + length); $->header_state = 1; break;
 	  case 1:$->header_field.insert($->header_field.end(), at, at + length); break;
 	  } return 0;
@@ -179,7 +177,7 @@ namespace cc {
 		if (!ec) {
 		  start_deadline(); do_read();
 		} else {
-		  adaptor_.close(); delete this;
+		  adaptor_.close(); --queue_length_; delete this;
 		}
 		});
 	}
@@ -398,7 +396,7 @@ namespace cc {
 	  }
 	  is_writing = false;
 	  if (close_connection_) {
-		adaptor_.shutdown_readwrite();
+		adaptor_.shutdown_write();
 		adaptor_.close();
 		check_destroy();
 	  }
@@ -440,7 +438,7 @@ namespace cc {
 		}
 		is_writing = false;
 		if (close_connection_) {
-		  adaptor_.shutdown_readwrite();
+		  adaptor_.shutdown_write();
 		  adaptor_.close();
 		  check_destroy();
 		}
@@ -454,25 +452,24 @@ namespace cc {
 	  is_reading = true;
 	  adaptor_.socket().async_read_some(boost::asio::buffer(buffer_),
 		[this](const boost::system::error_code& ec, std::size_t bytes_transferred) {
-		  if (!ec) {
-			if (llhttp_execute(this, buffer_.data(), bytes_transferred) == 0/* && adaptor_.is_open()*/) {
-			  if (close_connection_) {
-				cancel_deadline_timer();
-				is_reading = false;
-				check_destroy(); // adaptor will close after write
-			  } else if (!need_to_call_after_handlers_) {
-				start_deadline();
-				do_read();
-			  } else { // res will be completed later by user
-				need_to_start_read_after_complete_ = true;
-			  }
-			}
-		  } else {
+		  if (ec) {
 			cancel_deadline_timer();
 			adaptor_.shutdown_read();
 			adaptor_.close();
 			is_reading = false;
 			check_destroy();
+		  }
+		  if (llhttp_execute(this, buffer_.data(), bytes_transferred) == 0 /*&& adaptor_.is_open()*/) {
+			if (close_connection_) {
+			  cancel_deadline_timer();
+			  is_reading = false;
+			  check_destroy(); // adaptor will close after write
+			} else if (!need_to_call_after_handlers_) {
+			  start_deadline();
+			  do_read();
+			} else { // res will be completed later by user
+			  need_to_start_read_after_complete_ = true;
+			}
 		  }
 		});
 	}
