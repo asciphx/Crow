@@ -1587,7 +1587,7 @@ namespace nlohmann { namespace detail { struct nonesuch { nonesuch() = delete; ~
 #define JSON_INTERNAL_CATCH(exception) catch(exception)
 #else
 #include <cstdlib>
-#define JSON_THROW(exception) std::abort()
+#define JSON_THROW(exception) throw std::runtime_error("");
 #define JSON_TRY if(true)
 #define JSON_CATCH(exception) if(false)
 #define JSON_INTERNAL_CATCH(exception) if(false)
@@ -2069,7 +2069,7 @@ namespace nlohmann {
 #else
  static_cast<void>(j); static_cast<void>(old_capacity);
 #endif
- return j; } public: using parse_event_t = detail::parse_event_t; using parser_callback_t = detail::parser_callback_t<basic_json>; basic_json(const value_t v) : m_type(v), m_value(v) { assert_invariant(); } basic_json(std::nullptr_t = nullptr) noexcept : basic_json(value_t::null) { assert_invariant(); } template < typename CompatibleType, typename U = detail::uncvref_t<CompatibleType>, detail::enable_if_t < !detail::is_basic_json<U>::value&& detail::is_compatible_type<basic_json_t, U>::value, int > = 0 > basic_json(CompatibleType&& val) noexcept(noexcept( JSONSerializer<U>::to_json(std::declval<basic_json_t&>(), std::forward<CompatibleType>(val)))) { JSONSerializer<U>::to_json(*this, std::forward<CompatibleType>(val)); set_parents(); assert_invariant(); } template < typename BasicJsonType, detail::enable_if_t < detail::is_basic_json<BasicJsonType>::value && !std::is_same<basic_json, BasicJsonType>::value, int > = 0 > basic_json(const BasicJsonType& val) { using other_boolean_t = typename BasicJsonType::boolean_t; using other_number_float_t = typename BasicJsonType::number_float_t; using other_number_integer_t = typename BasicJsonType::number_integer_t; using other_number_unsigned_t = typename BasicJsonType::number_unsigned_t; using other_string_t = typename BasicJsonType::string_t; using other_object_t = typename BasicJsonType::object_t; using other_array_t = typename BasicJsonType::array_t; using other_binary_t = typename BasicJsonType::binary_t; switch (val.type()) { case value_t::boolean: JSONSerializer<other_boolean_t>::to_json(*this, val.template get<other_boolean_t>()); break; case value_t::number_float: JSONSerializer<other_number_float_t>::to_json(*this, val.template get<other_number_float_t>()); break; case value_t::number_integer: JSONSerializer<other_number_integer_t>::to_json(*this, val.template get<other_number_integer_t>()); break; case value_t::number_unsigned: JSONSerializer<other_number_unsigned_t>::to_json(*this, val.template get<other_number_unsigned_t>()); break; case value_t::string: JSONSerializer<other_string_t>::to_json(*this, val.template get_ref<const other_string_t&>()); break; case value_t::object: JSONSerializer<other_object_t>::to_json(*this, val.template get_ref<const other_object_t&>()); break; case value_t::array: JSONSerializer<other_array_t>::to_json(*this, val.template get_ref<const other_array_t&>()); break; case value_t::binary: JSONSerializer<other_binary_t>::to_json(*this, val.template get_ref<const other_binary_t&>()); break; case value_t::null: *this = nullptr; break; case value_t::discarded: m_type = value_t::discarded; break; default: JSON_ASSERT(false); } set_parents(); assert_invariant(); } basic_json(initializer_list_t init, bool type_deduction = true, value_t manual_type = value_t::array) { bool is_an_object = std::all_of(init.begin(), init.end(), [](const detail::json_ref<basic_json>& element_ref) { return element_ref->is_array() && element_ref->size() == 2 && (*element_ref)[0].is_string(); }); if (!type_deduction) { if (manual_type == value_t::array) { is_an_object = false; } if (JSON_HEDLEY_UNLIKELY(manual_type == value_t::object && !is_an_object)) { JSON_THROW(type_error::create(301, "cannot create object from initializer list", basic_json())); } } if (is_an_object) { m_type = value_t::object; m_value = value_t::object; for (auto& element_ref : init) { auto element = element_ref.moved_or_copied(); m_value.object->emplace( std::move(*((*element.m_value.array)[0].m_value.string)), std::move((*element.m_value.array)[1])); } } else { m_type = value_t::array; m_value.array = create<array_t>(init.begin(), init.end()); } set_parents(); assert_invariant(); } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json binary(const typename binary_t::container_type& init) { auto res = basic_json(); res.m_type = value_t::binary; res.m_value = init; return res; } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json binary(const typename binary_t::container_type& init, typename binary_t::subtype_type subtype) { auto res = basic_json(); res.m_type = value_t::binary; res.m_value = binary_t(init, subtype); return res; } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json binary(typename binary_t::container_type&& init) { auto res = basic_json(); res.m_type = value_t::binary; res.m_value = std::move(init); return res; } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json binary(typename binary_t::container_type&& init, typename binary_t::subtype_type subtype) { auto res = basic_json(); res.m_type = value_t::binary; res.m_value = binary_t(std::move(init), subtype); return res; } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json array(initializer_list_t init = {}) { return basic_json(init, false, value_t::array); } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json object(initializer_list_t init = {}) { return basic_json(init, false, value_t::object); } basic_json(size_type cnt, const basic_json& val) : m_type(value_t::array) { m_value.array = create<array_t>(cnt, val); set_parents(); assert_invariant(); } template < class InputIT, typename std::enable_if < std::is_same<InputIT, typename basic_json_t::iterator>::value || std::is_same<InputIT, typename basic_json_t::const_iterator>::value, int >::type = 0 > basic_json(InputIT first, InputIT last) { JSON_ASSERT(first.m_object != nullptr); JSON_ASSERT(last.m_object != nullptr); if (JSON_HEDLEY_UNLIKELY(first.m_object != last.m_object)) { JSON_THROW(invalid_iterator::create(201, "iterators are not compatible", basic_json())); } m_type = first.m_object->m_type; switch (m_type) { case value_t::boolean: case value_t::number_float: case value_t::number_integer: case value_t::number_unsigned: case value_t::string: { if (JSON_HEDLEY_UNLIKELY(!first.m_it.primitive_iterator.is_begin() || !last.m_it.primitive_iterator.is_end())) { JSON_THROW(invalid_iterator::create(204, "iterators out of range", *first.m_object)); } break; } case value_t::null: case value_t::object: case value_t::array: case value_t::binary: case value_t::discarded: default: break; } switch (m_type) { case value_t::number_integer: { m_value.number_integer = first.m_object->m_value.number_integer; break; } case value_t::number_unsigned: { m_value.number_unsigned = first.m_object->m_value.number_unsigned; break; } case value_t::number_float: { m_value.number_float = first.m_object->m_value.number_float; break; } case value_t::boolean: { m_value.boolean = first.m_object->m_value.boolean; break; } case value_t::string: { m_value = *first.m_object->m_value.string; break; } case value_t::object: { m_value.object = create<object_t>(first.m_it.object_iterator, last.m_it.object_iterator); break; } case value_t::array: { m_value.array = create<array_t>(first.m_it.array_iterator, last.m_it.array_iterator); break; } case value_t::binary: { m_value = *first.m_object->m_value.binary; break; } case value_t::null: case value_t::discarded: default: JSON_THROW(invalid_iterator::create(206, "cannot construct with iterators from " + std::string(first.m_object->type_name()), *first.m_object)); } set_parents(); assert_invariant(); } template<typename JsonRef, detail::enable_if_t<detail::conjunction<detail::is_json_ref<JsonRef>, std::is_same<typename JsonRef::value_type, basic_json>>::value, int> = 0 > basic_json(const JsonRef& ref) : basic_json(ref.moved_or_copied()) {} basic_json(const basic_json& other) : m_type(other.m_type) { other.assert_invariant(); switch (m_type) { case value_t::object: { m_value = *other.m_value.object; break; } case value_t::array: { m_value = *other.m_value.array; break; } case value_t::string: { m_value = *other.m_value.string; break; } case value_t::boolean: { m_value = other.m_value.boolean; break; } case value_t::number_integer: { m_value = other.m_value.number_integer; break; } case value_t::number_unsigned: { m_value = other.m_value.number_unsigned; break; } case value_t::number_float: { m_value = other.m_value.number_float; break; } case value_t::binary: { m_value = *other.m_value.binary; break; } case value_t::null: case value_t::discarded: default: break; } set_parents(); assert_invariant(); } basic_json(basic_json&& other) noexcept : m_type(std::move(other.m_type)), m_value(std::move(other.m_value)) { other.assert_invariant(false); other.m_type = value_t::null; other.m_value = {}; set_parents(); assert_invariant(); } basic_json& operator=(basic_json other) noexcept ( std::is_nothrow_move_constructible<value_t>::value&& std::is_nothrow_move_assignable<value_t>::value&& std::is_nothrow_move_constructible<json_value>::value&& std::is_nothrow_move_assignable<json_value>::value ) { other.assert_invariant(); using std::swap; swap(m_type, other.m_type); swap(m_value, other.m_value); set_parents(); assert_invariant(); return *this; } ~basic_json() noexcept { assert_invariant(false); m_value.destroy(m_type); } public: string_t dump(const int indent = -1, const char indent_char = ' ', const bool ensure_ascii = false, const error_handler_t error_handler = error_handler_t::strict) const { string_t result; serializer s(detail::output_adapter<char, string_t>(result), indent_char, error_handler); if (indent >= 0) { s.dump(*this, true, ensure_ascii, static_cast<unsigned int>(indent)); } else { s.dump(*this, false, ensure_ascii, 0); } return result; } constexpr value_t type() const noexcept { return m_type; } constexpr bool is_primitive() const noexcept { return is_null() || is_string() || is_boolean() || is_number() || is_binary(); } constexpr bool is_structured() const noexcept { return is_array() || is_object(); } constexpr bool is_null() const noexcept { return m_type == value_t::null; } constexpr bool is_boolean() const noexcept { return m_type == value_t::boolean; } constexpr bool is_number() const noexcept { return is_number_integer() || is_number_float(); } constexpr bool is_number_integer() const noexcept { return m_type == value_t::number_integer || m_type == value_t::number_unsigned; } constexpr bool is_number_unsigned() const noexcept { return m_type == value_t::number_unsigned; } constexpr bool is_number_float() const noexcept { return m_type == value_t::number_float; } constexpr bool is_object() const noexcept { return m_type == value_t::object; } constexpr bool is_array() const noexcept { return m_type == value_t::array; } constexpr bool is_string() const noexcept { return m_type == value_t::string; } constexpr bool is_binary() const noexcept { return m_type == value_t::binary; } constexpr bool is_discarded() const noexcept { return m_type == value_t::discarded; } constexpr operator value_t() const noexcept { return m_type; } private: boolean_t get_impl(boolean_t*) const { if (JSON_HEDLEY_LIKELY(is_boolean())) { return m_value.boolean; } JSON_THROW(type_error::create(302, "type must be boolean, but is " + std::string(type_name()), *this)); } object_t* get_impl_ptr(object_t*) noexcept { return is_object() ? m_value.object : nullptr; } constexpr const object_t* get_impl_ptr(const object_t*) const noexcept { return is_object() ? m_value.object : nullptr; } array_t* get_impl_ptr(array_t*) noexcept { return is_array() ? m_value.array : nullptr; } constexpr const array_t* get_impl_ptr(const array_t*) const noexcept { return is_array() ? m_value.array : nullptr; } string_t* get_impl_ptr(string_t*) noexcept { return is_string() ? m_value.string : nullptr; } constexpr const string_t* get_impl_ptr(const string_t*) const noexcept { return is_string() ? m_value.string : nullptr; } boolean_t* get_impl_ptr(boolean_t*) noexcept { return is_boolean() ? &m_value.boolean : nullptr; } constexpr const boolean_t* get_impl_ptr(const boolean_t*) const noexcept { return is_boolean() ? &m_value.boolean : nullptr; } number_integer_t* get_impl_ptr(number_integer_t*) noexcept { return is_number_integer() ? &m_value.number_integer : nullptr; } constexpr const number_integer_t* get_impl_ptr(const number_integer_t*) const noexcept { return is_number_integer() ? &m_value.number_integer : nullptr; } number_unsigned_t* get_impl_ptr(number_unsigned_t*) noexcept { return is_number_unsigned() ? &m_value.number_unsigned : nullptr; } constexpr const number_unsigned_t* get_impl_ptr(const number_unsigned_t*) const noexcept { return is_number_unsigned() ? &m_value.number_unsigned : nullptr; } number_float_t* get_impl_ptr(number_float_t*) noexcept { return is_number_float() ? &m_value.number_float : nullptr; } constexpr const number_float_t* get_impl_ptr(const number_float_t*) const noexcept { return is_number_float() ? &m_value.number_float : nullptr; } binary_t* get_impl_ptr(binary_t*) noexcept { return is_binary() ? m_value.binary : nullptr; } constexpr const binary_t* get_impl_ptr(const binary_t*) const noexcept { return is_binary() ? m_value.binary : nullptr; } template<typename ReferenceType, typename ThisType> static ReferenceType get_ref_impl(ThisType& obj) { auto* ptr = obj.template get_ptr<typename std::add_pointer<ReferenceType>::type>(); if (JSON_HEDLEY_LIKELY(ptr != nullptr)) { return *ptr; } JSON_THROW(type_error::create(303, "incompatible ReferenceType for get_ref, actual type is " + std::string(obj.type_name()), obj)); } public: template<typename PointerType, typename std::enable_if< std::is_pointer<PointerType>::value, int>::type = 0> auto get_ptr() noexcept -> decltype(std::declval<basic_json_t&>().get_impl_ptr(std::declval<PointerType>())) { return get_impl_ptr(static_cast<PointerType>(nullptr)); } template < typename PointerType, typename std::enable_if < std::is_pointer<PointerType>::value&& std::is_const<typename std::remove_pointer<PointerType>::type>::value, int >::type = 0 > constexpr auto get_ptr() const noexcept -> decltype(std::declval<const basic_json_t&>().get_impl_ptr(std::declval<PointerType>())) { return get_impl_ptr(static_cast<PointerType>(nullptr)); } private: template < typename ValueType, detail::enable_if_t < detail::is_default_constructible<ValueType>::value&& detail::has_from_json<basic_json_t, ValueType>::value, int > = 0 > ValueType get_impl(detail::priority_tag<0>) const noexcept(noexcept( JSONSerializer<ValueType>::from_json(std::declval<const basic_json_t&>(), std::declval<ValueType&>()))) { auto ret = ValueType(); JSONSerializer<ValueType>::from_json(*this, ret); return ret; } template < typename ValueType, detail::enable_if_t < detail::has_non_default_from_json<basic_json_t, ValueType>::value, int > = 0 > ValueType get_impl(detail::priority_tag<1>) const noexcept(noexcept( JSONSerializer<ValueType>::from_json(std::declval<const basic_json_t&>()))) { return JSONSerializer<ValueType>::from_json(*this); } template < typename BasicJsonType, detail::enable_if_t < detail::is_basic_json<BasicJsonType>::value, int > = 0 > BasicJsonType get_impl(detail::priority_tag<2>) const { return *this; } template<typename BasicJsonType, detail::enable_if_t< std::is_same<BasicJsonType, basic_json_t>::value, int> = 0> basic_json get_impl(detail::priority_tag<3>) const { return *this; } template<typename PointerType, detail::enable_if_t< std::is_pointer<PointerType>::value, int> = 0> constexpr auto get_impl(detail::priority_tag<4>) const noexcept -> decltype(std::declval<const basic_json_t&>().template get_ptr<PointerType>()) { return get_ptr<PointerType>(); } public: template < typename ValueTypeCV, typename ValueType = detail::uncvref_t<ValueTypeCV>>
+ return j; } public: using parse_event_t = detail::parse_event_t; using parser_callback_t = detail::parser_callback_t<basic_json>; basic_json(const value_t v) : m_type(v), m_value(v) { assert_invariant(); } basic_json(std::nullptr_t = nullptr) noexcept : basic_json(value_t::null) { assert_invariant(); } template < typename CompatibleType, typename U = detail::uncvref_t<CompatibleType>, detail::enable_if_t < !detail::is_basic_json<U>::value&& detail::is_compatible_type<basic_json_t, U>::value, int > = 0 > basic_json(CompatibleType&& val) noexcept(noexcept( JSONSerializer<U>::to_json(std::declval<basic_json_t&>(), std::forward<CompatibleType>(val)))) { JSONSerializer<U>::to_json(*this, std::forward<CompatibleType>(val)); set_parents(); assert_invariant(); } template < typename BasicJsonType, detail::enable_if_t < detail::is_basic_json<BasicJsonType>::value && !std::is_same<basic_json, BasicJsonType>::value, int > = 0 > basic_json(const BasicJsonType& val) { using other_boolean_t = typename BasicJsonType::boolean_t; using other_number_float_t = typename BasicJsonType::number_float_t; using other_number_integer_t = typename BasicJsonType::number_integer_t; using other_number_unsigned_t = typename BasicJsonType::number_unsigned_t; using other_string_t = typename BasicJsonType::string_t; using other_object_t = typename BasicJsonType::object_t; using other_array_t = typename BasicJsonType::array_t; using other_binary_t = typename BasicJsonType::binary_t; switch (val.type()) { case value_t::boolean: JSONSerializer<other_boolean_t>::to_json(*this, val.template get<other_boolean_t>()); break; case value_t::number_float: JSONSerializer<other_number_float_t>::to_json(*this, val.template get<other_number_float_t>()); break; case value_t::number_integer: JSONSerializer<other_number_integer_t>::to_json(*this, val.template get<other_number_integer_t>()); break; case value_t::number_unsigned: JSONSerializer<other_number_unsigned_t>::to_json(*this, val.template get<other_number_unsigned_t>()); break; case value_t::string: JSONSerializer<other_string_t>::to_json(*this, val.template get_ref<const other_string_t&>()); break; case value_t::object: JSONSerializer<other_object_t>::to_json(*this, val.template get_ref<const other_object_t&>()); break; case value_t::array: JSONSerializer<other_array_t>::to_json(*this, val.template get_ref<const other_array_t&>()); break; case value_t::binary: JSONSerializer<other_binary_t>::to_json(*this, val.template get_ref<const other_binary_t&>()); break; case value_t::null: *this = nullptr; break; case value_t::discarded: m_type = value_t::discarded; break; default: JSON_ASSERT(false); } set_parents(); assert_invariant(); } basic_json(initializer_list_t init, bool type_deduction = true, value_t manual_type = value_t::array) { bool is_an_object = std::all_of(init.begin(), init.end(), [](const detail::json_ref<basic_json>& element_ref) { return element_ref->is_array() && element_ref->size() == 2 && (*element_ref)[0].is_string(); }); if (!type_deduction) { if (manual_type == value_t::array) { is_an_object = false; } if (JSON_HEDLEY_UNLIKELY(manual_type == value_t::object && !is_an_object)) { JSON_THROW(type_error::create(301, "cannot create object from initializer list", basic_json())); } } if (is_an_object) { m_type = value_t::object; m_value = value_t::object; for (auto& element_ref : init) { auto element = element_ref.moved_or_copied(); m_value.object->emplace( std::move(*((*element.m_value.array)[0].m_value.string)), std::move((*element.m_value.array)[1])); } } else { m_type = value_t::array; m_value.array = create<array_t>(init.begin(), init.end()); } set_parents(); assert_invariant(); } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json binary(const typename binary_t::container_type& init) { auto res = basic_json(); res.m_type = value_t::binary; res.m_value = init; return res; } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json binary(const typename binary_t::container_type& init, typename binary_t::subtype_type subtype) { auto res = basic_json(); res.m_type = value_t::binary; res.m_value = binary_t(init, subtype); return res; } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json binary(typename binary_t::container_type&& init) { auto res = basic_json(); res.m_type = value_t::binary; res.m_value = std::move(init); return res; } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json binary(typename binary_t::container_type&& init, typename binary_t::subtype_type subtype) { auto res = basic_json(); res.m_type = value_t::binary; res.m_value = binary_t(std::move(init), subtype); return res; } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json array(initializer_list_t init = {}) { return basic_json(init, false, value_t::array); } JSON_HEDLEY_WARN_UNUSED_RESULT static basic_json object(initializer_list_t init = {}) { return basic_json(init, false, value_t::object); } basic_json(size_type cnt, const basic_json& val) : m_type(value_t::array) { m_value.array = create<array_t>(cnt, val); set_parents(); assert_invariant(); } template < class InputIT, typename std::enable_if < std::is_same<InputIT, typename basic_json_t::iterator>::value || std::is_same<InputIT, typename basic_json_t::const_iterator>::value, int >::type = 0 > basic_json(InputIT first, InputIT last) { JSON_ASSERT(first.m_object != nullptr); JSON_ASSERT(last.m_object != nullptr); if (JSON_HEDLEY_UNLIKELY(first.m_object != last.m_object)) { JSON_THROW(invalid_iterator::create(201, "iterators are not compatible", basic_json())); } m_type = first.m_object->m_type; switch (m_type) { case value_t::boolean: case value_t::number_float: case value_t::number_integer: case value_t::number_unsigned: case value_t::string: { if (JSON_HEDLEY_UNLIKELY(!first.m_it.primitive_iterator.is_begin() || !last.m_it.primitive_iterator.is_end())) { JSON_THROW(invalid_iterator::create(204, "iterators out of range", *first.m_object)); } break; } case value_t::null: case value_t::object: case value_t::array: case value_t::binary: case value_t::discarded: default: break; } switch (m_type) { case value_t::number_integer: { m_value.number_integer = first.m_object->m_value.number_integer; break; } case value_t::number_unsigned: { m_value.number_unsigned = first.m_object->m_value.number_unsigned; break; } case value_t::number_float: { m_value.number_float = first.m_object->m_value.number_float; break; } case value_t::boolean: { m_value.boolean = first.m_object->m_value.boolean; break; } case value_t::string: { m_value = *first.m_object->m_value.string; break; } case value_t::object: { m_value.object = create<object_t>(first.m_it.object_iterator, last.m_it.object_iterator); break; } case value_t::array: { m_value.array = create<array_t>(first.m_it.array_iterator, last.m_it.array_iterator); break; } case value_t::binary: { m_value = *first.m_object->m_value.binary; break; } case value_t::null: case value_t::discarded: default: JSON_THROW(invalid_iterator::create(206, "cannot construct with iterators from " + std::string(first.m_object->type_name()), *first.m_object)); } set_parents(); assert_invariant(); } template<typename JsonRef, detail::enable_if_t<detail::conjunction<detail::is_json_ref<JsonRef>, std::is_same<typename JsonRef::value_type, basic_json>>::value, int> = 0 > basic_json(const JsonRef& ref) : basic_json(ref.moved_or_copied()) {} basic_json(const basic_json& other) : m_type(other.m_type) { other.assert_invariant(); switch (m_type) { case value_t::object: { m_value = *other.m_value.object; break; } case value_t::array: { m_value = *other.m_value.array; break; } case value_t::string: { m_value = *other.m_value.string; break; } case value_t::boolean: { m_value = other.m_value.boolean; break; } case value_t::number_integer: { m_value = other.m_value.number_integer; break; } case value_t::number_unsigned: { m_value = other.m_value.number_unsigned; break; } case value_t::number_float: { m_value = other.m_value.number_float; break; } case value_t::binary: { m_value = *other.m_value.binary; break; } case value_t::null: case value_t::discarded: default: break; } set_parents(); assert_invariant(); } basic_json(basic_json&& other) noexcept : m_type(std::move(other.m_type)), m_value(std::move(other.m_value)) { other.assert_invariant(false); other.m_type = value_t::null; other.m_value = {}; set_parents(); assert_invariant(); } basic_json& operator=(basic_json other) noexcept ( std::is_nothrow_move_constructible<value_t>::value&& std::is_nothrow_move_assignable<value_t>::value&& std::is_nothrow_move_constructible<json_value>::value&& std::is_nothrow_move_assignable<json_value>::value ) { other.assert_invariant(); using std::swap; swap(m_type, other.m_type); swap(m_value, other.m_value); set_parents(); assert_invariant(); return *this; } ~basic_json() noexcept { assert_invariant(false); m_value.destroy(m_type); } public: string_t dump(const int indent = -1, const char indent_char = ' ', const bool ensure_ascii = false, const error_handler_t error_handler = error_handler_t::replace) const { string_t result; serializer s(detail::output_adapter<char, string_t>(result), indent_char, error_handler); if (indent >= 0) { s.dump(*this, true, ensure_ascii, static_cast<unsigned int>(indent)); } else { s.dump(*this, false, ensure_ascii, 0); } return result; } constexpr value_t type() const noexcept { return m_type; } constexpr bool is_primitive() const noexcept { return is_null() || is_string() || is_boolean() || is_number() || is_binary(); } constexpr bool is_structured() const noexcept { return is_array() || is_object(); } constexpr bool is_null() const noexcept { return m_type == value_t::null; } constexpr bool is_boolean() const noexcept { return m_type == value_t::boolean; } constexpr bool is_number() const noexcept { return is_number_integer() || is_number_float(); } constexpr bool is_number_integer() const noexcept { return m_type == value_t::number_integer || m_type == value_t::number_unsigned; } constexpr bool is_number_unsigned() const noexcept { return m_type == value_t::number_unsigned; } constexpr bool is_number_float() const noexcept { return m_type == value_t::number_float; } constexpr bool is_object() const noexcept { return m_type == value_t::object; } constexpr bool is_array() const noexcept { return m_type == value_t::array; } constexpr bool is_string() const noexcept { return m_type == value_t::string; } constexpr bool is_binary() const noexcept { return m_type == value_t::binary; } constexpr bool is_discarded() const noexcept { return m_type == value_t::discarded; } constexpr operator value_t() const noexcept { return m_type; } private: boolean_t get_impl(boolean_t*) const { if (JSON_HEDLEY_LIKELY(is_boolean())) { return m_value.boolean; } JSON_THROW(type_error::create(302, "type must be boolean, but is " + std::string(type_name()), *this)); } object_t* get_impl_ptr(object_t*) noexcept { return is_object() ? m_value.object : nullptr; } constexpr const object_t* get_impl_ptr(const object_t*) const noexcept { return is_object() ? m_value.object : nullptr; } array_t* get_impl_ptr(array_t*) noexcept { return is_array() ? m_value.array : nullptr; } constexpr const array_t* get_impl_ptr(const array_t*) const noexcept { return is_array() ? m_value.array : nullptr; } string_t* get_impl_ptr(string_t*) noexcept { return is_string() ? m_value.string : nullptr; } constexpr const string_t* get_impl_ptr(const string_t*) const noexcept { return is_string() ? m_value.string : nullptr; } boolean_t* get_impl_ptr(boolean_t*) noexcept { return is_boolean() ? &m_value.boolean : nullptr; } constexpr const boolean_t* get_impl_ptr(const boolean_t*) const noexcept { return is_boolean() ? &m_value.boolean : nullptr; } number_integer_t* get_impl_ptr(number_integer_t*) noexcept { return is_number_integer() ? &m_value.number_integer : nullptr; } constexpr const number_integer_t* get_impl_ptr(const number_integer_t*) const noexcept { return is_number_integer() ? &m_value.number_integer : nullptr; } number_unsigned_t* get_impl_ptr(number_unsigned_t*) noexcept { return is_number_unsigned() ? &m_value.number_unsigned : nullptr; } constexpr const number_unsigned_t* get_impl_ptr(const number_unsigned_t*) const noexcept { return is_number_unsigned() ? &m_value.number_unsigned : nullptr; } number_float_t* get_impl_ptr(number_float_t*) noexcept { return is_number_float() ? &m_value.number_float : nullptr; } constexpr const number_float_t* get_impl_ptr(const number_float_t*) const noexcept { return is_number_float() ? &m_value.number_float : nullptr; } binary_t* get_impl_ptr(binary_t*) noexcept { return is_binary() ? m_value.binary : nullptr; } constexpr const binary_t* get_impl_ptr(const binary_t*) const noexcept { return is_binary() ? m_value.binary : nullptr; } template<typename ReferenceType, typename ThisType> static ReferenceType get_ref_impl(ThisType& obj) { auto* ptr = obj.template get_ptr<typename std::add_pointer<ReferenceType>::type>(); if (JSON_HEDLEY_LIKELY(ptr != nullptr)) { return *ptr; } JSON_THROW(type_error::create(303, "incompatible ReferenceType for get_ref, actual type is " + std::string(obj.type_name()), obj)); } public: template<typename PointerType, typename std::enable_if< std::is_pointer<PointerType>::value, int>::type = 0> auto get_ptr() noexcept -> decltype(std::declval<basic_json_t&>().get_impl_ptr(std::declval<PointerType>())) { return get_impl_ptr(static_cast<PointerType>(nullptr)); } template < typename PointerType, typename std::enable_if < std::is_pointer<PointerType>::value&& std::is_const<typename std::remove_pointer<PointerType>::type>::value, int >::type = 0 > constexpr auto get_ptr() const noexcept -> decltype(std::declval<const basic_json_t&>().get_impl_ptr(std::declval<PointerType>())) { return get_impl_ptr(static_cast<PointerType>(nullptr)); } private: template < typename ValueType, detail::enable_if_t < detail::is_default_constructible<ValueType>::value&& detail::has_from_json<basic_json_t, ValueType>::value, int > = 0 > ValueType get_impl(detail::priority_tag<0>) const noexcept(noexcept( JSONSerializer<ValueType>::from_json(std::declval<const basic_json_t&>(), std::declval<ValueType&>()))) { auto ret = ValueType(); JSONSerializer<ValueType>::from_json(*this, ret); return ret; } template < typename ValueType, detail::enable_if_t < detail::has_non_default_from_json<basic_json_t, ValueType>::value, int > = 0 > ValueType get_impl(detail::priority_tag<1>) const noexcept(noexcept( JSONSerializer<ValueType>::from_json(std::declval<const basic_json_t&>()))) { return JSONSerializer<ValueType>::from_json(*this); } template < typename BasicJsonType, detail::enable_if_t < detail::is_basic_json<BasicJsonType>::value, int > = 0 > BasicJsonType get_impl(detail::priority_tag<2>) const { return *this; } template<typename BasicJsonType, detail::enable_if_t< std::is_same<BasicJsonType, basic_json_t>::value, int> = 0> basic_json get_impl(detail::priority_tag<3>) const { return *this; } template<typename PointerType, detail::enable_if_t< std::is_pointer<PointerType>::value, int> = 0> constexpr auto get_impl(detail::priority_tag<4>) const noexcept -> decltype(std::declval<const basic_json_t&>().template get_ptr<PointerType>()) { return get_ptr<PointerType>(); } public: template < typename ValueTypeCV, typename ValueType = detail::uncvref_t<ValueTypeCV>>
 #if defined(JSON_HAS_CPP_14)
  constexpr
 #endif
@@ -2115,101 +2115,6 @@ namespace std { NLOHMANN_BASIC_JSON_TPL_DECLARATION struct hash<nlohmann::NLOHMA
 #ifndef JSON_HAS_CPP_20
  NLOHMANN_BASIC_JSON_TPL_DECLARATION inline void swap(nlohmann::NLOHMANN_BASIC_JSON_TPL& j1, nlohmann::NLOHMANN_BASIC_JSON_TPL& j2) noexcept( is_nothrow_move_constructible<nlohmann::NLOHMANN_BASIC_JSON_TPL>::value&& is_nothrow_move_assignable<nlohmann::NLOHMANN_BASIC_JSON_TPL>::value) { j1.swap(j2); }
 #endif
-}
-#include <tuple>
-#include <type_traits>
-#include <memory>
-namespace nlohmann {
-  template <typename Fn, typename Tuple, std::size_t... I>
-  inline constexpr void ForEachTuple(Tuple&& tuple,
-	Fn&& fn,
-	std::index_sequence<I...>) {
-	using Expander = int[];
-	(void)Expander {
-	  0, ((void)fn(std::get<I>(std::forward<Tuple>(tuple))), 0)...
-	};
-  }
-
-  template <typename Fn, typename Tuple>
-  inline constexpr void ForEachTuple(Tuple&& tuple, Fn&& fn) {
-	ForEachTuple(
-	  std::forward<Tuple>(tuple), std::forward<Fn>(fn),
-	  std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{});
-  }
-
-  template <typename T>
-  struct is_field_pointer : std::false_type {};
-
-  template <typename C, typename T>
-  struct is_field_pointer<T C::*> : std::true_type {};
-
-  template <typename T>
-  constexpr auto is_field_pointer_v = is_field_pointer<T>::value;
-
-  template <typename T>
-  struct is_optional : std::false_type {};
-  template <typename T>
-  struct is_optional<std::unique_ptr<T>> : std::true_type {};
-  template <typename T>
-  constexpr bool isOptionalV = is_optional<std::decay_t<T>>::value;
-}  // namespace nlohmann
-template <typename T>
-inline constexpr auto StructSchema() {
-  return std::make_tuple();
-}
-#define SYMBOL_(Struct, ...)        \
-  template <>                                    \
-  inline constexpr auto StructSchema<Struct>() { \
-    using _Struct = Struct;                      \
-    return std::make_tuple(__VA_ARGS__);         \
-  }
-#define AS_(StructField) \
-  std::make_tuple(&_Struct::StructField, #StructField)
-#define AS__(StructField, FieldName) \
-  std::make_tuple(&_Struct::StructField, FieldName)
-
-template <typename T, typename Fn>
-inline constexpr void ForEachField(T&& value, Fn&& fn) {
-  constexpr auto struct_schema = StructSchema<std::decay_t<T>>();
-  static_assert(std::tuple_size<decltype(struct_schema)>::value != 0,
-	"StructSchema<T>() for type T should be specialized to return "
-	"FieldSchema tuples, like ((&T::field, field_name), ...)");
-  nlohmann::ForEachTuple(struct_schema, [&value, &fn](auto&& field_schema) {
-	using FieldSchema = std::decay_t<decltype(field_schema)>;
-	static_assert(
-	  std::tuple_size<FieldSchema>::value >= 2 &&
-	  nlohmann::is_field_pointer_v<std::tuple_element_t<0, FieldSchema>>,
-	  "FieldSchema tuple should be (&T::field, field_name)");
-	fn(value.*(std::get<0>(std::forward<decltype(field_schema)>(field_schema))),
-	  std::get<1>(std::forward<decltype(field_schema)>(field_schema)));
-	});
-}
-namespace nlohmann {
-  template <typename T>
-  constexpr bool hasSchema = std::tuple_size<decltype(StructSchema<T>())>::value;
-  template <typename T>
-  struct adl_serializer<std::unique_ptr<T>> {
-	static void to_json(json& j, const std::unique_ptr<T>& opt) {
-	  j = opt ? json(*opt) : json(nullptr);
-	}
-	static void from_json(const json& j, std::unique_ptr<T>& opt) {
-	  opt = !j.is_null() ? std::make_unique<T>(j.get<T>()) : nullptr;
-	}
-  };
-  template <typename T>
-  struct adl_serializer<T, std::enable_if_t<nlohmann::hasSchema<T>>> {
-	template <typename BasicJsonType>
-	static void to_json(BasicJsonType& j, const T& value) {
-	  ForEachField(value, [&j](auto&& field, auto&& name) { j[name] = field; });
-	}
-	template <typename BasicJsonType>
-	static void from_json(const BasicJsonType& j, T& value) {
-	  ForEachField(value, [&j](auto&& field, auto&& name) {
-		if (nlohmann::isOptionalV<decltype(field)> && j.find(name) == j.end())return;
-		try { j.at(name).get_to(field); } catch (const std::exception&) { return; }
-		});
-	}
-  };
 }
 JSON_HEDLEY_NON_NULL(1)inline nlohmann::json operator "" _json(const char* s, std::size_t n) { return nlohmann::json::parse(s, s + n);}JSON_HEDLEY_NON_NULL(1)inline nlohmann::json::json_pointer operator "" _json_pointer(const char* s, std::size_t n) { return nlohmann::json::json_pointer(std::string(s, n));}
 #if defined(__clang__)
@@ -2379,5 +2284,617 @@ JSON_HEDLEY_NON_NULL(1)inline nlohmann::json operator "" _json(const char* s, st
 #undef JSON_HEDLEY_WARN_UNUSED_RESULT
 #undef JSON_HEDLEY_WARN_UNUSED_RESULT_MSG
 #undef JSON_HEDLEY_FALL_THROUGH
-#endif 
+#include <string_view>
+#include <iomanip>
+#include <string.h>
+#include <assert.h>
+#include <iostream>
+#include <iosfwd>
+#include "./str.h"//If it is utf8, please set three times the length
+template<unsigned short I = 255>//Max [65535(char),21845(utf8)], Min 1, default 255.
+class text {//It is similar to a dynamic std::string_view with a fixed maximum length
+  unsigned short l = I; char* _ = new char[I + 1];
+  friend std::string& operator<<(std::string& s, text<I>& c) {
+	s.push_back('"'); s += c.c_str(); s.push_back('"'); return s;
+  };
+  friend std::string& operator<<(std::string& s, const text<I>& c) {
+	s.push_back('"'); s += c.c_str(); s.push_back('"'); return s;
+  };
+  friend std::ostream& operator<<(std::ostream& s, text<I>& c) {
+	return s << c.c_str();
+  };
+public:
+  ~text() { delete[]_; _ = nullptr; };
+  text() { static_assert(I != 0); _[0] = l = 0; };
+  text(const char* c) {
+	static_assert(I != 0); size_t i = strlen(c); if (i < I)l = i; strncpy(_, c, I); _[l] = 0;
+  };
+  text(const text& str) { strcpy(_, str._); l = str.l; }
+  template<unsigned short L>
+  text(const text<L>& str) {
+	static_assert(I >= L); strcpy(_, str.c_str()); l = str.length();
+  }
+  text(const std::string& str) {
+	size_t i = str.length(); strncpy(_, str.c_str(), I); if (i < I)l = i; _[l] = 0;
+  }
+  text& operator = (const char* str) {
+	delete[]_; _ = new char[I + 1]; strncpy(_, str, I); size_t n = strlen(str); l = I < n ? I : n; _[l] = 0; return *this;
+  }
+  text& operator = (const std::string& str) {
+	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I); size_t n = str.length(); l = I < n ? I : n; _[l] = 0; return *this;
+  }
+  text& operator = (const text& str) {
+	delete[]_; _ = new char[I + 1]; strcpy(_, str._); l = str.l; return *this;
+  }
+  template<unsigned short L>
+  text& operator = (const text<L>& str) {
+	delete[]_; _ = new char[I + 1]; strncpy(_, str.c_str(), I); l = str.length(); _[l] = 0; return *this;
+  }
+  inline const char* c_str() const { return _; }//Same as std::string
+  inline const unsigned short length() const { return l; }//Same as std::string
+  inline char& operator[](unsigned short i) { return _[i]; }//Same as std::string
+  inline void operator +=(const char* c) { while (*c && l < I) { _[l++] = *c++; } _[l] = 0; }//Safe, like std::string
+  inline void operator & (const char* c) { while (*c) { _[l++] = *c++; } }//Fast, but not safe. Unless you're sure it's enough(maybe need .end())
+  inline void operator +=(char c) { _[l++] = c; }//Incomplete safety, but it's generally safe and fast(maybe need .end())
+  void operator += (const text& t) {
+	const char* s = t.c_str();
+	if (&t == this) {
+	  int i = 2 * l, k = -1; if (i > I)i = I; while (l < i) { _[l++] = s[++k]; } _[i] = 0;
+	} else {
+	  unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[l] = 0;
+	}
+  }
+  template<unsigned short L>
+  void operator += (const text<L>& t) {
+	const char* s = t.c_str(); unsigned short i = 0xffff; while (s[++i] && l < I) { _[l++] = s[i]; } _[l] = 0;
+  }
+  void operator += (const std::string& t) {
+	unsigned short i = 0xffff; while (t[++i] && l < I) { _[l++] = t[i]; } _[l] = 0;
+  }
+  inline void push_back(const char c) { if (l < I) _[l++] = c; }
+  inline void pop_back() { _[--l] = 0; }
+  inline void push_begin(const char c) { unsigned short i = l; while (i) { _[i] = _[i - 1]; --i; } _[++l] = 0; _[0] = c; }
+  inline void end() { _[l] = 0; }
+  inline void clear() { _[0] = l = 0; }
+  inline void slice(unsigned char i) { assert(i < I); _[i] = 0; l = i; }
+};
+template<unsigned short I>
+std::ostream& operator<<(std::ostream& s, text<I> c) {
+  return s << c.c_str();
+}
+template<unsigned short I>
+text<I> operator+(text<I>& t, const char* c) {
+  unsigned short& l = *((unsigned short*)(&t)); while (*c && l < I) { t[l] = *c++; ++l; } t[l] = 0; return t;
+}
+template<unsigned short I>
+text<I> operator+(text<I>& t, const std::string& $) {
+  unsigned short& l = *((unsigned short*)(&t)); char* c = (char*)$.c_str(); while (*c && l < I) { t[l] = *c++; ++l; } t[l] = 0; return t;
+}
+template<unsigned short I, unsigned short K>
+text<I> operator+(text<I>& t, const text<K>& $) {
+  unsigned short& l = *((unsigned short*)(&t)); char* c = (char*)$.c_str(); while (*c && l < I) { t[l] = *c++; ++l; } t[l] = 0; return t;
+}
+template<unsigned short I>
+text<I> operator+(const char* c, text<I>& t) {
+  text<I> f(t); unsigned short r = strlen(c) - 1, & l = *((unsigned short*)(&t)), i = 0; while (f[i] && r < I) { t[++r] = f[i]; ++i; ++l; }
+  i = 0; while (*c) { t[i] = *c++; ++i; } t[++l] = 0; return t;
+}
+template<unsigned short I>
+text<I> operator+(const char c, text<I>& t) {
+  unsigned short& l = *((unsigned short*)(&t)), i = l; while (i) { t[i] = t[i - 1]; --i; } t[++l] = 0; t[0] = c; return t;
+}
+template<unsigned short I>
+std::string operator+(std::string& t, const text<I>& $) {
+  char* c = (char*)$.c_str(); while (*c) { t.push_back(*c); *++c; } t.push_back(0); return t;
+}
+template<class T>
+struct is_text : std::false_type {};
+template<class T>
+struct is_text<T[]> : std::false_type {};
+template<unsigned short N>
+struct is_text<text<N>> : std::true_type {};
+inline const std::string textify(const char* t) { return toQuotes(t); }
+inline const std::string textify(const std::string& t) { return toQuotes(t.c_str()); }
+inline const std::string textify(const tm& _v) {
+  std::ostringstream os; os << std::setfill('0');
+#ifdef _WIN32
+  os << std::setw(4) << _v.tm_year + 1900;
+#else
+  int y = _v.tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << _v.tm_year - y * 100;
+#endif
+  os << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
+	<< _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; return os.str();
+}
+template<unsigned short I>
+inline const std::string textify(const text<I>& t) { return toQuotes(t.c_str()); }
+template<typename T>
+inline typename std::enable_if<std::is_fundamental<T>::value, const std::string>::type textify(const T& t) { return std::to_string(t); }
+template<unsigned short I, typename T>
+text<I * 2> operator!=(const text<I>& o, const T& v) {
+  text<I * 2> x(o); x += '<'; x += '>';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<unsigned short I, typename T>
+text<I * 2> operator==(const text<I>& o, const T& v) {
+  text<I * 2> x(o); x += '=';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<unsigned short I, typename T>
+text<I * 2> operator<(const text<I>& o, const T& v) {
+  text<I * 2> x(o); x += '<';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<unsigned short I, typename T>
+text<I * 2> operator<=(const text<I>& o, const T& v) {
+  text<I * 2> x(o); x += '<'; x += '=';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<unsigned short I, typename T>
+text<I * 2> operator>=(const text<I>& o, const T& v) {
+  text<I * 2> x(o); x += '>'; x += '=';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<unsigned short I, typename T>
+text<I * 2> operator>(const text<I>& o, const T& v) {
+  text<I * 2> x(o); x += '>';
+  if constexpr (std::is_same<T, std::string>::value || std::is_same<T, tm>::value || std::is_same<T, const char*>::value) {
+	x += '\''; x += textify(v); x += '\'';
+  } else {
+	x += textify(v);
+  } x += (char)0; return x;
+}
+template<unsigned short I, unsigned short L>
+text<I + L + 7> operator&&(text<I> o, const text<L>& c) {
+  text<I + L + 7> x("("); x += o; x += " AND "; x += c; x += ')'; x.end(); return x;
+};
+template<unsigned short I, unsigned short L>
+text<I + L + 6> operator||(text<I> o, const text<L>& c) {
+  text<I + L + 6> x("("); x += o; x += " OR "; x += c; x += ')'; x.end(); return x;
+};
 using json = nlohmann::json;
+#define RUST_CAST reinterpret_cast<char*>
+#define Class(class) struct class {
+namespace std {
+  //Compatibility layer to prevent the compiler from reporting errors
+#if _WIN32
+#if _HAS_CXX17==0
+  struct string_view {
+	string_view(const char*, unsigned long long);
+	[[nodiscard]] size_t length() const;
+	[[nodiscard]] size_t size() const;
+	[[nodiscard]] inline const char* data() const;
+  };
+  struct nullopt_t {
+	explicit constexpr nullopt_t(int) {}
+  };
+  template <class T>
+  struct optional {
+	using value_type = T;
+	constexpr optional() noexcept {}
+	constexpr optional(nullopt_t) noexcept {}
+  };
+  struct any {
+	any(void* v); any& operator=(void*);
+  };
+  std::string operator+=(std::string& t, const string_view& $) { return t; };
+#endif
+#elif !defined(_HAS_CXX17)
+
+#endif
+}
+namespace orm {
+  using Expand = int[];
+#define Exp (void)orm::Expand
+  template <typename T, typename Fn, std::size_t... I>
+  inline constexpr void ForEachTuple(T& tuple, Fn&& fn, std::index_sequence<I...>) { Exp{ ((void)fn(std::get<I>(tuple)), 0)... }; }
+  template <typename T, typename Fn>
+  inline constexpr void ForEachField(T* value, Fn&& fn) {
+	ForEachTuple(T::Tuple, [value, &fn](auto field) { fn(value->*(field)); }, std::make_index_sequence<sizeof(T::$) / sizeof(*T::$)>{});
+  }
+  template <class T> struct is_vector : std::false_type {};
+  template <class T> struct is_vector<T[]> : std::false_type {};
+  template <class T> struct is_vector<std::vector<T>> : std::true_type {};
+  template <class T> struct is_ptr : std::false_type {};
+  template <class T> struct is_ptr<T*> : std::true_type {};
+  template <class T> struct is_ptr<const T*> : std::true_type {};
+  template<typename C> struct vector_pack {};
+  template<template<typename, typename> class C, typename A, typename B> struct vector_pack<C<A, B>> { using type = A; };
+  template<typename T> using vector_pack_t = typename vector_pack<T>::type;
+  template<typename T> struct ptr_pack {};
+  template<typename T> struct ptr_pack<T*> { using type = T; };
+  template<typename T> using ptr_pack_t = typename ptr_pack<T>::type;
+  //Serialization into JSON
+  inline void FuckJSON(const tm& _v, const char* s, json& j) {
+	std::ostringstream os; os << std::setfill('0');
+#ifdef _WIN32
+	os << std::setw(4) << _v.tm_year + 1900;
+#else
+	int y = _v.tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << _v.tm_year - y * 100;
+#endif
+	os << '-' << std::setw(2) << (_v.tm_mon + 1) << '-' << std::setw(2) << _v.tm_mday << ' ' << std::setw(2)
+	  << _v.tm_hour << ':' << std::setw(2) << _v.tm_min << ':' << std::setw(2) << _v.tm_sec; j[s] = os.str();
+  }
+  template <class T>
+  static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckJSON(const T& _v, const char* s, json& j) {
+	j[s] = _v.c_str();
+  }
+  template <class T>
+  static typename std::enable_if<is_vector<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
+	using Y = vector_pack_t<T>; size_t l = _v.size(); if (l) {
+	  if constexpr (std::is_same<Y, std::string>::value || std::is_same<Y, tm>::value || is_text<Y>::value) {
+		std::string s; s.reserve(0x1f); s.push_back('['); s.push_back('\"');
+		if constexpr (std::is_same<Y, std::string>::value) { s += _v[0]; } else { s << _v[0]; } s.push_back('\"');
+		for (size_t i = 1; i < l; ++i) {
+		  s.push_back(','); s.push_back('\"');
+		  if constexpr (std::is_same<Y, std::string>::value) { s += _v[i]; } else { s << _v[i]; } s.push_back('\"');
+		} s.push_back(']'); j[c] = json::parse(s);
+	  } else if constexpr (std::is_fundamental<Y>::value) {
+		std::string s; s.push_back('['); s += std::to_string(_v[0]);
+		for (size_t i = 0; ++i < l; s.push_back(','), s += std::to_string(_v[i])); s.push_back(']'); j[c] = json::parse(s);
+	  } else {
+		std::string s; s.reserve(0x3f); s.push_back('[');
+		for (size_t i = 0; i < l; ++i) {
+		  auto* t = &_v[i]; s.push_back('{'); int8_t k = -1;
+		  ForEachTuple(Y::Tuple, [t, &k, &s](auto& _) {
+			if constexpr (std::is_same<const tm, std::remove_reference_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
+#ifdef _WIN32
+			  os << std::setw(4) << time->tm_year + 1900;
+#else
+			  int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
+#endif
+			  os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
+				<< time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str();
+			} else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false";
+			} else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_);
+			} else if constexpr (std::is_same<const std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\"";
+			} else if constexpr (is_vector<std::decay_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_;
+			} else if constexpr (is_ptr<std::decay_t<decltype(t->*_)>>::value) {
+			  s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_;
+			} else {
+			  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_;
+			} s.push_back(',');
+			}, std::make_index_sequence<sizeof(Y::$) / sizeof(*Y::$)>{}); s[s.size() - 1] = '}'; s.push_back(',');
+		} s[s.size() - 1] = ']'; j[c] = json::parse(s);
+	  }
+	}
+  }
+  template<typename T>
+  inline typename std::enable_if<!is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* s, json& j) {
+	j[s] = _v;
+  }
+  template <class T>
+  static typename std::enable_if<is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckJSON(const T& _v, const char* c, json& j) {
+	if (_v == nullptr) {
+	  j[c] = nullptr;
+	} else {
+	  using Y = ptr_pack_t<T>; auto* t = const_cast<T>(_v); std::string s; s.reserve(0x3f); s.push_back('{'); int8_t k = -1;
+	  ForEachTuple(Y::Tuple, [t, &k, &s](auto& _) {
+		if constexpr (std::is_same<tm, std::remove_reference_t<decltype(t->*_)>>::value) {
+		  s.push_back('"'); s += t->$[++k];
+		  s += "\":\""; std::ostringstream os; const tm* time = &(t->*_); os << std::setfill('0');
+#ifdef _WIN32
+		  os << std::setw(4) << time->tm_year + 1900;
+#else
+		  int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;
+#endif
+		  os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)
+			<< time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str(); s.push_back(',');
+		} else if constexpr (std::is_same<bool, decltype(t->*_)>::value) {
+		  s.push_back('"'); s += t->$[++k]; s += "\":", s += t->*_ == true ? "true" : "false"; s.push_back(',');
+		} else if constexpr (std::is_fundamental<std::remove_reference_t<decltype(t->*_)>>::value) {
+		  s.push_back('"'); s += t->$[++k]; s += "\":" + std::to_string(t->*_); s.push_back(',');
+		} else if constexpr (std::is_same<std::string, std::remove_reference_t<decltype(t->*_)>>::value) {
+		  s.push_back('"'); s += t->$[++k]; s += "\":\"" + t->*_ + "\""; s.push_back(',');
+		} else if constexpr (is_vector<std::remove_reference_t<decltype(t->*_)>>::value) {
+		  s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(',');
+		} else if constexpr (is_text<std::remove_reference_t<decltype(t->*_)>>::value) {
+		  s.push_back('"'); s += t->$[++k]; s += "\":"; s << t->*_; s.push_back(',');
+		} else if constexpr (is_ptr<std::remove_reference_t<decltype(t->*_)>>::value) {
+		  s.push_back('"'); s += t->$[++k]; s += "\":"; t->*_ == nullptr ? s += "null" : s << t->*_; s.push_back(',');
+		} else {
+		  s.push_back('"'); s += t->$[++k]; s += "\":"; s << &(t->*_); s.push_back(',');
+		}
+		}, std::make_index_sequence<sizeof(Y::$) / sizeof(*Y::$)>{}); s[s.size() - 1] = '}';
+		j[c] = json::parse(s);
+	}
+  }
+  //Deserialization into Object
+  inline void FuckOop(tm& _v, const char* s, const json& j) {
+	std::string d_; try { if (j.contains(s))j.at(s).get_to(d_); } catch (const std::exception&) {
+	  _v.tm_year = -1900; _v.tm_mon = -1; _v.tm_mday = 0; _v.tm_hour = 0; _v.tm_min = 0; _v.tm_sec = 0;
+	} int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+	if (sscanf(d_.c_str(), "%4d-%2d-%2d %2d:%2d:%2d", &year, &month, &day, &hour, &min, &sec) == 6) {
+	  _v.tm_year = year - 1900; _v.tm_mon = month - 1; _v.tm_mday = day; _v.tm_hour = hour; _v.tm_min = min; _v.tm_sec = sec;
+	}
+  }
+  template <class T>
+  static inline typename std::enable_if<is_text<T>::value || std::is_same_v<T, std::string>, void>::type FuckOop(T& _v, const char* s, const json& j) {
+	try { _v = j.at(s).get<std::string>(); } catch (const std::exception&) {}
+  }
+  template <class T>
+  static inline typename std::enable_if<is_vector<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
+	using Y = vector_pack_t<T>; try { for (auto& t : j.at(s))_v.push_back(t.get<Y>()); } catch (const std::exception&) {}
+  }
+  template<typename T>
+  inline typename std::enable_if<!is_ptr<T>::value&& std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
+	try {
+	  if (j.contains(s)) { if constexpr (std::is_same_v<bool, T>) { _v = j.at(s).get<short>() == 0 ? false : true; } else { j.at(s).get_to(_v); } }
+	} catch (const std::exception&) {}
+  }
+  template <class T>
+  inline typename std::enable_if<is_ptr<T>::value && !std::is_fundamental<T>::value, void>::type FuckOop(T& _v, const char* s, const json& j) {
+	if (_v != nullptr && j.contains(s)) { *_v = j.at(s).get<ptr_pack_t<T>>(); }
+  }
+}
+#define EXP(O) O
+#ifdef _MSC_VER
+#define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
+#define NUM_ARGS(...) EXP(ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
+#else
+#define ARGS_HELPER(_,_64,_63,_62,_61,_60,_59,_58,_57,_56,_55,_54,_53,_52,_51,_50,_49,_48,_47,_46,_45,_44,_43,_42,_41,_40,_39,_38,_37,_36,_35,_34,_33,_32,_31,_30,_29,_28,_27,_26,_25,_24,_23,_22,_21,_20,_19,_18,_17,_16,_15,_14,_13,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,N,...) N
+#define NUM_ARGS(...) ARGS_HELPER(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0)
+#endif
+#ifndef _WIN32
+#define _IS_WIN32 0
+#else
+#define _IS_WIN32 1
+#endif
+#define PROTO_1(k)      std::string_view(#k, sizeof(#k)-1)
+#define PROTO_2(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_1(__VA_ARGS__))
+#define PROTO_3(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_2(__VA_ARGS__))
+#define PROTO_4(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_3(__VA_ARGS__))
+#define PROTO_5(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_4(__VA_ARGS__))
+#define PROTO_6(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_5(__VA_ARGS__))
+#define PROTO_7(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_6(__VA_ARGS__))
+#define PROTO_8(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_7(__VA_ARGS__))
+#define PROTO_9(k,...)  std::string_view(#k, sizeof(#k)-1), EXP(PROTO_8(__VA_ARGS__))
+#define PROTO_10(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_9(__VA_ARGS__))
+#define PROTO_11(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_10(__VA_ARGS__))
+#define PROTO_12(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_11(__VA_ARGS__))
+#define PROTO_13(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_12(__VA_ARGS__))
+#define PROTO_14(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_13(__VA_ARGS__))
+#define PROTO_15(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_14(__VA_ARGS__))
+#define PROTO_16(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_15(__VA_ARGS__))
+#define PROTO_17(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_16(__VA_ARGS__))
+#define PROTO_18(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_17(__VA_ARGS__))
+#define PROTO_19(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_18(__VA_ARGS__))
+#define PROTO_20(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_19(__VA_ARGS__))
+#define PROTO_21(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_20(__VA_ARGS__))
+#define PROTO_22(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_21(__VA_ARGS__))
+#define PROTO_23(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_22(__VA_ARGS__))
+#define PROTO_24(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_23(__VA_ARGS__))
+#define PROTO_25(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_24(__VA_ARGS__))
+#define PROTO_26(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_25(__VA_ARGS__))
+#define PROTO_27(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_26(__VA_ARGS__))
+#define PROTO_28(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_27(__VA_ARGS__))
+#define PROTO_29(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_28(__VA_ARGS__))
+#define PROTO_30(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_29(__VA_ARGS__))
+#define PROTO_31(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_30(__VA_ARGS__))
+#define PROTO_32(k,...) std::string_view(#k, sizeof(#k)-1), EXP(PROTO_31(__VA_ARGS__))
+#define PROTO_N1(N,...) EXP(PROTO_##N(__VA_ARGS__))
+#define PROTO_N(N,...) PROTO_N1(N,__VA_ARGS__)
+
+#define COL_1(o,k)      orm::FuckJSON(o.k,#k,j);
+#define COL_2(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_1(o,__VA_ARGS__))
+#define COL_3(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_2(o,__VA_ARGS__))
+#define COL_4(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_3(o,__VA_ARGS__))
+#define COL_5(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_4(o,__VA_ARGS__))
+#define COL_6(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_5(o,__VA_ARGS__))
+#define COL_7(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_6(o,__VA_ARGS__))
+#define COL_8(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_7(o,__VA_ARGS__))
+#define COL_9(o,k,...)  orm::FuckJSON(o.k,#k,j), EXP(COL_8(o,__VA_ARGS__))
+#define COL_10(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_9(o,__VA_ARGS__))
+#define COL_11(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_10(o,__VA_ARGS__))
+#define COL_12(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_11(o,__VA_ARGS__))
+#define COL_13(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_12(o,__VA_ARGS__))
+#define COL_14(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_13(o,__VA_ARGS__))
+#define COL_15(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_14(o,__VA_ARGS__))
+#define COL_16(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_15(o,__VA_ARGS__))
+#define COL_17(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_16(o,__VA_ARGS__))
+#define COL_18(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_17(o,__VA_ARGS__))
+#define COL_19(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_18(o,__VA_ARGS__))
+#define COL_20(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_19(o,__VA_ARGS__))
+#define COL_21(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_20(o,__VA_ARGS__))
+#define COL_22(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_21(o,__VA_ARGS__))
+#define COL_23(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_22(o,__VA_ARGS__))
+#define COL_24(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_23(o,__VA_ARGS__))
+#define COL_25(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_24(o,__VA_ARGS__))
+#define COL_26(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_25(o,__VA_ARGS__))
+#define COL_27(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_26(o,__VA_ARGS__))
+#define COL_28(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_27(o,__VA_ARGS__))
+#define COL_29(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_28(o,__VA_ARGS__))
+#define COL_30(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_29(o,__VA_ARGS__))
+#define COL_31(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_30(o,__VA_ARGS__))
+#define COL_32(o,k,...) orm::FuckJSON(o.k,#k,j), EXP(COL_31(o,__VA_ARGS__))
+#define COL_N1(o,N,...) EXP(COL_##N(o,__VA_ARGS__))
+#define COL_N(o,N,...) COL_N1(o,N,__VA_ARGS__)
+
+#define ATTR_1(o,k)      orm::FuckOop(o.k,#k,j);
+#define ATTR_2(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_1(o,__VA_ARGS__))
+#define ATTR_3(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_2(o,__VA_ARGS__))
+#define ATTR_4(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_3(o,__VA_ARGS__))
+#define ATTR_5(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_4(o,__VA_ARGS__))
+#define ATTR_6(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_5(o,__VA_ARGS__))
+#define ATTR_7(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_6(o,__VA_ARGS__))
+#define ATTR_8(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_7(o,__VA_ARGS__))
+#define ATTR_9(o,k,...)  orm::FuckOop(o.k,#k,j), EXP(ATTR_8(o,__VA_ARGS__))
+#define ATTR_10(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_9(o,__VA_ARGS__))
+#define ATTR_11(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_10(o,__VA_ARGS__))
+#define ATTR_12(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_11(o,__VA_ARGS__))
+#define ATTR_13(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_12(o,__VA_ARGS__))
+#define ATTR_14(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_13(o,__VA_ARGS__))
+#define ATTR_15(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_14(o,__VA_ARGS__))
+#define ATTR_16(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_15(o,__VA_ARGS__))
+#define ATTR_17(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_16(o,__VA_ARGS__))
+#define ATTR_18(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_17(o,__VA_ARGS__))
+#define ATTR_19(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_18(o,__VA_ARGS__))
+#define ATTR_20(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_19(o,__VA_ARGS__))
+#define ATTR_21(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_20(o,__VA_ARGS__))
+#define ATTR_22(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_21(o,__VA_ARGS__))
+#define ATTR_23(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_22(o,__VA_ARGS__))
+#define ATTR_24(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_23(o,__VA_ARGS__))
+#define ATTR_25(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_24(o,__VA_ARGS__))
+#define ATTR_26(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_25(o,__VA_ARGS__))
+#define ATTR_27(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_26(o,__VA_ARGS__))
+#define ATTR_28(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_27(o,__VA_ARGS__))
+#define ATTR_29(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_28(o,__VA_ARGS__))
+#define ATTR_30(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_29(o,__VA_ARGS__))
+#define ATTR_31(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_30(o,__VA_ARGS__))
+#define ATTR_32(o,k,...) orm::FuckOop(o.k,#k,j), EXP(ATTR_31(o,__VA_ARGS__))
+#define ATTR_N1(o,N,...) EXP(ATTR_##N(o,__VA_ARGS__))
+#define ATTR_N(o,N,...) ATTR_N1(o,N,__VA_ARGS__)
+#define ATTRS(o,...)\
+static void to_json(json& j, const o& f) { COL_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }\
+static void from_json(const json& j, o& f) { ATTR_N(f,NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }
+
+#define STAR_1(o,k)      &o::k
+#define STAR_2(o,k,...)  &o::k, EXP(STAR_1(o,__VA_ARGS__))
+#define STAR_3(o,k,...)  &o::k, EXP(STAR_2(o,__VA_ARGS__))
+#define STAR_4(o,k,...)  &o::k, EXP(STAR_3(o,__VA_ARGS__))
+#define STAR_5(o,k,...)  &o::k, EXP(STAR_4(o,__VA_ARGS__))
+#define STAR_6(o,k,...)  &o::k, EXP(STAR_5(o,__VA_ARGS__))
+#define STAR_7(o,k,...)  &o::k, EXP(STAR_6(o,__VA_ARGS__))
+#define STAR_8(o,k,...)  &o::k, EXP(STAR_7(o,__VA_ARGS__))
+#define STAR_9(o,k,...)  &o::k, EXP(STAR_8(o,__VA_ARGS__))
+#define STAR_10(o,k,...) &o::k, EXP(STAR_9(o,__VA_ARGS__))
+#define STAR_11(o,k,...) &o::k, EXP(STAR_10(o,__VA_ARGS__))
+#define STAR_12(o,k,...) &o::k, EXP(STAR_11(o,__VA_ARGS__))
+#define STAR_13(o,k,...) &o::k, EXP(STAR_12(o,__VA_ARGS__))
+#define STAR_14(o,k,...) &o::k, EXP(STAR_13(o,__VA_ARGS__))
+#define STAR_15(o,k,...) &o::k, EXP(STAR_14(o,__VA_ARGS__))
+#define STAR_16(o,k,...) &o::k, EXP(STAR_15(o,__VA_ARGS__))
+#define STAR_17(o,k,...) &o::k, EXP(STAR_16(o,__VA_ARGS__))
+#define STAR_18(o,k,...) &o::k, EXP(STAR_17(o,__VA_ARGS__))
+#define STAR_19(o,k,...) &o::k, EXP(STAR_18(o,__VA_ARGS__))
+#define STAR_20(o,k,...) &o::k, EXP(STAR_19(o,__VA_ARGS__))
+#define STAR_21(o,k,...) &o::k, EXP(STAR_20(o,__VA_ARGS__))
+#define STAR_22(o,k,...) &o::k, EXP(STAR_21(o,__VA_ARGS__))
+#define STAR_23(o,k,...) &o::k, EXP(STAR_22(o,__VA_ARGS__))
+#define STAR_24(o,k,...) &o::k, EXP(STAR_23(o,__VA_ARGS__))
+#define STAR_25(o,k,...) &o::k, EXP(STAR_24(o,__VA_ARGS__))
+#define STAR_26(o,k,...) &o::k, EXP(STAR_25(o,__VA_ARGS__))
+#define STAR_27(o,k,...) &o::k, EXP(STAR_26(o,__VA_ARGS__))
+#define STAR_28(o,k,...) &o::k, EXP(STAR_27(o,__VA_ARGS__))
+#define STAR_29(o,k,...) &o::k, EXP(STAR_28(o,__VA_ARGS__))
+#define STAR_30(o,k,...) &o::k, EXP(STAR_29(o,__VA_ARGS__))
+#define STAR_31(o,k,...) &o::k, EXP(STAR_30(o,__VA_ARGS__))
+#define STAR_32(o,k,...) &o::k, EXP(STAR_31(o,__VA_ARGS__))
+#define STARS_N(o,N,...) EXP(STAR_##N(o,__VA_ARGS__))
+#define STARS(o,N,...) STARS_N(o,N,__VA_ARGS__)
+
+#define STAR__1(o,k)      decltype(&o::k)
+#define STAR__2(o,k,...)  decltype(&o::k), EXP(STAR__1(o,__VA_ARGS__))
+#define STAR__3(o,k,...)  decltype(&o::k), EXP(STAR__2(o,__VA_ARGS__))
+#define STAR__4(o,k,...)  decltype(&o::k), EXP(STAR__3(o,__VA_ARGS__))
+#define STAR__5(o,k,...)  decltype(&o::k), EXP(STAR__4(o,__VA_ARGS__))
+#define STAR__6(o,k,...)  decltype(&o::k), EXP(STAR__5(o,__VA_ARGS__))
+#define STAR__7(o,k,...)  decltype(&o::k), EXP(STAR__6(o,__VA_ARGS__))
+#define STAR__8(o,k,...)  decltype(&o::k), EXP(STAR__7(o,__VA_ARGS__))
+#define STAR__9(o,k,...)  decltype(&o::k), EXP(STAR__8(o,__VA_ARGS__))
+#define STAR__10(o,k,...) decltype(&o::k), EXP(STAR__9(o,__VA_ARGS__))
+#define STAR__11(o,k,...) decltype(&o::k), EXP(STAR__10(o,__VA_ARGS__))
+#define STAR__12(o,k,...) decltype(&o::k), EXP(STAR__11(o,__VA_ARGS__))
+#define STAR__13(o,k,...) decltype(&o::k), EXP(STAR__12(o,__VA_ARGS__))
+#define STAR__14(o,k,...) decltype(&o::k), EXP(STAR__13(o,__VA_ARGS__))
+#define STAR__15(o,k,...) decltype(&o::k), EXP(STAR__14(o,__VA_ARGS__))
+#define STAR__16(o,k,...) decltype(&o::k), EXP(STAR__15(o,__VA_ARGS__))
+#define STAR__17(o,k,...) decltype(&o::k), EXP(STAR__16(o,__VA_ARGS__))
+#define STAR__18(o,k,...) decltype(&o::k), EXP(STAR__17(o,__VA_ARGS__))
+#define STAR__19(o,k,...) decltype(&o::k), EXP(STAR__18(o,__VA_ARGS__))
+#define STAR__20(o,k,...) decltype(&o::k), EXP(STAR__19(o,__VA_ARGS__))
+#define STAR__21(o,k,...) decltype(&o::k), EXP(STAR__20(o,__VA_ARGS__))
+#define STAR__22(o,k,...) decltype(&o::k), EXP(STAR__21(o,__VA_ARGS__))
+#define STAR__23(o,k,...) decltype(&o::k), EXP(STAR__22(o,__VA_ARGS__))
+#define STAR__24(o,k,...) decltype(&o::k), EXP(STAR__23(o,__VA_ARGS__))
+#define STAR__25(o,k,...) decltype(&o::k), EXP(STAR__24(o,__VA_ARGS__))
+#define STAR__26(o,k,...) decltype(&o::k), EXP(STAR__25(o,__VA_ARGS__))
+#define STAR__27(o,k,...) decltype(&o::k), EXP(STAR__26(o,__VA_ARGS__))
+#define STAR__28(o,k,...) decltype(&o::k), EXP(STAR__27(o,__VA_ARGS__))
+#define STAR__29(o,k,...) decltype(&o::k), EXP(STAR__28(o,__VA_ARGS__))
+#define STAR__30(o,k,...) decltype(&o::k), EXP(STAR__29(o,__VA_ARGS__))
+#define STAR__31(o,k,...) decltype(&o::k), EXP(STAR__30(o,__VA_ARGS__))
+#define STAR__32(o,k,...) decltype(&o::k), EXP(STAR__31(o,__VA_ARGS__))
+#define STAR_S_N(o,N,...) EXP(STAR__##N(o,__VA_ARGS__))
+#define STAR_S(o,N,...) STAR_S_N(o,N,__VA_ARGS__)
+
+#define SCHEMA(o,...) private: static std::tuple<STAR_S(o,NUM_ARGS(__VA_ARGS__),__VA_ARGS__)> Tuple; const static std::string_view $[];\
+friend std::string& operator<<(std::string& s, o* c); template<typename T,typename Fn>friend constexpr void orm::ForEachField(T* value, Fn&& fn);\
+template<typename U>friend typename std::enable_if<orm::is_vector<U>::value,void>::type orm::FuckJSON(const U& u, const char* s, json& j);\
+template<typename U>friend typename std::enable_if<orm::is_ptr<U>::value&&!std::is_fundamental<U>::value,void>::type orm::FuckJSON(const U& u, const char* c, json& j);
+
+#define FUCKER(o,...)const std::string_view o::$[NUM_ARGS(__VA_ARGS__)] = { PROTO_N(NUM_ARGS(__VA_ARGS__),__VA_ARGS__) }; ATTRS(o, __VA_ARGS__)\
+std::tuple<STAR_S(o, NUM_ARGS(__VA_ARGS__),__VA_ARGS__)> o::Tuple = std::make_tuple(STARS(o, NUM_ARGS(__VA_ARGS__), __VA_ARGS__));\
+std::string& operator<<(std::string& s, o* c) {\
+  if (c == nullptr || *((char*)(RUST_CAST(c)+(size_t)(&reinterpret_cast<char const volatile&>(((o*)0)->*std::get<0>(o::Tuple))))) == 0) {\
+  s += "null"; return s; } s.push_back('{'); int8_t i = -1; orm::ForEachField(c, [&i, c, &s](auto& t) { using Y=std::remove_reference_t<decltype(t)>;\
+  if constexpr (!orm::is_vector<Y>::value) { s.push_back('"'); s += c->$[++i]; }\
+  if constexpr (std::is_same<tm, Y>::value) {\
+	s += "\":\""; std::ostringstream os; const tm* time = &t; os << std::setfill('0');\
+    if constexpr(_IS_WIN32){os << std::setw(4) << time->tm_year + 1900;}else{\
+      int y = time->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << time->tm_year - y * 100;}\
+	os << '-' << std::setw(2) << (time->tm_mon + 1) << '-' << std::setw(2) << time->tm_mday << ' ' << std::setw(2)\
+	<< time->tm_hour << ':' << std::setw(2) << time->tm_min << ':' << std::setw(2) << time->tm_sec << '"'; s += os.str(); s.push_back(',');\
+  } else if constexpr (std::is_same<bool, Y>::value) {\
+	s += "\":", s += t == true ? "true" : "false"; s.push_back(',');\
+  } else if constexpr (std::is_fundamental<Y>::value) {\
+	s += "\":" + std::to_string(t); s.push_back(',');\
+  } else if constexpr (std::is_same<std::string, Y>::value) {\
+	s += "\":\"" + t + "\""; s.push_back(',');\
+  } else if constexpr (orm::is_vector<Y>::value) {\
+	size_t l = t.size(); if (l) { s.push_back('"'); s += c->$[++i]; s += "\":"; s << &t; s.push_back(','); }\
+  } else if constexpr (orm::is_ptr<Y>::value) {\
+    s += "\":";t==nullptr?s+="null":s << t; s.push_back(',');\
+  } else if constexpr (is_text<Y>::value) {\
+	s += "\":"; s << t; s.push_back(',');\
+  } else {\
+	s += "\":"; s << &t; s.push_back(',');\
+  }\
+  }); s[s.size() - 1] = '}'; return s;\
+  }\
+std::string& operator<<(std::string& s, std::vector<o> c) {\
+s.push_back('['); size_t l = c.size(); if (l > 0) { s << &c[0];\
+  for (size_t i = 1; i < l; ++i) { s.push_back(','), s << &c[i]; }\
+} s.push_back(']'); return s; }\
+std::ostream& operator<<(std::ostream& s, std::vector<o> c) {\
+s << '['; size_t l = c.size(); if (l > 0) { s << &c[0];\
+ for (size_t i = 1; i < l; ++i) { s << ',' << &c[i]; }\
+} s << ']'; return s; }\
+std::string& operator<<(std::string& s, std::vector<o>* c) {\
+  s.push_back('['); size_t l = c->size(); if (l > 0) { s << &c->at(0);\
+  for (size_t i = 1; i < l; ++i) { s.push_back(','), s << &c->at(i); }\
+  } s.push_back(']'); return s;\
+}\
+std::ostream& operator<<(std::ostream& s, std::vector<o>* c) {\
+  s << '['; size_t l = c->size(); if (l > 0) { s << &c->at(0);\
+  for (size_t i = 1; i < l; ++i) { s << ',' << &c->at(i); }\
+  } s << ']'; return s;\
+}\
+std::ostream& operator<<(std::ostream& m, o* c) { std::string s; s << c; return m << s; }\
+std::ostream& operator<<(std::ostream& m, o& c) { std::string s; s << &c; return m << s; }
+#define FUCKJSON(o,...)SCHEMA(o,__VA_ARGS__)};FUCKER(o,__VA_ARGS__)
+#endif 

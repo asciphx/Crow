@@ -41,8 +41,8 @@ namespace cc {
 		try {
 		  json j = json::parse(value);
 		  throw std::runtime_error(j.dump());
-		} catch (const std::exception&) {
-		  throw std::runtime_error("Wrong json string!");
+		} catch (const std::exception& e) {
+		  throw std::runtime_error(e.what());
 		}
 	  }
 	  if (value.size() < 45) throw std::runtime_error("Wrong value size!");
