@@ -40,7 +40,7 @@ int main(){
 ## Examples
 #### Upload file
 ```c++
-  app.route("/upload").methods(cc::HTTPMethod::POST)([](const cc::Req& req) {
+  app.route("/upload").methods(cc::HTTP::POST)([](const cc::Req& req) {
 	  cc::Parser<2048> msg(req);
 	  json j = json::object();
 	  for (auto p : msg.params) {
