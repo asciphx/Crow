@@ -29,6 +29,7 @@ int main(){
  -  The third-party JSON parser [Nlohmann json](https://github.com/nlohmann/json) is used for static reflection and outputs JSON.
  - [Mustache](http://mustache.github.io/) based templating library (cc::mustache)
  - Header only
+ - Provide an amalgamated header file [`crow_all.h`](https://github.com/ipkn/crow/releases/download/v0.1/crow_all.h) with every features ([Download from here](https://github.com/ipkn/crow/releases/download/v0.1/crow_all.h))
  - Middleware support
  - Websocket support
  - Support static resources and the default is in the 'static/' directory

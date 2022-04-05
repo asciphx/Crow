@@ -16,6 +16,7 @@
 #include "cc/file.h"
 #include "cc/http_request.h"
 #include "cc/websocket.h"
+#include "cc/parser.h"
 #include "cc/any_types.h"
 #include "cc/http_response.h"
 #include "cc/body_parser.h"
