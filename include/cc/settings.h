@@ -1,4 +1,5 @@
-#pragma once// default settings for cc
+
+#pragma once
 #define DEFAULT_ENABLE_LOGGING
 #define DEFAULT_LOG_LEVEL 3
 #define DEFAULT_PORT 80
