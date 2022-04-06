@@ -13,7 +13,7 @@
 #include "cc/utility.h"
 #include "cc/logging.h"
 #include "cc/websocket.h"
-namespace cc { static const std::string Res_server_tag("Server: ", 8), Res_content_length_tag("Content-Length: ", 16), Res_http_status("HTTP/1.1 ", 9), Res_Con("Connection", 10), Res_con("connection", 10), RES_S_C("Set-Cookie", 10), RES_Ex("expect", 6), RES_upgrade("upgrade", 7), RES_AcC("Access-Control-Allow-Credentials: ", 34), RES_t("true", 4), RES_AcM("Access-Control-Allow-Methods: ", 30), Res_host("Host", 4), RES_AcH("Access-Control-Allow-Headers: ", 30), RES_AcO("Access-Control-Allow-Origin: ", 29), Res_expect("HTTP/1.1 100 Continue\r\n\r\n", 25), Res_date_tag("Date: ", 6), Res_content_length("content-length", 14), Res_seperator(": ", 2), Res_crlf("\r\n", 2), Res_loc("location", 8);    class BaseRule { public: BaseRule(std::string rule) : rule_(std::move(rule)) {} virtual ~BaseRule() {} virtual void validate() = 0; std::unique_ptr<BaseRule> upgrade() { if (rule_to_upgrade_) return std::move(rule_to_upgrade_); return {}; } virtual void handle(const Req&, Res&, const routing_params&) = 0; virtual void handle_upgrade(const Req&, Res& res, SocketAdaptor&&) { res = Res(404); res.end(); }
+namespace cc { class BaseRule { public: BaseRule(std::string rule) : rule_(std::move(rule)) {} virtual ~BaseRule() {} virtual void validate() = 0; std::unique_ptr<BaseRule> upgrade() { if (rule_to_upgrade_) return std::move(rule_to_upgrade_); return {}; } virtual void handle(const Req&, Res&, const routing_params&) = 0; virtual void handle_upgrade(const Req&, Res& res, SocketAdaptor&&) { res = Res(404); res.end(); }
 #ifdef ENABLE_SSL
  virtual void handle_upgrade(const Req&, Res& res, SSLAdaptor&&) { res = Res(404); res.end(); }
 #endif
