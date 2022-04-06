@@ -13,7 +13,7 @@
 #include "cc/utility.h"
 #include "cc/logging.h"
 #include "cc/websocket.h"
-namespace cc { class BaseRule { public: BaseRule(std::string rule) : rule_(std::move(rule)) {} virtual ~BaseRule() {} virtual void validate() = 0; std::unique_ptr<BaseRule> upgrade() { if (rule_to_upgrade_) return std::move(rule_to_upgrade_); return {}; } virtual void handle(const Req&, Res&, const routing_params&) = 0; virtual void handle_upgrade(const Req&, Res& res, SocketAdaptor&&) { res = Res(404); res.end(); }
+namespace cc {    class BaseRule { public: BaseRule(std::string rule) : rule_(std::move(rule)) {} virtual ~BaseRule() {} virtual void validate() = 0; std::unique_ptr<BaseRule> upgrade() { if (rule_to_upgrade_) return std::move(rule_to_upgrade_); return {}; } virtual void handle(const Req&, Res&, const routing_params&) = 0; virtual void handle_upgrade(const Req&, Res& res, SocketAdaptor&&) { res = Res(404); res.end(); }
 #ifdef ENABLE_SSL
  virtual void handle_upgrade(const Req&, Res& res, SSLAdaptor&&) { res = Res(404); res.end(); }
 #endif
