@@ -1,4 +1,3 @@
-
 #pragma once
 #include "config.h"
 #include "cc/ccORM.hh"

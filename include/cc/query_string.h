@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace cc {int qs_strncmp(const char* s, const char* qs, size_t n);/* Finds the beginning of each key/value pair and stores a pointer in qs_kv. * Also decodes the value portion of the k/v pair *in-place*. In a future * enhancement it will also have a compile-time option of sorting qs_kv * alphabetically by key. */int qs_parse(char* qs, char* qs_kv[], int qs_kv_size);int qs_decode(char* qs);char* qs_k2v(const char* key, char* const* qs_kv, int qs_kv_size, int nth);char* qs_scanvalue(const char* key, const char* qs, char* val, size_t val_len);
+namespace cc {int qs_strncmp(const char* s, const char* qs, size_t n);int qs_parse(char* qs, char* qs_kv[], int qs_kv_size);int qs_decode(char* qs);char* qs_k2v(const char* key, char* const* qs_kv, int qs_kv_size, int nth);char* qs_scanvalue(const char* key, const char* qs, char* val, size_t val_len);
 #undef _qsSORTING
 
 #define QS_ISHEX(x)  ((((x) >= '0' && (x) <= '9') || ((x) >= 'A' && (x) <= 'F') ||  ((x) >= 'a' && (x) <= 'f'))    ? 1   : 0)
