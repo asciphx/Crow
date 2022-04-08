@@ -41,7 +41,7 @@ namespace cc { static std::unordered_map<uint64_t, std::string> RES_CACHE_MENU =
 #else
  deadline_timer_.expires_from_now(boost::posix_time::seconds(1));
 #endif
- deadline_timer_.async_wait(std::bind(&dumb_timer_queue::tick_handler, this, std::placeholders::_1)); } ~dumb_timer_queue() { deadline_timer_.cancel(); } inline void cancel(size_t id) { dq_.erase(id); } inline size_t add(const std::function<void()>& task) { dq_.insert({ ++step_, {std::chrono::steady_clock::now() + std::chrono::seconds(tick), task} }); return step_; } inline size_t add(const std::function<void()>& task, std::uint8_t& timeout) { dq_.insert({ ++step_, {std::chrono::steady_clock::now() + std::chrono::seconds(timeout), task} }); return step_; } inline size_t add(const std::function<void()>& task, std::uint8_t&& timeout) { dq_.insert({ ++step_, {std::chrono::steady_clock::now() + std::chrono::seconds(timeout), task} }); return step_; } private: void tick_handler(const boost::system::error_code& ec) { if (ec) return;
+ deadline_timer_.async_wait(std::bind(&dumb_timer_queue::tick_handler, this, std::placeholders::_1)); } ~dumb_timer_queue() { deadline_timer_.cancel(); } inline void cancel(uint16_t& id) {  dq_.erase(id); id = 0; } inline size_t add(const std::function<void()>& task) { if (step_ == 0xffff)++step_; dq_.insert({ ++step_, {std::chrono::steady_clock::now() + std::chrono::seconds(tick), task} }); return step_; } inline size_t add(const std::function<void()>& task, std::uint8_t& timeout) { if (step_ == 0xffff)++step_; dq_.insert({ ++step_, {std::chrono::steady_clock::now() + std::chrono::seconds(timeout), task} }); return step_; } inline size_t add(const std::function<void()>& task, std::uint8_t&& timeout) { if (step_ == 0xffff)++step_; dq_.insert({ ++step_, {std::chrono::steady_clock::now() + std::chrono::seconds(timeout), task} }); return step_; } private: void tick_handler(...) { 
 #ifdef _WIN32
  for (const auto& task : dq_) { if (task.second.first < std::chrono::steady_clock::now()) { (task.second.second)(); dq_.erase(task.first); } }
 #else
@@ -53,4 +53,4 @@ namespace cc { static std::unordered_map<uint64_t, std::string> RES_CACHE_MENU =
 #else
  int y = _v->tm_year / 100; os << std::setw(2) << 19 + y << std::setw(2) << _v->tm_year - y * 100;
 #endif
- os << '-' << std::setw(2) << (_v->tm_mon + 1) << '-' << std::setw(2) << _v->tm_mday << ' ' << std::setw(2) << _v->tm_hour << ':' << std::setw(2) << _v->tm_min << ':' << std::setw(2) << _v->tm_sec; s = os.str(); return s;}}
+ os << '-' << std::setw(2) << (_v->tm_mon + 1) << '-' << std::setw(2) << _v->tm_mday << ' ' << std::setw(2) << _v->tm_hour << ':' << std::setw(2) << _v->tm_min << ':' << std::setw(2) << _v->tm_sec; s = os.str(); return s; }}
