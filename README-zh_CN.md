@@ -11,7 +11,7 @@
 #include "cc.h"
 int main(){
     cc::SimpleApp app;
-    ROUTE(app, "/")([](){
+    app("/")([](){
         return u8"你好 世界！";
     });
     app.port(18080).multithreaded().run();
@@ -35,7 +35,7 @@ int main(){
 ## 示例
 #### 上传文件
 ```c++
-  app.route("/upload").methods(cc::HTTP::POST)([](const cc::Req& req) {
+  app("/upload").methods(cc::HTTP::POST)([](const cc::Req& req) {
 	  cc::Parser<2048> msg(req);
 	  json j = json::object();
 	  for (auto p : msg.params) {
@@ -46,7 +46,7 @@ int main(){
 ```
 #### sql查询
 ```c++
-  app.route("/sql")([] {
+  app("/sql")([] {
 	auto q = d.conn();
 	//std::tuple<int, std::string> ds=q("select id,name from users_test where id = 1").template r__<int,std::string>();
 	//std::cout<<std::get<0>(ds)<<std::get<1>(ds);
@@ -57,7 +57,7 @@ int main(){
 ```
 #### 静态反射
 ```c++
-  app.route("/list")([]() {
+  app("/list")([]() {
 	User u; List list{ &u }; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
@@ -76,7 +76,7 @@ int main(){
 
 #### JSON响应
 ```c++
-ROUTE(app, "/json")([]{
+app("/json")([]{
     cc::json x;
 	x["message"] = u8"你好 世界！";
 	x["double"]=3.1415926;
@@ -91,7 +91,7 @@ ROUTE(app, "/json")([]{
 
 #### 论据
 ```c++
-ROUTE(app,"/hello/<int>")([](int count){
+app("/hello/<int>")([](int count){
     if (count > 100) return cc::Res(400);
     std::ostringstream os;
     os << count << " bottles of beer!";
@@ -101,14 +101,14 @@ ROUTE(app,"/hello/<int>")([](int count){
 编译时的处理程序参数类型检查 
 ```c++
 // 编译错误，消息"处理程序类型与URL参数不匹配"
-ROUTE(app,"/another/<int>")([](int a, int b){
+app("/another/<int>")([](int a, int b){
     return cc::Res(500);
 });
 ```
 
 #### 处理JSON请求
 ```c++
-ROUTE(app, "/add_json").methods("POST"_mt)
+app.post("/add_json")
 ([](const cc::Req& req){
     auto x = cc::json::load(req.body);
     if (!x) return cc::Res(400);

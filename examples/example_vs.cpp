@@ -5,7 +5,7 @@ using namespace cc; auto d = D_();//auto d = D_pgsql();
 					//auto d = D_sqlite("test.db");
 int main() {
   App</*Middle*/> app;//Global Middleware,and default config
-  app.directory("./static").home("i.htm").timeout(2)
+  app.directory("static").home("i.htm").timeout(2).upload_path("uploads")
 	.file_type({ "html","ico","css","js","json","svg","png","gif","jpg","txt" });
   //Server rendering and support default route
   app.default_route()([] {
@@ -14,7 +14,7 @@ int main() {
 	return mustache::load("404NotFound.html").render(j);
 	});
   //sql
-  app.route("/sql")([] {
+  app("/sql")([] {
 	auto q = d.conn();
 	//json v = q("select * from user where id = 1").JSON();
 	//std::cout << v;
@@ -23,36 +23,19 @@ int main() {
 	return Res(i, s);
 	});
   // a request to /path should be forwarded to /path/
-  app.route("/path/")([]() {
-	return "Trailing slash test case..";
-	});
+  app("/path/")([]() { return "Trailing slash test case.."; });
   // upload file
-  app.route("/upload").methods(HTTP::POST)([](const Req& req) {
-	Parser<4096> msg(req);
-	json j = json::object();
-	for (auto p : msg.params) {
-	  if (!p.size) j[p.key] = p.value; else j[p.key] = p.filename;
-	}
-	return j;
-	});
-  //json::parse
-  app.route("/list")([]() {
-	json v = json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
-	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
-	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
-	return v;
-	});
+  app.post("/upload")([](const Req& req) { return Parser<4096>(req); });
   //static reflect
-  app.route("/lists")([]() {
+  app("/lists")([]() {
 	User u; List list{ &u }; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
 	json json_output = json(list);
 	return json_output;
 	});
-
   //status code + return json
-  app.route("/json")([] {
+  app("/json")([] {
 	json x;
 	x["message"] = "你好 世界！";
 	x["double"] = 3.1415926;
@@ -61,35 +44,42 @@ int main() {
 	x["false"] = false;
 	x["null"] = nullptr;
 	x["bignumber"] = 2353464586543265455;
-	return x;
+	return Res(202, x);
+	});
+  //json::parse
+  app("/list")([]() {
+	json v = json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
+	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
+	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
+	return v;
 	});
   //ostringstream
-  app.route("/hello/<int>")([](int count) {
+  app("/hello/<int>")([](int count) {
 	if (count > 100) return Res(400);
 	std::ostringstream os;
 	os << count << " bottles of beer!";
 	return Res(203, os.str());
 	});
   //rank routing
-  app.route("/add/<int>/<int>")([](const Req& req, Res& res, int a, int b) {
+  app("/add/<int>/<int>")([](const Req& req, Res& res, int a, int b) {
 	std::ostringstream os;
 	os << a + b;
 	res.write(os.str());
 	res.end();
 	});
   // Compile error with message "Handler type is mismatched with URL paramters"
-  //ROUTE(app,"/another/<int>")([](int a, int b){
+  //app("/another/<int>")([](int a, int b){
 	  //return response(500);
   //});
   // more json example
-  app.route("/add_json").methods("POST"_mt)([](const Req& req) {
+  app.post("/add_json")([](const Req& req) {
 	auto x = json::parse(req.body);
 	if (!x) return Res(400);
 	int sum = x["a"].get<int>() + x["b"].get<int>();
 	std::ostringstream os; os << sum;
 	return Res{ os.str() };
 	});
-  app.route("/params")([](const Req& req) {
+  app("/params")([](const Req& req) {
 	std::ostringstream os;
 	os << "Params: " << req.url_params << "\n\n";
 	os << "The key 'foo' was " << (req.url_params.get("foo") == nullptr ? "not " : "") << "found.\n";
@@ -103,5 +93,5 @@ int main() {
 	return Res{ os.str() };
 	});
   //logger::setHandler(std::make_shared<ExampleLogHandler>());
-  app.loglevel(LogLevel::WARNING).port(8080).multithreaded().run();
+  app.loglevel(LogLevel::WARNING).set_port(8080).multithreaded().run();
 }

@@ -25,7 +25,7 @@ void broadcast(const string& msg) {
 int main() {
   cc::App<> app;
   app.directory(".").home("example_chat.html");
-  ROUTE(app,"/logs")([] {
+  app("/logs")([] {
 	LOG_INFO<<"logs requested";
 	json x;
 	int start=max(0,(int)msgs.size()-100);
@@ -36,7 +36,7 @@ int main() {
 	return x;
   });
 
-  ROUTE(app,"/logs/<int>")
+  app("/logs/<int>")
 	([](const cc::Req& /*req*/,cc::Res& res,int after) {
 	LOG_INFO<<"logs with last "<<after;
 	if (after<(int)msgs.size()) {
@@ -61,14 +61,14 @@ int main() {
 	}
   });
 
-  ROUTE(app,"/send").methods("GET"_mt,"POST"_mt)
+  app("/send").methods("GET"_mt,"POST"_mt)
 	([](const cc::Req& req) {
 	LOG_INFO<<"msg from client: "<<req.body;
 	broadcast(req.body);
 	return "";
   });
 
-  app.port(8080)
+  app.set_port(8080)
 	//.multithreaded()
 	.run();
 }

@@ -405,7 +405,7 @@ TEST(server_handling_error_request) {
   ROUTE(app,"/")([] {return "A";});
   //Server<App<>> server(&app, LOCALHOST_ADDRESS, 45451);
   //auto _ = async(launch::async, [&]{server.run();});
-  auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).port(45451).run();});
+  auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).set_port(45451).run();});
   app.wait_for_server_start();
   std::string sendmsg="POX";
   asio::io_service is;
@@ -437,8 +437,8 @@ TEST(multi_server) {
 
   //auto _ = async(launch::async, [&]{server1.run();});
   //auto _2 = async(launch::async, [&]{server2.run();});
-  auto _=async(launch::async,[&] {app1.bindaddr(LOCALHOST_ADDRESS).port(45451).run();});
-  auto _2=async(launch::async,[&] {app2.bindaddr(LOCALHOST_ADDRESS).port(45452).run();});
+  auto _=async(launch::async,[&] {app1.bindaddr(LOCALHOST_ADDRESS).set_port(45451).run();});
+  auto _2=async(launch::async,[&] {app2.bindaddr(LOCALHOST_ADDRESS).set_port(45452).run();});
   app1.wait_for_server_start();
   app2.wait_for_server_start();
 
@@ -811,7 +811,7 @@ TEST(middleware_context) {
 
   //decltype(app)::server_t server(&app, LOCALHOST_ADDRESS, 45451);
   //auto _ = async(launch::async, [&]{server.run();});
-  auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).port(45451).run();});
+  auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).set_port(45451).run();});
   app.wait_for_server_start();
   std::string sendmsg="GET /\r\n\r\n";
   asio::io_service is;
@@ -882,7 +882,7 @@ TEST(middleware_cookieparser) {
 
   //decltype(app)::server_t server(&app, LOCALHOST_ADDRESS, 45451);
   //auto _ = async(launch::async, [&]{server.run();});
-  auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).port(45451).run();});
+  auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).set_port(45451).run();});
   app.wait_for_server_start();
   std::string sendmsg="GET /\r\nCookie: key1=value1; key2=\"val=ue2\"; key3=\"val\"ue3\"; key4=\"val\"ue4\"\r\n\r\n";
   asio::io_service is;
@@ -915,7 +915,7 @@ TEST(bug_quick_repeated_request) {
 
   //decltype(app)::server_t server(&app, LOCALHOST_ADDRESS, 45451);
   //auto _ = async(launch::async, [&]{server.run();});
-  auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).port(45451).run();});
+  auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).set_port(45451).run();});
   app.wait_for_server_start();
   std::string sendmsg="GET / HTTP/1.1\r\nHost: localhost\r\n\r\n";
   asio::io_service is;
@@ -957,7 +957,7 @@ TEST(simple_url_params) {
 
   //decltype(app)::server_t server(&app, LOCALHOST_ADDRESS, 45451);
   //auto _ = async(launch::async, [&]{server.run();});
-  auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).port(45451).run();});
+  auto _=async(launch::async,[&] {app.bindaddr(LOCALHOST_ADDRESS).set_port(45451).run();});
   app.wait_for_server_start();
   asio::io_service is;
   std::string sendmsg;
@@ -1072,34 +1072,34 @@ TEST(simple_url_params) {
   app.stop();
 }
 
-TEST(route) {
+TEST(get) {
   App<> app;
   int x=1;
-  app.route("/")
+  app.get("/")
 	([&] {
 	x=2;
 	return "";
   });
 
-  app.route("/set4")
+  app.get("/set4")
 	([&](const Req&) {
 	x=4;
 	return "";
   });
-  app.route("/set5")
+  app.get("/set5")
 	([&](const Req&,Res& res) {
 	x=5;
 	res.end();
   });
 
-  app.route("/set_int/<int>")
+  app.get("/set_int/<int>")
 	([&](int y) {
 	x=y;
 	return "";
   });
 
   try {
-	app.route("/invalid_test/<double>/<path>")
+	app.get("/invalid_test/<double>/<path>")
 	  ([]() {
 	  return "";
 	});

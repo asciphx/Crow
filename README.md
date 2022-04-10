@@ -11,7 +11,7 @@ Crow is C++ microframework for web. Support Mac, Linux, windows, three platforms
 #include "cc.h"
 int main(){
     cc::SimpleApp app;
-    ROUTE(app, "/")([](){
+    app("/")([](){
         return "Hello world!";
     });
     app.port(18080).multithreaded().run();
@@ -41,7 +41,7 @@ int main(){
 ## Examples
 #### Upload file
 ```c++
-  app.route("/upload").methods(cc::HTTP::POST)([](const cc::Req& req) {
+  app("/upload").methods(cc::HTTP::POST)([](const cc::Req& req) {
 	  cc::Parser<2048> msg(req);
 	  json j = json::object();
 	  for (auto p : msg.params) {
@@ -52,7 +52,7 @@ int main(){
 ```
 #### sql query
 ```c++
-  app.route("/sql")([] {
+  app("/sql")([] {
 	auto q = d.conn();
 	//std::tuple<int, std::string> ds=q("select id,name from users_test where id = 1").template r__<int,std::string>();
 	//std::cout<<std::get<0>(ds)<<std::get<1>(ds);
@@ -63,7 +63,7 @@ int main(){
 ```
 #### Static reflection
 ```c++
-  app.route("/list")([]() {
+  app("/list")([]() {
 	User u; List list{ &u }; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
@@ -82,7 +82,7 @@ int main(){
 
 #### JSON Response
 ```c++
-ROUTE(app, "/json")([]{
+app("/json")([]{
     cc::json x;
 	x["message"]="Hello, World!";
 	x["double"]=3.1415926;
@@ -97,7 +97,7 @@ ROUTE(app, "/json")([]{
 
 #### Arguments
 ```c++
-ROUTE(app,"/hello/<int>")([](int count){
+app("/hello/<int>")([](int count){
     if (count > 100) return cc::Res(400);
     std::ostringstream os;
     os << count << " bottles of beer!";
@@ -107,14 +107,14 @@ ROUTE(app,"/hello/<int>")([](int count){
 Handler arguments type check at compile time
 ```c++
 // Compile error with message "Handler type is mismatched with URL paramters"
-ROUTE(app,"/another/<int>")([](int a, int b){
+app("/another/<int>")([](int a, int b){
     return cc::Res(500);
 });
 ```
 
 #### Handling JSON Requests
 ```c++
-ROUTE(app, "/add_json").methods("POST"_mt)
+app.post("/add_json")
 ([](const cc::Req& req){
     auto x = cc::json::load(req.body);
     if (!x) return cc::Res(400);

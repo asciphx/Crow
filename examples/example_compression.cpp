@@ -5,16 +5,16 @@
 int main() {
   cc::App<> app;
   //cc::App<cc::CompressionGzip> app;
-  ROUTE(app,"/hello")([&](const cc::Req&,cc::Res& res) {
+  app("/hello")([&](const cc::Req&,cc::Res& res) {
 	res.compressed=false;
 	res.body="Hello World! This is uncompressed!";
 	res.end();
   });
 
-  ROUTE(app,"/hello_compressed")([]() {
+  app("/hello_compressed")([]() {
 	return "Hello World! This is compressed by default!";
   });
-  app.port(8080)
+  app.set_port(8080)
 	.use_compression(cc::compression::algorithm::DEFLATE)
 	//.use_compression(cc::compression::algorithm::GZIP)
 	.loglevel(cc::LogLevel::DEBUG)

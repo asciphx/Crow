@@ -6,12 +6,12 @@ int main() {
   cc::App<> app;
   std::mutex mtx;
   std::unordered_set<cc::websocket::connection*> users;
-  ROUTE(app,"/")([] {
+  app("/")([] {
 	char name[64];gethostname(name,64);
 	json j{{"servername",name}};
 	return cc::mustache::load("ws.html").render(j);
   });
-  ROUTE(app,"/ws")
+  app("/ws")
 	.websocket()
 	.onopen([&](cc::websocket::connection& conn) {
 	LOG_INFO<<"new websocket connection";
@@ -32,7 +32,7 @@ int main() {
 		u->send_text(data);
   });
 
-  app.port(8080).loglevel(cc::LogLevel::WARNING)
+  app.set_port(8080).loglevel(cc::LogLevel::WARNING)
 	.multithreaded()
 	.run();
 }
