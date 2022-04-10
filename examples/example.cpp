@@ -20,6 +20,15 @@ int main() {
 	json j{{"servername",name}};
 	return mustache::load("404NotFound.html").render(j);
   });
+  // upload file
+  app.route("/upload").methods(HTTP::POST)([](const Req& req) {
+	Parser<4096> msg(req);
+	json j = json::object();
+	for (auto p : msg.params) {
+	  if (!p.size) j[p.key] = p.value; else j[p.key] = p.filename;
+	}
+	return j;
+	});
   //sql
   app.route("/sql")([] {
 	auto q = d.conn();
@@ -38,10 +47,10 @@ int main() {
   });
   //static reflect
   app.route("/lists")([] {
-	List list=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
+	User u; List list{ &u }; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
-	  {"is":true,"weight":51.0,"name":"best","age":26}]})").get<List>();
-	json json_output=json(list);
+	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
+	json json_output = json(list);
 	return json_output;
   });
   //status code + return json
