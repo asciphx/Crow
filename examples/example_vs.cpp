@@ -14,7 +14,7 @@ int main() {
 	return mustache::load("404NotFound.html").render(j);
 	});
   //sql
-  app("/sql")([] {
+  app["/sql"]([] {
 	auto q = d.conn();
 	//json v = q("select * from user where id = 1").JSON(); std::cout << v;
 	int i = 200; q("SELECT 200+2").r__(i);
@@ -22,11 +22,11 @@ int main() {
 	return Res(i, s);
 	});
   // a request to /path should be forwarded to /path/
-  app("/path/")([]() { return "Trailing slash test case.."; });
+  app["/path/"]([]() { return "Trailing slash test case.."; });
   // upload file
   app.post("/upload")([](const Req& req) { return Parser<4096>(req); });
   //static reflect
-  app("/lists")([]() {
+  app["/lists"]([]() {
 	User u; List list{ &u }; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
@@ -34,7 +34,7 @@ int main() {
 	return json_output;
 	});
   //status code + return json
-  app("/json")([] {
+  app["/json"]([] {
 	json x;
 	x["message"] = "你好 世界！";
 	x["double"] = 3.1415926;
@@ -46,28 +46,28 @@ int main() {
 	return Res(202, x);
 	});
   //json::parse
-  app("/list")([]() {
+  app["/list"]([]() {
 	json v = json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
 	return v;
 	});
   //ostringstream
-  app("/hello/<int>")([](int count) {
+  app["/hello/<int>"]([](int count) {
 	if (count > 100) return Res(400);
 	std::ostringstream os;
 	os << count << " bottles of beer!";
 	return Res(203, os.str());
 	});
   //rank routing
-  app("/add/<int>/<int>")([](const Req& req, Res& res, int a, int b) {
+  app["/add/<int>/<int>"]([](const Req& req, Res& res, int a, int b) {
 	std::ostringstream os;
 	os << a + b;
 	res.write(os.str());
 	res.end();
 	});
   // Compile error with message "Handler type is mismatched with URL paramters"
-  //app("/another/<int>")([](int a, int b){
+  //app["/another/<int>"]([](int a, int b){
 	  //return response(500);
   //});
   // more json example
@@ -78,7 +78,7 @@ int main() {
 	std::ostringstream os; os << sum;
 	return Res{ os.str() };
 	});
-  app("/params")([](const Req& req) {
+  app["/params"]([](const Req& req) {
 	std::ostringstream os;
 	os << "Params: " << req.url_params << "\n\n";
 	os << "The key 'foo' was " << (req.url_params.get("foo") == nullptr ? "not " : "") << "found.\n";

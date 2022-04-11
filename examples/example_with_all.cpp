@@ -2,37 +2,37 @@
 #include <sstream>
 int main() {
   cc::App<> app;
-  app("/about")([]() {
+  app["/about"]([]() {
 	return "About Crow example.";
   });
   CATCHALL_ROUTE(app)([] {
 	return "The URL does not seem to be correct.";
   });
   // simple json response
-  app("/json")([] {
+  app["/json"]([] {
 	json x;
 	x["message"]="Hello, World!";
 	return x;
   });
-  app("/hello/<int>")([](int count) {
+  app["/hello/<int>"]([](int count) {
 	if (count>100)
 	  return cc::Res(400);
 	std::ostringstream os;
 	os<<count<<" bottles of beer!";
 	return cc::Res(os.str());
   });
-  app("/add/<int>/<int>")([](const cc::Req&,cc::Res& res,int a,int b) {
+  app["/add/<int>/<int>"]([](const cc::Req&,cc::Res& res,int a,int b) {
 	std::ostringstream os;
 	os<<a+b;
 	res.write(os.str());
 	res.end();
   });
   // Compile error with message "Handler type is mismatched with URL paramters"
-  //app("/another/<int>")
+  //app["/another/<int>"]
   //([](int a, int b){
 	  //return cc::Res(500);
   //});
-  app("/add_json").methods("POST"_mt)([](const cc::Req& req) {
+  app["/add_json"].methods("POST"_mt)([](const cc::Req& req) {
 	auto x=json::parse(req.body);
 	if (!x) return cc::Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();
@@ -40,7 +40,7 @@ int main() {
 	os<<sum;
 	return cc::Res{os.str()};
   });
-  app("/params")
+  app["/params"]
 	([](const cc::Req& req) {
 	std::ostringstream os;
 	os<<"Params: "<<req.url_params<<"\n\n";

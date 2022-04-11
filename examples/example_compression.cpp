@@ -5,13 +5,13 @@
 int main() {
   cc::App<> app;
   //cc::App<cc::CompressionGzip> app;
-  app("/hello")([&](const cc::Req&,cc::Res& res) {
+  app["/hello"]([&](const cc::Req&,cc::Res& res) {
 	res.compressed=false;
 	res.body="Hello World! This is uncompressed!";
 	res.end();
   });
 
-  app("/hello_compressed")([]() {
+  app["/hello_compressed"]([]() {
 	return "Hello World! This is compressed by default!";
   });
   app.set_port(8080)

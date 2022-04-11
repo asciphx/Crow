@@ -6,7 +6,7 @@ int main() {
   cc::App<> app;
   std::mutex mtx;
   std::unordered_set<cc::websocket::connection*> users;
-  app("/ws")
+  app["/ws"]
 	.websocket()
 	.onopen([&](cc::websocket::connection& conn) {
 	std::lock_guard<std::mutex> _(mtx);
@@ -25,7 +25,7 @@ int main() {
 	  else
 		u->send_text(data);
   });
-  app("/")([] {
+  app["/"]([] {
 	char name[64]; gethostname(name, 64);
 	json j{ {"servername",name} };
 	return cc::mustache::load("ws.html").render(j);

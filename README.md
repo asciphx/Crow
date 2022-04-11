@@ -11,7 +11,7 @@ Crow is C++ microframework for web. Support Mac, Linux, windows, three platforms
 #include "cc.h"
 int main(){
     cc::SimpleApp app;
-    app("/")([](){
+    app["/"]([](){
         return "Hello world!";
     });
     app.port(18080).multithreaded().run();
@@ -52,7 +52,7 @@ int main(){
 ```
 #### sql query
 ```c++
-  app("/sql")([] {
+  app["/sql"]([] {
 	auto q = d.conn();
 	//std::tuple<int, std::string> ds=q("select id,name from users_test where id = 1").template r__<int,std::string>();
 	//std::cout<<std::get<0>(ds)<<std::get<1>(ds);
@@ -63,7 +63,7 @@ int main(){
 ```
 #### Static reflection
 ```c++
-  app("/list")([]() {
+  app["/list"]([]() {
 	User u; List list{ &u }; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
@@ -82,7 +82,7 @@ int main(){
 
 #### JSON Response
 ```c++
-app("/json")([]{
+app["/json"]([]{
     cc::json x;
 	x["message"]="Hello, World!";
 	x["double"]=3.1415926;
@@ -97,7 +97,7 @@ app("/json")([]{
 
 #### Arguments
 ```c++
-app("/hello/<int>")([](int count){
+app["/hello/<int>"]([](int count){
     if (count > 100) return cc::Res(400);
     std::ostringstream os;
     os << count << " bottles of beer!";
@@ -107,7 +107,7 @@ app("/hello/<int>")([](int count){
 Handler arguments type check at compile time
 ```c++
 // Compile error with message "Handler type is mismatched with URL paramters"
-app("/another/<int>")([](int a, int b){
+app["/another/<int>"]([](int a, int b){
     return cc::Res(500);
 });
 ```

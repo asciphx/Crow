@@ -30,7 +30,7 @@ int main() {
 	return j;
 	});
   //sql
-  app("/sql")([] {
+  app["/sql"]([] {
 	auto q = d.conn();
 	//json v = q("select * from user where id = 1").JSON();
 	//std::cout << v;
@@ -39,14 +39,14 @@ int main() {
 	return Res(i, s);
   });
   //json::parse
-  app("/list")([] {
+  app["/list"]([] {
 	json v=json::parse(R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
 	return v;
   });
   //static reflect
-  app("/lists")([] {
+  app["/lists"]([] {
 	User u; List list{ &u }; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
 	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
 	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
@@ -54,7 +54,7 @@ int main() {
 	return json_output;
   });
   //status code + return json
-  app("/json")([] {
+  app["/json"]([] {
 	json x;
 	x["message"]="Hello, World!";
 	x["double"]=3.1415926;
@@ -66,12 +66,12 @@ int main() {
 	return Res(203,x);
   });
   // a request to /path should be forwarded to /path/
-  app("/path/")([] {
+  app["/path/"]([] {
 	return "Trailing slash test case..";
   });
   // To see it in action enter {ip}:18080/hello/{integer_between -2^32 and 100} and you should receive
   // {integer_between -2^31 and 100} bottles of beer!
-  app("/hello/<int>")([](int count) {
+  app["/hello/<int>"]([](int count) {
 	if (count>100)
 	  return cc::Res(400);
 	std::ostringstream os;
@@ -79,14 +79,14 @@ int main() {
 	return cc::Res(os.str());
   });
   // To see it in action submit {ip}:18080/add/1/2 and you should receive 3 (exciting, isn't it)
-  app("/add/<int>/<int>")([](const Req& req,Res& res,int a,int b) {
+  app["/add/<int>/<int>"]([](const Req& req,Res& res,int a,int b) {
 	std::ostringstream os;
 	os<<a+b;
 	res.write(os.str());
 	res.end();
   });
   // Compile error with message "Handler type is mismatched with URL paramters"
-  //app("/another/<int>")
+  //app["/another/<int>"]
   //([](int a, int b){
 	  //return cc::response(500);
   //});
@@ -99,7 +99,7 @@ int main() {
   //      * Send and you should receive 2
   // A simpler way for json example:
   //      * curl -d '{"a":1,"b":2}' {ip}:18080/add_json
-  app("/add_json")
+  app["/add_json"]
 	.methods("POST"_mt)
 	([](const cc::Req& req) {
 	auto x=json::parse(req.body);
@@ -113,7 +113,7 @@ int main() {
   // Example of a request taking URL parameters
   // If you want to activate all the functions just query
   // {ip}:18080/params?foo='blabla'&pew=32&count[]=a&count[]=b
-  app("/params")
+  app["/params"]
 	([](const cc::Req& req) {
 	std::ostringstream os;
 	// To get a simple string from the url params
@@ -142,7 +142,7 @@ int main() {
 	}
 	return cc::Res{os.str()};
   });
-  app("/large")([] {
+  app["/large"]([] {
 	return std::string(512*1024,' ');
   });
 
