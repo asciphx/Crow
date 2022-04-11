@@ -4,7 +4,6 @@
 #ifdef ENABLE_SSL
 #include <boost/asio/ssl.hpp>
 #endif
-#include "cc/settings.h"
 #if BOOST_VERSION > 106900
 #define GET_IO_SERVICE(s) ((boost::asio::io_context&)(s).get_executor().context())
 #else

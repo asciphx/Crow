@@ -555,7 +555,7 @@ TEST(json_read_real) {
   "0.7192708333333333", "0.05675117924528302", "0.21308541105121293",
   "0.7045386904761904", "0.8016815476190476"};
   for (auto x:v) {
-	LOG_DEBUG<<x;
+	LOG_DEBUG(x);
 	ASSERT_EQUAL(json::parse(x).get<double>(),boost::lexical_cast<double>(x));
   }
 

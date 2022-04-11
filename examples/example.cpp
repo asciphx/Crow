@@ -11,7 +11,7 @@ class ExampleLogHandler : public ILogHandler {
 };
 int main() {
   App<ExampleMiddleware/*,Middle*/> app;//Global Middleware,and default config
-  app.directory("./static").home("i.htm").timeout(2)
+  app.directory("./static").home("i.htm").timeout(3)
 	.file_type({"html","ico","css","js","json","svg","png","jpg","gif","txt"})
 	.get_middleware<ExampleMiddleware>().setMessage("hello");
   //Server rendering and support default route

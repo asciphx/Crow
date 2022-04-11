@@ -5,7 +5,7 @@ using namespace cc; auto d = D_();//auto d = D_pgsql();
 					//auto d = D_sqlite("test.db");
 int main() {
   App</*Middle*/> app;//Global Middleware,and default config
-  app.directory("static").home("i.htm").timeout(2).upload_path("uploads")
+  app.directory("static").home("i.htm").timeout(3).upload_path("uploads")
 	.file_type({ "html","ico","css","js","json","svg","png","gif","jpg","txt" });
   //Server rendering and support default route
   app.default_route()([] {
@@ -16,8 +16,7 @@ int main() {
   //sql
   app("/sql")([] {
 	auto q = d.conn();
-	//json v = q("select * from user where id = 1").JSON();
-	//std::cout << v;
+	//json v = q("select * from user where id = 1").JSON(); std::cout << v;
 	int i = 200; q("SELECT 200+2").r__(i);
 	std::string s; q("SELECT '你好 世界！'").r__(s);
 	return Res(i, s);

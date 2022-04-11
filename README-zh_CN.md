@@ -35,7 +35,7 @@ int main(){
 ## 示例
 #### 上传文件
 ```c++
-  app("/upload").methods(cc::HTTP::POST)([](const cc::Req& req) {
+  app.post("/upload")([](const cc::Req& req) {
 	  cc::Parser<2048> msg(req);
 	  json j = json::object();
 	  for (auto p : msg.params) {

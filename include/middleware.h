@@ -79,7 +79,7 @@ namespace cc {
 	ExampleMiddleware() { message = "fastify"; }
 	void setMessage(std::string s) { message = s; }
 	struct Ctx {};
-	void before_handle(Req& req, Res& res, Ctx& ctx) { LOG_WARNING << " - MESSAGE: " << message; }
+	void before_handle(Req& req, Res& res, Ctx& ctx) { LOG_WARNING(" - MESSAGE: " << message); }
 	void after_handle(Req& req, Res& res, Ctx& ctx) {}
   };
 }
