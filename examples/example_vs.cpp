@@ -1,3 +1,4 @@
+#define ENABLE_COMPRESSION
 #include "cc.h"
 #include "middleware.h"
 #include "module.h"
@@ -5,7 +6,7 @@ using namespace cc; auto d = D_();//auto d = D_pgsql();
 					//auto d = D_sqlite("test.db");
 int main() {
   App</*Middle*/> app;//Global Middleware,and default config
-  app.directory("static").home("i.htm").timeout(3).upload_path("uploads")
+  app.directory("static").home("i.htm").timeout(3).upload_path("upload")
 	.file_type({ "html","ico","css","js","json","svg","png","gif","jpg","txt" });
   //Server rendering and support default route
   app.default_route()([] {

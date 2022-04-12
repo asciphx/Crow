@@ -73,7 +73,7 @@ namespace cc { static std::string RES_home = HOME_PAGE; static std::string_view 
 #endif
   using context_t = detail::Ctx<Middlewares...>; template <typename T> typename T::Ctx& get_context(const Req& req) { static_assert(spell::contains<T, Middlewares...>::value, "App doesn't have the specified middleware type."); auto& ctx = *reinterpret_cast<context_t*>(req.middleware_context); return ctx.template get<T>(); } template <typename T> T& get_middleware() { return utility::get_element_by_type<T, Middlewares...>(middlewares_); }  void wait_for_server_start() { std::unique_lock<std::mutex> lock(start_mutex_); if (server_started_) return; cv_started_.wait(lock); } private: uint16_t concurrency_ = 1; Router router_; bool is_not_set_types = true;
 #ifdef ENABLE_COMPRESSION
- compression::algorithm comp_algorithm_;
+ compression::algorithm comp_algorithm_ = (compression::algorithm)15;
 #endif
  std::tuple<Middlewares...> middlewares_;
 #ifdef ENABLE_SSL

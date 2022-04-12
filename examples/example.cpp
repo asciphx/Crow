@@ -1,3 +1,4 @@
+#define ENABLE_COMPRESSION
 #include "cc.h"
 #include "middleware.h"
 #include "module.h"
