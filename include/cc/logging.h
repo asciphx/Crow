@@ -6,7 +6,7 @@
 #include <ctime>
 #include <iostream>
 #include <sstream>
-
+#include "config.h"
 namespace cc { enum class LogLevel { DEBUG = 1, INFO, WARNING, ERR, CRITICAL, }; class ILogHandler { public:virtual void log(std::string message, LogLevel level) = 0; }; class CerrLogHandler : public ILogHandler { public:void log(std::string message, LogLevel) override { std::cerr << message; } }; class logger { private: static std::string timestamp() { char date[32]; time_t t = time(0); tm my_tm;
 #if defined(_MSC_VER) || defined(__MINGW32__)
  localtime_s(&my_tm, &t);

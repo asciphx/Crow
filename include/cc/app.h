@@ -27,7 +27,7 @@
 #include <locale.h>
 #define ROUTE(app, url) app.get(url)
 #else
-#define ROUTE(app, url) app.route_url<cc::spell::get_parameter_tag(url)>(url)
+#define ROUTE(app, url) app[url]
 #endif
 #define CATCHALL_ROUTE(app) app.default_route()
 
@@ -57,7 +57,7 @@ namespace cc { static std::string RES_home = HOME_PAGE; static std::string_view 
 #ifndef DISABLE_HOME
  route_url<cc::spell::get_parameter_tag("/")>("/")([] { if (RES_CACHE_TIME[0] > nowStamp()) { return RES_CACHE_MENU[0]; } std::string s = std::move((std::string)mustache::load(RES_home)); RES_CACHE_TIME[0] = nowStamp(detail::dumb_timer_queue::tick); RES_CACHE_MENU[0] = s; return s; });
 #endif
- route_url<cc::spell::get_parameter_tag("/_")>("/_")([](const cc::Req& req) { return "are you ok?"; }); validate();
+ route_url<cc::spell::get_parameter_tag("/_")>("/_")([](const cc::Req& req) {  return "are you ok?"; }); validate();
 #ifdef ENABLE_SSL
  if (use_ssl_) { ssl_server_ = std::move(std::unique_ptr<ssl_server_t>(new ssl_server_t(this, &middlewares_, concurrency_, &ssl_context_))); notify_server_start(); ssl_server_->run(); } else
 #endif

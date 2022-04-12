@@ -59,7 +59,7 @@ int main() {
   // ignore all log
   cc::logger::setLogLevel(cc::LogLevel::DEBUG);
   //cc::logger::setHandler(std::make_shared<ExampleLogHandler>());
-  app.port(8080)
+  app.set_port(8080)
 	.multithreaded()
 	.run();
 }

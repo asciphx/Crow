@@ -13,7 +13,7 @@ mustachetest.cpp
 add_executable(mustachetest ${TEST_SRCS})
 #target_link_libraries(unittest crow)
 #target_link_libraries(unittest ${Boost_LIBRARIES} )
-set_target_properties(mustachetest PROPERTIES COMPILE_FLAGS "-Wall -std=c++1y")
+set_target_properties(mustachetest PROPERTIES COMPILE_FLAGS "-Wall -O3 -std=c++17")
 
 #message(${PROJECT_SOURCE_DIR})
 #message(${CMAKE_CURRENT_BINARY_DIR})
