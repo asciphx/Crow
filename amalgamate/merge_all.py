@@ -9,10 +9,10 @@ header_path = "../include"
 if len(sys.argv) > 1:
     header_path = sys.argv[1]
 
-OUTPUT = 'crow_all.h'
+OUTPUT = 'cc_all.h'
 re_depends = re.compile('^#include "(.*)"', re.MULTILINE)
 headers = [x.rsplit('/', 1)[-1] for x in glob(pt.join(header_path, '*.h*'))]
-headers += ['crow/' + x.rsplit('/', 1)[-1] for x in glob(pt.join(header_path, 'crow/*.h*'))]
+headers += ['cc/' + x.rsplit('/', 1)[-1] for x in glob(pt.join(header_path, 'cc/*.h*'))]
 print(headers)
 edges = defaultdict(list)
 for header in headers:

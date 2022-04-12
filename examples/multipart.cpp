@@ -1,3 +1,4 @@
+#define DEFAULT_ENABLE_LOGGING 1//open logger
 #include "cc.h"
 int main() {
   cc::App<> app;
