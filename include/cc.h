@@ -1,5 +1,4 @@
 #pragma once
-#include "config.h"
 #include "cc/ccORM.hh"
 #include "cc/query_string.h"
 #include "cc/llhttp.h"
