@@ -7,7 +7,7 @@
 
 //#define DISABLE_HOME
 //#define ENABLE_SSL
-#define FILE_TIME "max-age=54000,immutable"//Static resource cache seconds(= 90 minute)
+#define FILE_TIME "max-age=54000,immutable"//Static resource cache seconds(= 900 minute)
 #define STATIC_DIRECTORY "static/"//Make sure you bring '/' with you at the end
 #define UPLOAD_DIRECTORY "upload/"//Make sure you bring '/' with you at the end
 #define SERVER_NAME "Crow/1.4"//the server name config
