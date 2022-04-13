@@ -41,7 +41,7 @@ int main(){
 ## Examples
 #### Upload file
 ```c++
-  app.post("/upload")([](const cc::Req& req) {
+  app.post("/upload")([](cc::Req& req) {
 	  cc::Parser<2048> msg(req);
 	  json j = json::object();
 	  for (auto p : msg.params) {
@@ -115,7 +115,7 @@ app["/another/<int>"]([](int a, int b){
 #### Handling JSON Requests
 ```c++
 app.post("/add_json")
-([](const cc::Req& req){
+([](cc::Req& req){
     auto x = cc::json::load(req.body);
     if (!x) return cc::Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();
