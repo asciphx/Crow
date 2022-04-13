@@ -2,7 +2,7 @@
 #include "cc.h"
 int main() {
   cc::App<> app;
-  app["/hello"]([&](const cc::Req&,cc::Res& res) {
+  app["/hello"]([&](cc::Req&,cc::Res& res) {
 	res.compressed=false;
 	res.body="Hello World! This is uncompressed!";
 	res.end();

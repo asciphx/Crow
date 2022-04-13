@@ -21,7 +21,7 @@ int main() {
 	os<<count<<" bottles of beer!";
 	return cc::Res(os.str());
   });
-  app["/add/<int>/<int>"]([](const cc::Req&,cc::Res& res,int a,int b) {
+  app["/add/<int>/<int>"]([](cc::Req&,cc::Res& res,int a,int b) {
 	std::ostringstream os;
 	os<<a+b;
 	res.write(os.str());
@@ -32,7 +32,7 @@ int main() {
   //([](int a, int b){
 	  //return cc::Res(500);
   //});
-  app["/add_json"].methods("POST"_mt)([](const cc::Req& req) {
+  app["/add_json"].methods("POST"_mt)([](cc::Req& req) {
 	auto x=json::parse(req.body);
 	if (!x) return cc::Res(400);
 	int sum=x["a"].get<int>()+x["b"].get<int>();
@@ -41,7 +41,7 @@ int main() {
 	return cc::Res{os.str()};
   });
   app["/params"]
-	([](const cc::Req& req) {
+	([](cc::Req& req) {
 	std::ostringstream os;
 	os<<"Params: "<<req.url_params<<"\n\n";
 	os<<"The key 'foo' was "<<(req.url_params.get("foo")==nullptr?"not ":"")<<"found.\n";

@@ -25,7 +25,7 @@ int main() {
   // a request to /path should be forwarded to /path/
   app["/path/"]([]() { return "Trailing slash test case.."; });
   // upload file
-  app.post("/upload")([](const Req& req) { return Parser<4096>(req); });
+  app.post("/upload")([](Req& req) { return Parser<4096>(req); });
   //static reflect
   app["/lists"]([]() {
 	User u; List list{ &u }; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
@@ -61,7 +61,7 @@ int main() {
 	return Res(203, os.str());
 	});
   //rank routing
-  app["/add/<int>/<int>"]([](const Req& req, Res& res, int a, int b) {
+  app["/add/<int>/<int>"]([](Req& req, Res& res, int a, int b) {
 	std::ostringstream os;
 	os << a + b;
 	res.write(os.str());
@@ -72,14 +72,14 @@ int main() {
 	  //return response(500);
   //});
   // more json example
-  app.post("/add_json")([](const Req& req) {
+  app.post("/add_json")([](Req& req) {
 	auto x = json::parse(req.body);
 	if (!x) return Res(400);
 	int sum = x["a"].get<int>() + x["b"].get<int>();
 	std::ostringstream os; os << sum;
 	return Res{ os.str() };
 	});
-  app["/params"]([](const Req& req) {
+  app["/params"]([](Req& req) {
 	std::ostringstream os;
 	os << "Params: " << req.url_params << "\n\n";
 	os << "The key 'foo' was " << (req.url_params.get("foo") == nullptr ? "not " : "") << "found.\n";

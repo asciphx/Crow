@@ -79,7 +79,7 @@ TEST(Rule) {
   ASSERT_EQUAL(1,x);
 
   // registering handler with request argument
-  r([&x](const cc::Req&) {x=2;return "";});
+  r([&x](cc::Req&) {x=2;return "";});
 
   r.validate();
 
@@ -288,7 +288,7 @@ TEST(simple_response_routing_params) {
 
 TEST(handler_with_response) {
   App<> app;
-  ROUTE(app,"/")([](const cc::Req&,cc::Res&) {
+  ROUTE(app,"/")([](cc::Req&,cc::Res&) {
   });
 }
 
@@ -297,7 +297,7 @@ TEST(http_method) {
 
   ROUTE(app,"/")
 	.methods("POST"_mt,"GET"_mt)
-	([](const Req& req) {
+	([](Req& req) {
 	if (req.method=="GET"_mt)
 	  return "2";
 	else
@@ -306,22 +306,22 @@ TEST(http_method) {
 
   ROUTE(app,"/get_only")
 	.methods("GET"_mt)
-	([](const Req& /*req*/) {
+	([](Req& /*req*/) {
 	return "get";
   });
   ROUTE(app,"/post_only")
 	.methods("POST"_mt)
-	([](const Req& /*req*/) {
+	([](Req& /*req*/) {
 	return "post";
   });
   ROUTE(app,"/patch_only")
 	.methods("PATCH"_mt)
-	([](const Req& /*req*/) {
+	([](Req& /*req*/) {
 	return "patch";
   });
   ROUTE(app,"/purge_only")
 	.methods("PURGE"_mt)
-	([](const Req& /*req*/) {
+	([](Req& /*req*/) {
 	return "purge";
   });
 
@@ -710,7 +710,7 @@ struct NullSimpleMiddleware {
 TEST(middleware_simple) {
   App<NullMiddleware,NullSimpleMiddleware> app;
   decltype(app)::server_t server(&app,LOCALHOST_ADDRESS,45451);
-  ROUTE(app,"/")([&](const cc::Req& req) {
+  ROUTE(app,"/")([&](cc::Req& req) {
 	app.get_context<NullMiddleware>(req);
 	app.get_context<NullSimpleMiddleware>(req);
 	return "";
@@ -788,7 +788,7 @@ TEST(middleware_context) {
   App<IntSettingMiddleware,FirstMW,SecondMW,ThirdMW> app;
 
   int x{};
-  ROUTE(app,"/")([&](const Req& req) {
+  ROUTE(app,"/")([&](Req& req) {
 	{
 	  auto& ctx=app.get_context<IntSettingMiddleware>(req);
 	  x=ctx.val;
@@ -800,7 +800,7 @@ TEST(middleware_context) {
 
 	return "";
   });
-  ROUTE(app,"/break")([&](const Req& req) {
+  ROUTE(app,"/break")([&](Req& req) {
 	{
 	  auto& ctx=app.get_context<FirstMW>(req);
 	  ctx.v.push_back("handle");
@@ -868,7 +868,7 @@ TEST(middleware_cookieparser) {
   std::string value3;
   std::string value4;
 
-  ROUTE(app,"/")([&](const Req& req) {
+  ROUTE(app,"/")([&](Req& req) {
 	{
 	  auto& ctx=app.get_context<CookieParser>(req);
 	  value1=ctx.get_cookie("key1");
@@ -948,7 +948,7 @@ TEST(simple_url_params) {
   query_string last_url_params;
 
   ROUTE(app,"/params")
-	([&last_url_params](const cc::Req& req) {
+	([&last_url_params](cc::Req& req) {
 	last_url_params=std::move(req.url_params);
 	return "OK";
   });
@@ -1082,12 +1082,12 @@ TEST(get) {
   });
 
   app.get("/set4")
-	([&](const Req&) {
+	([&](Req&) {
 	x=4;
 	return "";
   });
   app.get("/set5")
-	([&](const Req&,Res& res) {
+	([&](Req&,Res& res) {
 	x=5;
 	res.end();
   });

@@ -22,7 +22,7 @@ int main() {
 	return mustache::load("404NotFound.html").render(j);
   });
   // upload file
-  app.post("/upload")([](const Req& req) {
+  app.post("/upload")([](Req& req) {
 	Parser<4096> msg(req);
 	json j = json::object();
 	for (auto p : msg.params) {
@@ -80,7 +80,7 @@ int main() {
 	return cc::Res(os.str());
   });
   // To see it in action submit {ip}:18080/add/1/2 and you should receive 3 (exciting, isn't it)
-  app["/add/<int>/<int>"]([](const Req& req,Res& res,int a,int b) {
+  app["/add/<int>/<int>"]([](Req& req,Res& res,int a,int b) {
 	std::ostringstream os;
 	os<<a+b;
 	res.write(os.str());
@@ -102,7 +102,7 @@ int main() {
   //      * curl -d '{"a":1,"b":2}' {ip}:18080/add_json
   app["/add_json"]
 	.methods("POST"_mt)
-	([](const cc::Req& req) {
+	([](cc::Req& req) {
 	auto x=json::parse(req.body);
 	if (!x)
 	  return cc::Res(400);
@@ -115,7 +115,7 @@ int main() {
   // If you want to activate all the functions just query
   // {ip}:18080/params?foo='blabla'&pew=32&count[]=a&count[]=b
   app["/params"]
-	([](const cc::Req& req) {
+	([](cc::Req& req) {
 	std::ostringstream os;
 	// To get a simple string from the url params
 	// To see it in action /params?foo='blabla'

@@ -37,7 +37,7 @@ int main() {
   });
 
   app["/logs/<int>"]
-	([](const cc::Req& /*req*/,cc::Res& res,int after) {
+	([](cc::Req& /*req*/,cc::Res& res,int after) {
 	LOG_INFO("logs with last "<<after);
 	if (after<(int)msgs.size()) {
 	  json x;
@@ -62,7 +62,7 @@ int main() {
   });
 
   app["/send"].methods("GET"_mt,"POST"_mt)
-	([](const cc::Req& req) {
+	([](cc::Req& req) {
 	LOG_INFO("msg from client: "<<req.body);
 	broadcast(req.body);
 	return "";
