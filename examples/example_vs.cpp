@@ -26,14 +26,6 @@ int main() {
   app["/path/"]([]() { return "Trailing slash test case.."; });
   // upload file
   app.post("/upload")([](Req& req) { return Parser<4096>(req); });
-  // txt
-  app.post("/txt")([](Req& req) {
-    std::string s;
-    if (cc::get_header_value(req.headers, RES_CT)[0] == 't') {
-      s = std::move(cc::file::compress_str(req.body));
-    }
-    return s;
-    });
   //static reflect
   app["/lists"]([]() {
         Tab t{1, true, "ref1", now(), Type{1, "model1", 3.141593}}; // Up to 2 layers
