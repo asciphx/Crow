@@ -47,25 +47,64 @@ int main() {
 	return v;
   });
   //static reflect
-  app["/lists"]([] {
-	User u; List list{ &u }; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
-	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
-	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
-	json json_output = json(list);
-	return json_output;
-  });
+  app["/lists"]([]() {
+        Tab t{1, true, "ref1", now(), Type{1, "model1", 3.141593}}; // Up to 2 layers
+        json::parse(t, R"(
+{
+  "id": 3,
+  "ok": false,
+  "name": "🍻🍺!",
+  "date": "2021-09-08 01:04:30",
+  "type":  {
+    "bigBlob": 0.1,
+    "id": 4,
+    "language": "元宇宙🌀🌌🪐!",
+    "tab":  {
+      "id": 5,
+      "name": "!!!!!",
+      "type":  {
+        "bigBlob": 0.2,
+        "id": 6,
+        "language": "元宇宙2🌀🌌🪐!",
+        "tab":  {
+          "id": 7,
+          "name": "!!!!!!!!",
+          "type":  {
+            "bigBlob": 0.3,
+            "id": 8,
+            "language": "元宇宙4🌀🌌🪐!",
+            "tab":  {
+              "id": 9,
+              "name": "!!!!!!!!!!"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+)");
+    return json(t);
+    });
   //status code + return json
   app["/json"]([] {
-	json x;
-	x["message"]="Hello, World!";
-	x["double"]=3.1415926;
-	x["int"]=2352352;
-	x["true"]=true;
-	x["false"]=false;
-	x["null"]=nullptr;
-	x["bignumber"]=2353464586543265455;
-	return Res(203,x);
-  });
+    json x;
+    x["message"] = "你好 世界！";
+    x["double"] = 3.1415926;
+    x["int"] = 2352352;
+    x["true"] = true;
+    x["false"] = false;
+    x["null"] = nullptr;
+    x["bignumber"] = 2353464586543265455;
+    return Res(202, x);
+    });
+  //json::parse
+  app["/list"]([]() {
+    List list; json::parse(list, R"({"user":{"is":false,"age":25,"weight":50.6,"name":"deaod"},
+	  "userList":[{"is":true,"weight":52.0,"age":23,"state":true,"name":"wwzzgg"},
+	  {"is":true,"weight":51.0,"name":"best","age":26}]})");
+    return json(list);
+    });
   // a request to /path should be forwarded to /path/
   app["/path/"]([] {
 	return "Trailing slash test case..";
