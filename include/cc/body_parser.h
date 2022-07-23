@@ -89,7 +89,8 @@ namespace cc {
           p.key = value; ++b;
         }
         else if (b == '\1') {
-          p.filename = DecodeURL(menu + value);
+                std::string s = menu + value;
+                p.filename = DecodeURL(s);
         }
       }
       p.value = s.substr(0, s.length() - 2);
